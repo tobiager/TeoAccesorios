@@ -63,7 +63,62 @@ El sistema está pensado como demo funcional con **mock data en memoria**, para 
 
 ## 📸 Capturas (demo)
 
-> Agregá imágenes del login, dashboard y reportes acá para que quede fachero.
+---
+
+###  Login
+<p align="center">
+  <img src="assets/login.png" width="500"/>
+</p>
+
+---
+
+###  Dashboard
+<p align="center">
+  <img src="assets/dashboard.png" width="900"/>
+</p>
+
+---
+
+###  Gestión de Clientes
+<p align="center">
+  <img src="assets/clientes.png" width="900"/>
+</p>
+
+---
+
+###  Gestión de Productos
+<p align="center">
+  <img src="assets/productos.png" width="900"/>
+</p>
+
+---
+
+###  Gestión de Empleados (solo Admin)
+<p align="center">
+  <img src="assets/empleados.png" width="900"/>
+</p>
+
+---
+
+###  Ventas
+<p align="center">
+  <img src="assets/ver%20ventas.png" width="900"/>
+</p>
+
+---
+
+###  Nueva Venta
+<p align="center">
+  <img src="assets/nueva%20venta.png" width="900"/>
+</p>
+
+---
+
+###  Reportes
+<p align="center">
+  <img src="assets/reportes.png" width="900"/>
+</p>
+
 
 ---
 
