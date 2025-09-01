@@ -30,7 +30,7 @@ El sistema está pensado como demo funcional con **mock data en memoria**, para 
 
 ## 🧭 Módulos incluidos
 
--  **Login** (demo, acepta cualquier usuario/contraseña)
+-  **Login** (demo, acepta cualquier usuario/contraseña, introducir en usuario Admin o Vendedor para ingresar con ese perfil)
 -  **Dashboard** (KPIs + últimas ventas + stock bajo)
 -  **Clientes** (alta, edición, eliminación y restauración)
 -  **Productos** (filtro por texto/categoría, ABM solo para Admin)
