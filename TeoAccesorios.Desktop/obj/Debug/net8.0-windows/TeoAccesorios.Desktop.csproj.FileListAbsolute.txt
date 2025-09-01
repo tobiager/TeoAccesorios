@@ -1,0 +1,29 @@
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.AssemblyInfoInputs.cache
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.AssemblyInfo.cs
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.csproj.CoreCompileInputs.cache
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.sourcelink.json
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.exe
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.deps.json
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.runtimeconfig.json
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.dll
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.pdb
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.dll
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\refint\TeoAccesorios.Desktop.dll
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.pdb
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.genruntimeconfig.cache
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\ref\TeoAccesorios.Desktop.dll
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.exe
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.deps.json
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.runtimeconfig.json
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.dll
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\TeoAccesorios.Desktop.pdb
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.AssemblyInfoInputs.cache
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.AssemblyInfo.cs
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.csproj.CoreCompileInputs.cache
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.dll
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\refint\TeoAccesorios.Desktop.dll
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.pdb
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.genruntimeconfig.cache
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\ref\TeoAccesorios.Desktop.dll
