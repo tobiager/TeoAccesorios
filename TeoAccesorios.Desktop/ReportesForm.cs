@@ -104,6 +104,9 @@ namespace TeoAccesorios.Desktop
             btnAplicar.Click += (_, __) => LoadData();
             btnExport.Click += (_, __) => Exportar();
 
+           
+            GridHelper.Estilizar(grid);
+
             LoadData();
         }
 

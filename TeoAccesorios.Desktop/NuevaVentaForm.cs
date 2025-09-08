@@ -8,22 +8,22 @@ namespace TeoAccesorios.Desktop
 {
     public class NuevaVentaForm : Form
     {
-        private ComboBox cboCliente = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
-        private ComboBox cboProducto = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
-        private NumericUpDown numCant = new NumericUpDown { Minimum = 1, Maximum = 100, Value = 1, Width = 80 };
-        private Button btnAgregar = new Button { Text = "Agregar" };
-        private Button btnQuitar = new Button { Text = "Quitar" };
-        private Button btnGuardar = new Button { Text = "Guardar" };
-        private DataGridView gridDetalles = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
-        private BindingSource bs = new BindingSource();
+        private readonly ComboBox cboCliente = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
+        private readonly ComboBox cboProducto = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
+        private readonly NumericUpDown numCant = new NumericUpDown { Minimum = 1, Maximum = 1000, Value = 1, Width = 80 };
+        private readonly Button btnAgregar = new Button { Text = "Agregar" };
+        private readonly Button btnQuitar = new Button { Text = "Quitar" };
+        private readonly Button btnGuardar = new Button { Text = "Guardar" };
+        private readonly DataGridView gridDetalles = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false };
+        private readonly BindingSource bs = new BindingSource();
 
-        private List<DetalleVenta> carrito = new List<DetalleVenta>();
+        private readonly List<DetalleVenta> carrito = new List<DetalleVenta>();
 
         public NuevaVentaForm()
         {
             Text = "Nueva Venta";
-            Width = 820;
-            Height = 520;
+            Width = 900;
+            Height = 560;
             StartPosition = FormStartPosition.CenterParent;
 
             var fila1 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(8), AutoSize = false };
@@ -40,36 +40,57 @@ namespace TeoAccesorios.Desktop
             Controls.Add(gridDetalles);
             Controls.Add(fila1);
 
-            // Cargar combos
-            foreach (var c in Repository.ListarClientes(false))
-                cboCliente.Items.Add(string.Format("{0} - {1}", c.Id, c.Nombre));
-            if (cboCliente.Items.Count > 0) cboCliente.SelectedIndex = 0;
+            // Estilo común de grillas
+            GridHelper.Estilizar(gridDetalles);
 
-            foreach (var p in Repository.ListarProductos(false))
-                cboProducto.Items.Add(string.Format("{0} - {1}", p.Id, p.Nombre));
-            if (cboProducto.Items.Count > 0) cboProducto.SelectedIndex = 0;
+            // Columnas de la grilla
+            gridDetalles.Columns.Clear();
+            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Producto", HeaderText = "Producto", DataPropertyName = "Producto" });
+            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Cant", HeaderText = "Cant", DataPropertyName = "Cant", FillWeight = 15 });
+            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Precio", HeaderText = "Precio", DataPropertyName = "Precio", FillWeight = 20, DefaultCellStyle = { Format = "N2" } });
+            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Subtotal", HeaderText = "Subtotal", DataPropertyName = "Subtotal", FillWeight = 20, DefaultCellStyle = { Format = "N2" } });
 
             gridDetalles.DataSource = bs;
+
+            // Cargar combos (tipados)
+            var clientes = Repository.ListarClientes(false);
+            cboCliente.ValueMember = nameof(Cliente.Id);
+            cboCliente.DisplayMember = nameof(Cliente.Nombre);
+            cboCliente.DataSource = clientes;
+            if (clientes.Count > 0) cboCliente.SelectedIndex = 0;
+
+            var productos = Repository.ListarProductos(false);
+            cboProducto.ValueMember = nameof(Producto.Id);
+            cboProducto.DisplayMember = nameof(Producto.Nombre);
+            cboProducto.DataSource = productos;
+            if (productos.Count > 0) cboProducto.SelectedIndex = 0;
+
             RefrescarGrid();
 
             // Handlers
             btnAgregar.Click += (s, e) =>
             {
-                if (cboProducto.SelectedIndex < 0) return;
+                if (cboProducto.SelectedItem is not Producto p) return;
 
-                var sel = cboProducto.SelectedItem as string;
-                if (string.IsNullOrWhiteSpace(sel)) return;
-                if (!int.TryParse(sel.Split('-')[0].Trim(), out var idProd)) return;
+                var cant = (int)numCant.Value;
+                if (cant <= 0) return;
 
-                var p = Repository.Productos.First(x => x.Id == idProd);
-
-                carrito.Add(new DetalleVenta
+                // Si ya está en el carrito, sumo cantidades
+                var linea = carrito.FirstOrDefault(d => d.ProductoId == p.Id);
+                if (linea == null)
                 {
-                    ProductoId = p.Id,
-                    ProductoNombre = p.Nombre,
-                    Cantidad = (int)numCant.Value,
-                    PrecioUnitario = p.Precio
-                });
+                    carrito.Add(new DetalleVenta
+                    {
+                        ProductoId = p.Id,
+                        ProductoNombre = p.Nombre,
+                        Cantidad = cant,
+                        PrecioUnitario = p.Precio
+                    });
+                }
+                else
+                {
+                    linea.Cantidad += cant;
+                }
 
                 if (carrito.Count == 1) cboCliente.Enabled = false; // bloquear cliente al primer ítem
                 RefrescarGrid();
@@ -77,11 +98,16 @@ namespace TeoAccesorios.Desktop
 
             btnQuitar.Click += (s, e) =>
             {
-                if (gridDetalles.CurrentRow?.DataBoundItem is DetalleVenta det)
+                // Quita la línea seleccionada
+                if (gridDetalles.CurrentRow?.DataBoundItem is DetalleView det)
                 {
-                    carrito.Remove(det);
-                    if (carrito.Count == 0) cboCliente.Enabled = true; // liberar si no hay ítems
-                    RefrescarGrid();
+                    var toRemove = carrito.FirstOrDefault(x => x.ProductoNombre == det.Producto && x.PrecioUnitario == det.Precio);
+                    if (toRemove != null)
+                    {
+                        carrito.Remove(toRemove);
+                        if (carrito.Count == 0) cboCliente.Enabled = true; // liberar si no hay ítems
+                        RefrescarGrid();
+                    }
                 }
             };
 
@@ -92,33 +118,40 @@ namespace TeoAccesorios.Desktop
                     MessageBox.Show("Agregá al menos un producto.", "Aviso");
                     return;
                 }
-                if (cboCliente.SelectedIndex < 0)
+                if (cboCliente.SelectedItem is not Cliente cli)
                 {
                     MessageBox.Show("Seleccioná un cliente.", "Aviso");
                     return;
                 }
 
-                var selCli = cboCliente.SelectedItem as string;
-                if (string.IsNullOrWhiteSpace(selCli)) { MessageBox.Show("Seleccioná un cliente.", "Aviso"); return; }
-                if (!int.TryParse(selCli.Split('-')[0].Trim(), out var idCli)) { MessageBox.Show("Cliente inválido.", "Aviso"); return; }
-
-                var cli = Repository.Clientes.First(x => x.Id == idCli);
-
                 var venta = new Venta
                 {
-                    Id = (Repository.Ventas.LastOrDefault() != null ? Repository.Ventas.Last().Id : 2000) + 1,
                     FechaVenta = DateTime.Now,
                     Vendedor = Sesion.Usuario,
                     Canal = "Instagram",
                     ClienteId = cli.Id,
                     ClienteNombre = cli.Nombre,
                     DireccionEnvio = cli.Direccion,
-                    Detalles = carrito.ToList()
+                    Detalles = carrito.Select(d => new DetalleVenta
+                    {
+                        ProductoId = d.ProductoId,
+                        ProductoNombre = d.ProductoNombre,
+                        Cantidad = d.Cantidad,
+                        PrecioUnitario = d.PrecioUnitario
+                    }).ToList()
                 };
 
-                Repository.InsertarVenta(venta);
-                DialogResult = DialogResult.OK;
-                Close();
+                try
+                {
+                    var id = Repository.InsertarVenta(venta); // descuenta stock y devuelve Id
+                    MessageBox.Show("Venta guardada (Id " + id + ").", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("No se pudo guardar la venta.\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             };
 
             // Previene cambio de cliente con ítems
@@ -126,21 +159,33 @@ namespace TeoAccesorios.Desktop
             {
                 if (carrito.Count > 0)
                 {
-                    MessageBox.Show("No se puede cambiar el cliente después de agregar productos. Quite los ítems para cambiarlo.", "Aviso");
                     cboCliente.Enabled = false;
+                    MessageBox.Show("Para cambiar el cliente, quite los ítems primero.", "Aviso");
                 }
             };
         }
 
         private void RefrescarGrid()
         {
-            bs.DataSource = carrito.Select(d => new
+            // Proyección para mostrar
+            var view = carrito.Select(d => new DetalleView
             {
                 Producto = d.ProductoNombre,
                 Cant = d.Cantidad,
                 Precio = d.PrecioUnitario,
                 Subtotal = d.Subtotal
             }).ToList();
+
+            bs.DataSource = view;
+        }
+
+        // DTO solo para la grilla
+        private class DetalleView
+        {
+            public string Producto { get; set; }
+            public int Cant { get; set; }
+            public decimal Precio { get; set; }
+            public decimal Subtotal { get; set; }
         }
     }
 }

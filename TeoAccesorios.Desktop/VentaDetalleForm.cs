@@ -17,6 +17,9 @@ namespace TeoAccesorios.Desktop
             Controls.Add(grid);
             Controls.Add(total);
             Controls.Add(info);
+            
+            GridHelper.Estilizar(grid);
+
         }
     }
 }

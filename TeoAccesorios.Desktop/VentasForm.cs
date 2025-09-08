@@ -25,6 +25,9 @@ namespace TeoAccesorios.Desktop
 
             Controls.Add(grid);
             Controls.Add(top);
+            
+            GridHelper.Estilizar(grid);
+
 
             btnNueva.Click += (_, __) =>
             {

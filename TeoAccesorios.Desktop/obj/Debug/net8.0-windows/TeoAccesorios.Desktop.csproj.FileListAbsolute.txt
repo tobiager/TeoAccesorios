@@ -138,3 +138,6 @@ C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesori
 C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.VentasForm.resources
 C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.csproj.GenerateResource.cache
 C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAcces.F93A7A08.Up2Date
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ClientesForm.resources
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ProductosForm.resources
+C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.NuevaVentaForm.resources

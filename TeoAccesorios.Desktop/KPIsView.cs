@@ -64,6 +64,11 @@ namespace TeoAccesorios.Desktop
             main.Controls.Add(bottom, 0, 2);
             Controls.Add(main);
 
+            
+            GridHelper.Estilizar(topGrid);
+            GridHelper.Estilizar(ultGrid);
+            GridHelper.Estilizar(stockGrid);
+
             LoadFromDb();
         }
 

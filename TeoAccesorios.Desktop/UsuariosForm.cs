@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
@@ -9,53 +10,86 @@ namespace TeoAccesorios.Desktop
 {
     public class UsuariosForm : Form
     {
-        readonly BindingSource bs = new();
-        readonly DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
+        private readonly BindingSource bs = new BindingSource();
+        private readonly DataGridView grid = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = true,
+            AutoGenerateColumns = true,
+
+            // Para que se vea la tabla completa:
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,        // columnas ocupan todo el ancho
+            AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells,    // altura según contenido
+
+            RowHeadersVisible = false,          // quita margen gris
+            AllowUserToAddRows = false,         // quita fila vacía
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            MultiSelect = false,
+            ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize,
+            EnableHeadersVisualStyles = false
+        };
 
         public UsuariosForm()
         {
             Text = "Usuarios";
-            Width = 900; Height = 480; StartPosition = FormStartPosition.CenterParent;
+            Width = 900;
+            Height = 480;
+            StartPosition = FormStartPosition.CenterParent;
 
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8) };
             var btnNuevo = new Button { Text = "Nuevo" };
             var btnEditar = new Button { Text = "Editar" };
             top.Controls.AddRange(new Control[] { btnNuevo, btnEditar });
 
-            Controls.Add(top);
             Controls.Add(grid);
+            Controls.Add(top);
             grid.DataSource = bs;
+            GridHelper.Estilizar(grid);
 
-            // NUEVO (WRITE a tabla real dbo.Usuarios)
-            btnNuevo.Click += (_, __) =>
+
+            // Estética de la grilla
+            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+
+            // Fuente de las celdas (contenido)
+            grid.DefaultCellStyle.Font = new Font("Segoe UI", 11F);
+
+            // Fuente de los encabezados
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+
+
+            // === NUEVO (INSERT a tabla real dbo.Usuarios) ===
+            btnNuevo.Click += (s, e) =>
             {
                 var u = new Usuario();
-                using var f = new UsuarioEditForm(u);
-                if (f.ShowDialog(this) == DialogResult.OK)
+                using (var f = new UsuarioEditForm(u))
                 {
-                    var res = f.Result;
+                    if (f.ShowDialog(this) == DialogResult.OK)
+                    {
+                        var res = f.Result;
 
-                    using var cn = new SqlConnection(Db.ConnectionString);
-                    using var cmd = new SqlCommand(@"
-                        INSERT INTO dbo.Usuarios (NombreUsuario, correo, contrasenia, rol, Activo)
-                        VALUES (@n,@c,@p,@r,@a);", cn);
-
-                    cmd.Parameters.AddWithValue("@n", res.NombreUsuario ?? "");
-                    cmd.Parameters.AddWithValue("@c", res.Correo ?? "");
-                    cmd.Parameters.AddWithValue("@p", res.Contrasenia ?? "");
-                    cmd.Parameters.AddWithValue("@r", string.IsNullOrWhiteSpace(res.Rol) ? "Vendedor" : res.Rol);
-                    cmd.Parameters.AddWithValue("@a", res.Activo);
-
-                    cn.Open();
-                    cmd.ExecuteNonQuery();
-                    LoadData();
+                        using (var cn = new SqlConnection(Db.ConnectionString))
+                        using (var cmd = new SqlCommand(@"
+                            INSERT INTO dbo.Usuarios (NombreUsuario, correo, contrasenia, rol, Activo)
+                            VALUES (@n,@c,@p,@r,@a);", cn))
+                        {
+                            cmd.Parameters.AddWithValue("@n", res.NombreUsuario ?? "");
+                            cmd.Parameters.AddWithValue("@c", res.Correo ?? "");
+                            cmd.Parameters.AddWithValue("@p", res.Contrasenia ?? "");
+                            cmd.Parameters.AddWithValue("@r", string.IsNullOrWhiteSpace(res.Rol) ? "Vendedor" : res.Rol);
+                            cmd.Parameters.AddWithValue("@a", res.Activo);
+                            cn.Open();
+                            cmd.ExecuteNonQuery();
+                        }
+                        LoadData();
+                    }
                 }
             };
 
-            // EDITAR (WRITE a tabla real dbo.Usuarios, PK = Id)
-            btnEditar.Click += (_, __) =>
+            // === EDITAR (UPDATE a tabla real dbo.Usuarios, PK = Id) ===
+            btnEditar.Click += (s, e) =>
             {
-                if (grid.CurrentRow?.DataBoundItem is not Usuario sel) return;
+                if (grid.CurrentRow == null || !(grid.CurrentRow.DataBoundItem is Usuario sel)) return;
 
                 var tmp = new Usuario
                 {
@@ -67,35 +101,39 @@ namespace TeoAccesorios.Desktop
                     Activo = sel.Activo
                 };
 
-                using var f = new UsuarioEditForm(tmp);
-                if (f.ShowDialog(this) == DialogResult.OK)
+                using (var f = new UsuarioEditForm(tmp))
                 {
-                    var u = f.Result;
+                    if (f.ShowDialog(this) == DialogResult.OK)
+                    {
+                        var u = f.Result;
 
-                    Db.Exec(@"
-                        UPDATE dbo.Usuarios
-                           SET NombreUsuario=@n,
-                               correo=@c,
-                               contrasenia=@p,
-                               rol=@r,
-                               Activo=@a
-                         WHERE Id=@id;",
-                        new SqlParameter("@id", u.Id),
-                        new SqlParameter("@n", u.NombreUsuario ?? ""),
-                        new SqlParameter("@c", u.Correo ?? ""),
-                        new SqlParameter("@p", u.Contrasenia ?? ""),
-                        new SqlParameter("@r", string.IsNullOrWhiteSpace(u.Rol) ? "Vendedor" : u.Rol),
-                        new SqlParameter("@a", u.Activo)
-                    );
+                        Db.Exec(@"
+                            UPDATE dbo.Usuarios
+                               SET NombreUsuario=@n,
+                                   correo=@c,
+                                   contrasenia=@p,
+                                   rol=@r,
+                                   Activo=@a
+                             WHERE Id=@id;",
+                            new SqlParameter("@id", u.Id),
+                            new SqlParameter("@n", u.NombreUsuario ?? ""),
+                            new SqlParameter("@c", u.Correo ?? ""),
+                            new SqlParameter("@p", u.Contrasenia ?? ""),
+                            new SqlParameter("@r", string.IsNullOrWhiteSpace(u.Rol) ? "Vendedor" : u.Rol),
+                            new SqlParameter("@a", u.Activo)
+                        );
 
-                    LoadData();
+                        LoadData();
+                        // mantener la fila seleccionada
+                        TrySelectRowById(u.Id);
+                    }
                 }
             };
 
             LoadData();
         }
 
-        void LoadData()
+        private void LoadData()
         {
             // Lectura por vista (ok)
             var dt = Db.Query(@"
@@ -111,11 +149,25 @@ namespace TeoAccesorios.Desktop
             {
                 Id = r.Field<int>("Id"),
                 NombreUsuario = r.Field<string>("NombreUsuario") ?? "",
-                Correo = r.Field<string?>("Correo") ?? "",
-                Contrasenia = r.Field<string?>("Contrasenia") ?? "",
-                Rol = r.Field<string?>("Rol") ?? "",
+                Correo = r.Field<string>("Correo") ?? "",
+                Contrasenia = r.Field<string>("Contrasenia") ?? "",
+                Rol = r.Field<string>("Rol") ?? "",
                 Activo = r.Field<bool>("Activo")
             }).ToList();
+        }
+
+        private void TrySelectRowById(int id)
+        {
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                var u = row.DataBoundItem as Usuario;
+                if (u != null && u.Id == id)
+                {
+                    row.Selected = true;
+                    grid.CurrentCell = row.Cells[0];
+                    break;
+                }
+            }
         }
     }
 }
