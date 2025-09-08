@@ -104,7 +104,7 @@ namespace TeoAccesorios.Desktop
                         contrasenia    AS Contrasenia,
                         rol            AS Rol,
                         activo         AS Activo
-                FROM dbo.usuario");
+                FROM dbo.usuario", Array.Empty<SqlParameter>());
 
             bs.DataSource = dt.AsEnumerable().Select(r => new Usuario
             {

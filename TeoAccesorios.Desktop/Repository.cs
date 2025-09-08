@@ -23,7 +23,7 @@ namespace TeoAccesorios.Desktop
                         telefono        AS Telefono,
                         direccion       AS Direccion,
                         1               AS Activo
-                FROM dbo.cliente");
+                FROM dbo.cliente", Array.Empty<SqlParameter>());
 
             var list = dt.AsEnumerable().Select(r => new Cliente
             {
@@ -85,7 +85,7 @@ namespace TeoAccesorios.Desktop
                         contrasenia    AS Contrasenia,
                         rol            AS Rol,
                         activo         AS Activo
-                FROM dbo.Usuarios"); // <— tu tabla real
+                FROM dbo.usuario", Array.Empty<SqlParameter>()); // <- nombre correcto de tabla
 
             return dt.AsEnumerable().Select(r => new Usuario
             {
@@ -103,7 +103,10 @@ namespace TeoAccesorios.Desktop
         // ========= CATEGORÍAS / PRODUCTOS =========
         public static List<Categoria> ListarCategorias()
         {
-            var dt = Db.Query("SELECT id_categoria AS Id, nombre AS Nombre, descripcion AS Descripcion, activo AS Activo FROM dbo.categoria");
+            var dt = Db.Query(
+                "SELECT id_categoria AS Id, nombre AS Nombre, descripcion AS Descripcion, activo AS Activo FROM dbo.categoria",
+                Array.Empty<SqlParameter>());
+
             return dt.AsEnumerable().Select(r => new Categoria
             {
                 Id = r.Field<int>("Id"),
@@ -129,7 +132,8 @@ namespace TeoAccesorios.Desktop
                        c.nombre               AS CategoriaNombre
                 FROM dbo.producto p
                 JOIN dbo.subcategoria s ON s.id_subcategoria = p.id_subcategoria
-                JOIN dbo.categoria    c ON c.id_categoria    = s.id_categoria");
+                JOIN dbo.categoria    c ON c.id_categoria    = s.id_categoria",
+                Array.Empty<SqlParameter>());
 
             var list = dt.AsEnumerable().Select(r => new Producto
             {
@@ -202,7 +206,8 @@ namespace TeoAccesorios.Desktop
                         ISNULL(v.Anulada,0) AS Anulada,
                         (c.nombre + ' ' + c.apellido) AS ClienteNombre
                 FROM dbo.Ventas v
-                LEFT JOIN dbo.cliente c ON c.id_cliente = v.ClienteId");
+                LEFT JOIN dbo.cliente c ON c.id_cliente = v.ClienteId",
+                Array.Empty<SqlParameter>());
 
             var ventas = dt.AsEnumerable().Select(r => new Venta
             {
@@ -225,7 +230,8 @@ namespace TeoAccesorios.Desktop
                         d.precioUnitario  AS PrecioUnitario,
                         d.subtotal        AS Subtotal
                 FROM dbo.DetalleVenta d
-                JOIN dbo.producto p ON p.id_producto = d.id_producto");
+                JOIN dbo.producto p ON p.id_producto = d.id_producto",
+                Array.Empty<SqlParameter>());
 
             var detalles = dtDet.AsEnumerable().Select(r => new DetalleVenta
             {

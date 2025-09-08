@@ -3,6 +3,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient;
 
 namespace TeoAccesorios.Desktop
 {
@@ -72,10 +73,10 @@ namespace TeoAccesorios.Desktop
             var ventasHoy = Db.Scalar<int>(
                 "SELECT COUNT(*) FROM cabeceraventa WHERE CAST(fechaVenta AS date) = CAST(GETDATE() AS date)");
             var ingresosHoy = Db.Scalar<decimal>(@"
-        SELECT COALESCE(SUM(d.cantidad * d.precioUnitario),0)
-        FROM cabeceraventa v
-        JOIN detalleventa_ext d ON d.id_venta = v.id_venta
-        WHERE CAST(v.fechaVenta AS date) = CAST(GETDATE() AS date)");
+                SELECT COALESCE(SUM(d.cantidad * d.precioUnitario),0)
+                FROM cabeceraventa v
+                JOIN detalleventa_ext d ON d.id_venta = v.id_venta
+                WHERE CAST(v.fechaVenta AS date) = CAST(GETDATE() AS date)");
             var totalClientes = Db.Scalar<int>("SELECT COUNT(*) FROM cliente");
             var totalProductos = Db.Scalar<int>("SELECT COUNT(*) FROM producto");
 
@@ -86,47 +87,56 @@ namespace TeoAccesorios.Desktop
 
             // Top productos en las últimas 50 ventas
             var dtTop = Db.Query(@"
-        WITH ult AS (
-            SELECT TOP (50) v.id_venta
-            FROM cabeceraventa v
-            ORDER BY v.fechaVenta DESC
-        )
-        SELECT d.id_producto,
-               p.nombre AS Producto,
-               SUM(d.cantidad) AS Cantidad,
-               SUM(d.cantidad * d.precioUnitario) AS Recaudado
-        FROM ult u
-        JOIN detalleventa_ext d ON d.id_venta = u.id_venta
-        JOIN producto p ON p.id_producto = d.id_producto
-        GROUP BY d.id_producto, p.nombre
-        ORDER BY Cantidad DESC;");
+                WITH ult AS (
+                    SELECT TOP (50) v.id_venta
+                    FROM cabeceraventa v
+                    ORDER BY v.fechaVenta DESC
+                )
+                SELECT d.id_producto,
+                       p.nombre AS Producto,
+                       SUM(d.cantidad) AS Cantidad,
+                       SUM(d.cantidad * d.precioUnitario) AS Recaudado
+                FROM ult u
+                JOIN detalleventa_ext d ON d.id_venta = u.id_venta
+                JOIN producto p ON p.id_producto = d.id_producto
+                GROUP BY d.id_producto, p.nombre
+                ORDER BY Cantidad DESC;",
+                Array.Empty<SqlParameter>());
             topGrid.DataSource = dtTop;
 
-            // Últimas ventas: total calculado desde detalleventa_ext, sin unir a usuario
+            // Últimas ventas: total calculado desde detalleventa_ext
             var dtUlt = Db.Query(@"
-        SELECT TOP (12)
-               v.id_venta AS Id,
-               FORMAT(v.fechaVenta, 'dd/MM HH:mm') AS Fecha,
-               ISNULL(c.nombre,'') + COALESCE(' ' + NULLIF(c.apellido,''),'') AS Cliente,
-               v.vendedor AS Usuario,
-               SUM(d.cantidad * d.precioUnitario) AS Total
-        FROM cabeceraventa v
-        LEFT JOIN cliente c ON c.id_cliente = v.id_cliente
-        JOIN detalleventa_ext d ON d.id_venta = v.id_venta
-        GROUP BY v.id_venta, v.fechaVenta, c.nombre, c.apellido, v.vendedor
-        ORDER BY v.fechaVenta DESC;");
+                SELECT TOP (12)
+                       v.Id AS Id,
+                       FORMAT(v.Fecha, 'dd/MM HH:mm') AS Fecha,
+                       COALESCE(
+                           NULLIF(LTRIM(RTRIM(c.Nombre)), ''),
+                           LTRIM(RTRIM(v.ClienteId))      -- fallback: lo que esté en Ventas.ClienteId (puede ser nombre o id en texto)
+                       ) AS Cliente,
+                       v.Vendedor AS Usuario,
+                       SUM(d.Cantidad * d.PrecioUnitario) AS Total
+                FROM dbo.Ventas v
+                LEFT JOIN dbo.Clientes c
+                       ON CAST(c.Id AS nvarchar(150)) = LTRIM(RTRIM(v.ClienteId))  -- comparar TEXTO↔TEXTO (evita 'Juan Pérez'→INT)
+                JOIN dbo.DetalleVenta d
+                       ON d.VentaId = v.Id
+                GROUP BY v.Id, v.Fecha, c.Nombre, v.ClienteId, v.Vendedor
+                ORDER BY v.Fecha DESC;",
+             Array.Empty<Microsoft.Data.SqlClient.SqlParameter>());
             ultGrid.DataSource = dtUlt;
 
-            // Bajo stock (igual que antes)
+
+
+            // Bajo stock
             var dtStock = Db.Query(@"
-        SELECT p.nombre AS Producto, s.descripcion AS Subcategoria, c.nombre AS Categoria, p.stock, p.stockMinimo
-        FROM producto p
-        JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
-        JOIN categoria c ON c.id_categoria = s.id_categoria
-        WHERE p.activo = 1 AND p.stock <= p.stockMinimo
-        ORDER BY p.stock ASC;");
+                SELECT p.nombre AS Producto, s.descripcion AS Subcategoria, c.nombre AS Categoria, p.stock, p.stockMinimo
+                FROM producto p
+                JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
+                JOIN categoria c ON c.id_categoria = s.id_categoria
+                WHERE p.activo = 1 AND p.stock <= p.stockMinimo
+                ORDER BY p.stock ASC;",
+                Array.Empty<SqlParameter>());
             stockGrid.DataSource = dtStock;
         }
-
     }
 }
