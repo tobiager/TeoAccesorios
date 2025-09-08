@@ -47,8 +47,7 @@ namespace TeoAccesorios.Desktop
                     {
                         if (f.ShowDialog(this) == DialogResult.OK)
                         {
-                            pr.Id = (MockData.Productos.LastOrDefault() != null ? MockData.Productos.Last().Id : 0) + 1;
-                            MockData.Productos.Add(pr);
+                            pr.Id = Repository.InsertarProducto(pr);
                             LoadData();
                         }
                     }
@@ -117,7 +116,7 @@ namespace TeoAccesorios.Desktop
             // Categorías
             cboCategoria.Items.Clear();
             cboCategoria.Items.Add("Todas las categorías");
-            foreach (var c in MockData.Categorias) cboCategoria.Items.Add(string.Format("{0} - {1}", c.Id, c.Nombre));
+            foreach (var c in Repository.ListarCategorias()) cboCategoria.Items.Add(string.Format("{0} - {1}", c.Id, c.Nombre));
             cboCategoria.SelectedIndex = 0;
 
             Controls.Add(grid);
@@ -127,7 +126,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-            var data = MockData.Productos.AsEnumerable();
+            var data = Repository.ListarProductos(chkInactivos.Checked).AsEnumerable();
 
             var q = txtBuscar.Text != null ? txtBuscar.Text.Trim() : string.Empty;
             if (!string.IsNullOrWhiteSpace(q))
@@ -140,8 +139,7 @@ namespace TeoAccesorios.Desktop
                 data = data.Where(p => p.CategoriaId == id);
             }
 
-            if (!chkInactivos.Checked)
-                data = data.Where(p => p.Activo);
+            /* activo ya filtrado arriba */
 
             bs.DataSource = data.ToList();
             grid.DataSource = bs;

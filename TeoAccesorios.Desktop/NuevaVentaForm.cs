@@ -41,11 +41,11 @@ namespace TeoAccesorios.Desktop
             Controls.Add(fila1);
 
             // Cargar combos
-            foreach (var c in MockData.Clientes.Where(x => x.Activo))
+            foreach (var c in Repository.ListarClientes(false))
                 cboCliente.Items.Add(string.Format("{0} - {1}", c.Id, c.Nombre));
             if (cboCliente.Items.Count > 0) cboCliente.SelectedIndex = 0;
 
-            foreach (var p in MockData.Productos.Where(x => x.Activo))
+            foreach (var p in Repository.ListarProductos(false))
                 cboProducto.Items.Add(string.Format("{0} - {1}", p.Id, p.Nombre));
             if (cboProducto.Items.Count > 0) cboProducto.SelectedIndex = 0;
 
@@ -61,7 +61,7 @@ namespace TeoAccesorios.Desktop
                 if (string.IsNullOrWhiteSpace(sel)) return;
                 if (!int.TryParse(sel.Split('-')[0].Trim(), out var idProd)) return;
 
-                var p = MockData.Productos.First(x => x.Id == idProd);
+                var p = Repository.Productos.First(x => x.Id == idProd);
 
                 carrito.Add(new DetalleVenta
                 {
@@ -102,12 +102,12 @@ namespace TeoAccesorios.Desktop
                 if (string.IsNullOrWhiteSpace(selCli)) { MessageBox.Show("Seleccioná un cliente.", "Aviso"); return; }
                 if (!int.TryParse(selCli.Split('-')[0].Trim(), out var idCli)) { MessageBox.Show("Cliente inválido.", "Aviso"); return; }
 
-                var cli = MockData.Clientes.First(x => x.Id == idCli);
+                var cli = Repository.Clientes.First(x => x.Id == idCli);
 
                 var venta = new Venta
                 {
-                    Id = (MockData.Ventas.LastOrDefault() != null ? MockData.Ventas.Last().Id : 2000) + 1,
-                    Fecha = DateTime.Now,
+                    Id = (Repository.Ventas.LastOrDefault() != null ? Repository.Ventas.Last().Id : 2000) + 1,
+                    FechaVenta = DateTime.Now,
                     Vendedor = Sesion.Usuario,
                     Canal = "Instagram",
                     ClienteId = cli.Id,
@@ -116,7 +116,7 @@ namespace TeoAccesorios.Desktop
                     Detalles = carrito.ToList()
                 };
 
-                MockData.Ventas.Add(venta);
+                Repository.InsertarVenta(venta);
                 DialogResult = DialogResult.OK;
                 Close();
             };

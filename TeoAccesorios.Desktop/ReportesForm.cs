@@ -6,44 +6,43 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using TeoAccesorios.Desktop.Models;
 
 namespace TeoAccesorios.Desktop
 {
     public class ReportesForm : Form
     {
-        private RadioButton rbSemana = new RadioButton { Text = "Semanal", Checked = true, AutoSize = true };
-        private RadioButton rbMes = new RadioButton { Text = "Mensual", AutoSize = true };
-        private RadioButton rbRango = new RadioButton { Text = "Rango", AutoSize = true };
-        private DateTimePicker dpSemana = new DateTimePicker { Value = DateTime.Today, Width = 120 };
-        private DateTimePicker dpMes = new DateTimePicker { Value = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), Format = DateTimePickerFormat.Custom, CustomFormat = "MM/yyyy", ShowUpDown = true, Width = 90 };
-        private DateTimePicker dpDesde = new DateTimePicker { Value = DateTime.Today.AddDays(-7), Width = 120 };
-        private DateTimePicker dpHasta = new DateTimePicker { Value = DateTime.Today, Width = 120 };
+        private readonly RadioButton rbSemana = new() { Text = "Semanal", Checked = true, AutoSize = true };
+        private readonly RadioButton rbMes = new() { Text = "Mensual", AutoSize = true };
+        private readonly RadioButton rbRango = new() { Text = "Rango", AutoSize = true };
 
-        private ComboBox cboVendedor = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
-        private ComboBox cboCliente = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };
-        private CheckBox chkExcluirAnuladas = new CheckBox { Text = "Excluir anuladas", Checked = true, AutoSize = true };
+        private readonly DateTimePicker dpSemana = new() { Value = DateTime.Today, Width = 120 };
+        private readonly DateTimePicker dpMes = new() { Value = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), Format = DateTimePickerFormat.Custom, CustomFormat = "MM/yyyy", ShowUpDown = true, Width = 90 };
+        private readonly DateTimePicker dpDesde = new() { Value = DateTime.Today.AddDays(-7), Width = 120 };
+        private readonly DateTimePicker dpHasta = new() { Value = DateTime.Today, Width = 120 };
 
-        private Button btnAplicar = new Button { Text = "Aplicar" };
-        private Button btnExport = new Button { Text = "Exportar" };
+        private readonly ComboBox cboVendedor = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
+        private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };
+        private readonly CheckBox chkExcluirAnuladas = new() { Text = "Excluir anuladas", Checked = true, AutoSize = true };
 
-        private Label kpiIngresos = new Label();
-        private Label kpiVentas = new Label();
-        private Label kpiClientes = new Label();
-        private Label kpiProductos = new Label();
+        private readonly Button btnAplicar = new() { Text = "Aplicar" };
+        private readonly Button btnExport = new() { Text = "Exportar" };
 
-        private DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
+        private readonly Label kpiIngresos = new();
+        private readonly Label kpiVentas = new();
+        private readonly Label kpiClientes = new();
+        private readonly Label kpiProductos = new();
+
+        private readonly DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
 
         public ReportesForm()
         {
             Text = "Reportes";
 
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));    // filtros
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));   // KPIs
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));    // tabla
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            // --- Filtros ---
             var filtros = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(8), AutoSize = false, Height = 56 };
             filtros.Controls.Add(new Label { Text = "Rango:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(0, 8, 0, 0) });
             filtros.Controls.Add(rbSemana); filtros.Controls.Add(dpSemana);
@@ -59,15 +58,24 @@ namespace TeoAccesorios.Desktop
             filtros.Controls.Add(btnAplicar);
             filtros.Controls.Add(btnExport);
 
-            // combos
+            // Combos
             cboVendedor.Items.Add("Todos");
-            foreach (var u in MockData.Usuarios.Where(u => u.Activo)) cboVendedor.Items.Add(u.NombreUsuario);
+            IEnumerable<string> vendedores;
+            try
+            {
+                vendedores = Repository.ListarUsuarios().Where(u => u.Activo).Select(u => u.NombreUsuario).Distinct();
+            }
+            catch
+            {
+                vendedores = Repository.ListarVentas(true).Select(v => v.Vendedor).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct();
+            }
+            foreach (var nombre in vendedores) cboVendedor.Items.Add(nombre);
             cboVendedor.SelectedIndex = 0;
+
             cboCliente.Items.Add("Todos");
-            foreach (var c in MockData.Clientes) cboCliente.Items.Add(c.Nombre);
+            foreach (var c in Repository.Clientes) cboCliente.Items.Add(c.Nombre);
             cboCliente.SelectedIndex = 0;
 
-            // --- KPIs ---
             var kpis = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, Padding = new Padding(12) };
             for (int i = 0; i < 4; i++) kpis.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
             kpis.Controls.Add(Card("Ingresos totales", kpiIngresos), 0, 0);
@@ -75,14 +83,14 @@ namespace TeoAccesorios.Desktop
             kpis.Controls.Add(Card("Clientes (únicos)", kpiClientes), 2, 0);
             kpis.Controls.Add(Card("Productos vendidos", kpiProductos), 3, 0);
 
-            // --- Tabla ---
-            grid.CellDoubleClick += (s, e) => {
+            grid.CellDoubleClick += (_, e) =>
+            {
                 if (e.RowIndex >= 0)
                 {
                     var cell = grid.Rows[e.RowIndex].Cells["IdVenta"];
                     if (cell != null && int.TryParse(cell.Value?.ToString(), out int id))
                     {
-                        var venta = MockData.Ventas.FirstOrDefault(x => x.Id == id);
+                        var venta = Repository.ListarVentas(true).FirstOrDefault(x => x.Id == id);
                         if (venta != null) new VentaDetalleForm(venta).ShowDialog(this);
                     }
                 }
@@ -116,12 +124,8 @@ namespace TeoAccesorios.Desktop
         {
             if (rbSemana.Checked)
             {
-                // semana ISO: lunes (inclusive) a lunes siguiente (exclusivo)
                 var d = dpSemana.Value.Date;
-                // Reemplaza la línea problemática en el método GetRange():
-                // var start = d.AddDays(-(int)((d.DayOfWeek + 6) % 7)); // lleva al lunes
-
-                var start = d.AddDays(-(((int)d.DayOfWeek + 6) % 7)); // lleva al lunes
+                var start = d.AddDays(-(((int)d.DayOfWeek + 6) % 7)); // lunes
                 var end = start.AddDays(7);
                 return (start, end);
             }
@@ -131,7 +135,6 @@ namespace TeoAccesorios.Desktop
                 var end = start.AddMonths(1);
                 return (start, end);
             }
-            // rango custom
             var s = dpDesde.Value.Date;
             var e = dpHasta.Value.Date.AddDays(1);
             return (s, e);
@@ -140,9 +143,12 @@ namespace TeoAccesorios.Desktop
         private void LoadData()
         {
             var (start, end) = GetRange();
-            IEnumerable<Venta> q = MockData.Ventas.Where(v => v.Fecha >= start && v.Fecha < end);
 
-            if (chkExcluirAnuladas.Checked) q = q.Where(v => !v.Anulada);
+            var q = Repository.ListarVentas(true)
+                .Where(v => v.FechaVenta >= start && v.FechaVenta < end);
+
+            if (chkExcluirAnuladas.Checked)
+                q = q.Where(v => !v.Anulada);
 
             if (cboVendedor.SelectedIndex > 0)
             {
@@ -157,7 +163,6 @@ namespace TeoAccesorios.Desktop
 
             var detallesCount = q.SelectMany(v => v.Detalles).Sum(d => d.Cantidad);
 
-            // KPIs
             var ingresos = q.Sum(v => v.Total);
             var ventas = q.Count();
             var clientesUnicos = q.Select(v => v.ClienteId).Distinct().Count();
@@ -167,19 +172,17 @@ namespace TeoAccesorios.Desktop
             kpiClientes.Text = clientesUnicos.ToString();
             kpiProductos.Text = detallesCount.ToString();
 
-            // Tabla
-            var tabla = q
-                .OrderByDescending(v => v.Fecha)
-                .Select(v => new {
+            grid.DataSource = q
+                .OrderByDescending(v => v.FechaVenta)
+                .Select(v => new
+                {
                     Vendedor = v.Vendedor,
                     Cliente = v.ClienteNombre,
                     IdVenta = v.Id,
-                    Fecha = v.Fecha.ToString("dd/MM/yyyy HH:mm"),
+                    Fecha = v.FechaVenta.ToString("dd/MM/yyyy HH:mm"),
                     Total = v.Total.ToString("N0")
                 })
                 .ToList();
-
-            grid.DataSource = tabla;
         }
 
         // ====== EXPORTES ======
@@ -200,10 +203,12 @@ namespace TeoAccesorios.Desktop
             var b2 = new Button { Text = "CSV (punto y coma)", Width = 140, Height = 34 };
             var b3 = new Button { Text = "TSV", Width = 140, Height = 34 };
             var b4 = new Button { Text = "JSON", Width = 140, Height = 34 };
+
             b1.Click += (_, __) => { dlg.Close(); ExportCsvLike("CSV (*.csv)", ","); };
             b2.Click += (_, __) => { dlg.Close(); ExportCsvLike("CSV (*.csv)", ";"); };
             b3.Click += (_, __) => { dlg.Close(); ExportCsvLike("TSV (*.tsv)", "\t"); };
             b4.Click += (_, __) => { dlg.Close(); ExportJson(); };
+
             p.Controls.AddRange(new Control[] { b1, b2, b3, b4 });
             dlg.Controls.Add(p);
             dlg.ShowDialog(this);
@@ -217,9 +222,8 @@ namespace TeoAccesorios.Desktop
             if (sfd.ShowDialog(this) != DialogResult.OK) return;
 
             using var fs = new FileStream(sfd.FileName, FileMode.Create, FileAccess.Write);
-            using var w = new StreamWriter(fs, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)); // UTF-8 BOM
+            using var w = new StreamWriter(fs, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
-            // Encabezados
             for (int i = 0; i < grid.Columns.Count; i++)
             {
                 if (i > 0) w.Write(delimiter);
@@ -227,7 +231,6 @@ namespace TeoAccesorios.Desktop
             }
             w.WriteLine();
 
-            // Filas
             foreach (DataGridViewRow r in grid.Rows)
             {
                 if (r.IsNewRow) continue;
@@ -236,9 +239,7 @@ namespace TeoAccesorios.Desktop
                     if (i > 0) w.Write(delimiter);
                     var val = r.Cells[i].Value?.ToString() ?? "";
                     if (delimiter != "\t" && (val.Contains(delimiter) || val.Contains("\"") || val.Contains('\n')))
-                    {
                         val = "\"" + val.Replace("\"", "\"\"") + "\"";
-                    }
                     w.Write(val);
                 }
                 w.WriteLine();
@@ -263,7 +264,7 @@ namespace TeoAccesorios.Desktop
             }
 
             var json = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(sfd.FileName, json, new UTF8Encoding(true)); // UTF-8 con BOM
+            File.WriteAllText(sfd.FileName, json, new UTF8Encoding(true));
         }
     }
 }

@@ -6,8 +6,8 @@ namespace TeoAccesorios.Desktop
 {
     public class VentasForm : Form
     {
-        private DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
-        private CheckBox chkAnuladas = new CheckBox { Text = "Ver anuladas" };
+        private readonly DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
+        private readonly CheckBox chkAnuladas = new() { Text = "Ver anuladas" };
 
         public VentasForm()
         {
@@ -16,65 +16,63 @@ namespace TeoAccesorios.Desktop
             Height = 600;
             StartPosition = FormStartPosition.CenterParent;
 
-            var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8), AutoSize = false };
+            var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8) };
             var btnNueva = new Button { Text = "Nueva" };
             var btnAnular = new Button { Text = "Anular" };
             var btnRestaurar = new Button { Text = "Restaurar" };
 
-            top.Controls.Add(btnAnular);
-            top.Controls.Add(btnRestaurar);
-            top.Controls.Add(chkAnuladas);
-            top.Controls.Add(btnNueva);
+            top.Controls.AddRange(new Control[] { btnAnular, btnRestaurar, chkAnuladas, btnNueva });
 
             Controls.Add(grid);
             Controls.Add(top);
 
-            btnNueva.Click += (s, e) =>
+            btnNueva.Click += (_, __) =>
             {
-                using (var f = new NuevaVentaForm())
-                {
-                    if (f.ShowDialog(this) == DialogResult.OK) LoadData();
-                }
+                using var f = new NuevaVentaForm();
+                if (f.ShowDialog(this) == DialogResult.OK) LoadData();
             };
 
-            btnAnular.Click += (s, e) =>
+            btnAnular.Click += (_, __) =>
             {
-                if (grid.CurrentRow != null && grid.CurrentRow.DataBoundItem is Models.Venta v)
+                if (grid.CurrentRow?.DataBoundItem is Models.Venta v)
                 {
+                    // Solo vendedor puede anular sus ventas del día
                     if (Sesion.Rol == RolUsuario.Vendedor &&
-                        (!string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase) || v.Fecha.Date != DateTime.Today))
+                        (!string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase)
+                         || v.FechaVenta.Date != DateTime.Today))
                     {
                         MessageBox.Show("Sólo podés anular ventas tuyas del día.", "Permiso");
                         return;
                     }
-                    v.Anulada = true;
+
+                    Repository.SetVentaAnulada(v.Id, true);
                     LoadData();
                 }
             };
 
-            btnRestaurar.Click += (s, e) =>
+            btnRestaurar.Click += (_, __) =>
             {
-                if (grid.CurrentRow != null && grid.CurrentRow.DataBoundItem is Models.Venta v)
+                if (grid.CurrentRow?.DataBoundItem is Models.Venta v)
                 {
                     if (Sesion.Rol == RolUsuario.Vendedor &&
-                        (!string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase) || v.Fecha.Date != DateTime.Today))
+                        (!string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase)
+                         || v.FechaVenta.Date != DateTime.Today))
                     {
                         MessageBox.Show("Sólo podés restaurar ventas tuyas del día.", "Permiso");
                         return;
                     }
-                    v.Anulada = false;
+
+                    Repository.SetVentaAnulada(v.Id, false);
                     LoadData();
                 }
             };
 
-            chkAnuladas.CheckedChanged += (s, e) => LoadData();
+            chkAnuladas.CheckedChanged += (_, __) => LoadData();
 
-            grid.CellDoubleClick += (s, e) =>
+            grid.CellDoubleClick += (_, e) =>
             {
                 if (e.RowIndex >= 0 && grid.Rows[e.RowIndex].DataBoundItem is Models.Venta v)
-                {
                     new VentaDetalleForm(v).ShowDialog(this);
-                }
             };
 
             LoadData();
@@ -82,20 +80,24 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-            var data = MockData.Ventas
-                .Where(v => chkAnuladas.Checked ? true : !v.Anulada)
-                .OrderByDescending(v => v.Fecha)
-                .ToList();
+            // Cargar desde BD (con o sin anuladas)
+            var data = Repository.ListarVentas(chkAnuladas.Checked);
 
+            // Si el rol es vendedor, filtra por vendedor actual
             if (Sesion.Rol == RolUsuario.Vendedor)
-                data = data.Where(v => string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase)).ToList();
+            {
+                data = data
+                    .Where(v => string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
 
+            // Proyección a la grilla
             grid.DataSource = data.Select(v => new
             {
                 v.Id,
-                Fecha = v.Fecha.ToString("dd/MM/yyyy HH:mm"),
+                Fecha = v.FechaVenta.ToString("dd/MM/yyyy HH:mm"),
                 v.Vendedor,
-                Canal = v.Canal,
+                v.Canal,
                 v.ClienteId,
                 v.ClienteNombre,
                 DireccionEnvio = v.DireccionEnvio,

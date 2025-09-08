@@ -1,10 +1,10 @@
+using System;
+using System.Data;
+using Microsoft.Data.SqlClient;
+
 namespace TeoAccesorios.Desktop
 {
-    public enum RolUsuario
-    {
-        Admin,
-        Vendedor
-    }
+    public enum RolUsuario { Admin, Vendedor }
 
     public static class Sesion
     {
@@ -12,15 +12,36 @@ namespace TeoAccesorios.Desktop
         public static RolUsuario Rol { get; set; } = RolUsuario.Vendedor;
     }
 
-    // Mock auth para demo: acepta cualquier usuario, pero si el usuario contiene 'admin' entra como Admin.
     public static class AuthService
     {
         public static bool Login(string usuario, string password, out RolUsuario rol)
         {
-            // Busca por nombre en Usuarios; si contiene 'admin' o coincide con un usuario Admin, asigna Admin
-rol = usuario.Trim().ToLower().Contains("admin") || MockData.Usuarios.Exists(u => u.NombreUsuario.Equals(usuario.Trim(), System.StringComparison.OrdinalIgnoreCase) && u.Rol=="Admin")
-    ? RolUsuario.Admin : RolUsuario.Vendedor;
-            return !string.IsNullOrWhiteSpace(usuario);
+            rol = RolUsuario.Vendedor;
+
+            using var cn = new SqlConnection(Db.ConnectionString);
+            using var cmd = new SqlCommand(@"
+                SELECT TOP 1 rol, activo
+                FROM dbo.Usuarios
+                WHERE nombreUsuario = @u AND contrasenia = @p;", cn);
+
+            cmd.Parameters.AddWithValue("@u", usuario);
+            cmd.Parameters.AddWithValue("@p", password);
+
+            cn.Open();
+            using var rd = cmd.ExecuteReader();
+            if (!rd.Read()) return false;
+
+            var activo = Convert.ToBoolean(rd["activo"]);
+            if (!activo) return false;
+
+            var r = (rd["rol"]?.ToString() ?? "Vendedor");
+            rol = r.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                ? RolUsuario.Admin
+                : RolUsuario.Vendedor;
+
+            Sesion.Usuario = usuario;
+            Sesion.Rol = rol;
+            return true;
         }
     }
 }

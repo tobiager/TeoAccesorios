@@ -18,7 +18,7 @@ namespace TeoAccesorios.Desktop
         {
             model = p;
             Text = "Producto"; Width=560; Height=360; StartPosition=FormStartPosition.CenterParent;
-            foreach(var c in MockData.Categorias) cboCat.Items.Add($"{c.Id} - {c.Nombre}");
+            foreach(var c in Repository.ListarCategorias()) cboCat.Items.Add($"{c.Id} - {c.Nombre}");
             if(cboCat.Items.Count>0) cboCat.SelectedIndex=0;
 
             var grid = new TableLayoutPanel{ Dock=DockStyle.Fill, ColumnCount=2, Padding=new Padding(12) };
@@ -34,14 +34,14 @@ namespace TeoAccesorios.Desktop
             ok.Click += (_,__) => {
                 model.Nombre=txtNombre.Text; model.Descripcion=txtDesc.Text; model.Precio=numPrecio.Value; model.Stock=(int)numStock.Value; model.StockMinimo=(int)numMin.Value;
                 var id = int.Parse(cboCat.SelectedItem!.ToString()!.Split('-')[0].Trim());
-                var cat = MockData.Categorias.First(c=>c.Id==id); model.CategoriaId=cat.Id; model.CategoriaNombre=cat.Nombre;
+                model.CategoriaId=id; model.CategoriaNombre=cboCat.SelectedItem!.ToString()!.Split('-',2)[1].Trim();
                 DialogResult=DialogResult.OK; Close();
             };
             Controls.Add(ok); Controls.Add(grid);
 
             // Prefill
             txtNombre.Text=p.Nombre; txtDesc.Text=p.Descripcion; numPrecio.Value = p.Precio; numStock.Value=p.Stock; numMin.Value=p.StockMinimo;
-            var idx = MockData.Categorias.FindIndex(c=>c.Id==p.CategoriaId);
+            var idx = Repository.ListarCategorias().FindIndex(c=>c.Id==p.CategoriaId);
             if(idx>=0) cboCat.SelectedIndex = idx;
         }
     }

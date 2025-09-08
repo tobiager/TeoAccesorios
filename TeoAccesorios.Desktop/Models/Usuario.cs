@@ -2,7 +2,9 @@ namespace TeoAccesorios.Desktop.Models;
 public class Usuario
 {
     public int Id { get; set; }
-    public string NombreUsuario { get; set; } = string.Empty;
-    public string Rol { get; set; } = "Vendedor"; // Admin / Vendedor
+    public string NombreUsuario { get; set; } = "";
+    public string Correo { get; set; } = "";
+    public string Contrasenia { get; set; } = "";
+    public string Rol { get; set; } = "Vendedor";
     public bool Activo { get; set; } = true;
 }

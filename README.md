@@ -131,4 +131,21 @@ El sistema está pensado como demo funcional con **mock data en memoria**, para 
 
 ---
 
+# Adaptación a base de datos TeoAccesorios (SQL Server)
+
+Cambios aplicados:
+- `Db.cs`: cadena de conexión -> `Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;`.
+- `Models/Venta.cs`: se agregaron propiedades compatibles con los formularios (`Anulada`, `Fecha` alias de `FechaVenta`, `Vendedor`, `Canal`, `DireccionEnvio`).
+- `MainForm.cs`: se quitaron referencias a formularios inexistentes `PedidosForm` y `CarritoForm` del menú y del héroe de inicio.
+- **MockData** ya consulta a las tablas `cliente`, `usuario`, `categoria`, `subcategoria`, `producto`, `cabeceraventa`, `detalleventa`.
+
+> Nota: si querés persistir `Anulada` en la tabla `cabeceraventa`, ejecutá:
+```
+ALTER TABLE dbo.cabeceraventa ADD Anulada BIT NOT NULL DEFAULT 0;
+```
+y añadí la columna al `SELECT` de `MockData`.
+
+
+- Se eliminó `MockData.cs` y se creó `Repository.cs` con acceso directo a SQL Server.
+
 <p align="center"><b>❤️ Proyecto desarrollado por Tobias Orban y Ivana Azcona (UNNE - FaCENA, 2025)</b></p>
