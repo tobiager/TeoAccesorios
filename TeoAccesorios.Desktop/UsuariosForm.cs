@@ -26,7 +26,7 @@ namespace TeoAccesorios.Desktop
             Controls.Add(grid);
             grid.DataSource = bs;
 
-            // NUEVO
+            // NUEVO (WRITE a tabla real dbo.Usuarios)
             btnNuevo.Click += (_, __) =>
             {
                 var u = new Usuario();
@@ -37,7 +37,7 @@ namespace TeoAccesorios.Desktop
 
                     using var cn = new SqlConnection(Db.ConnectionString);
                     using var cmd = new SqlCommand(@"
-                        INSERT INTO dbo.usuario (nombreUsuario, correo, contrasenia, rol, activo)
+                        INSERT INTO dbo.Usuarios (NombreUsuario, correo, contrasenia, rol, Activo)
                         VALUES (@n,@c,@p,@r,@a);", cn);
 
                     cmd.Parameters.AddWithValue("@n", res.NombreUsuario ?? "");
@@ -52,7 +52,7 @@ namespace TeoAccesorios.Desktop
                 }
             };
 
-            // EDITAR
+            // EDITAR (WRITE a tabla real dbo.Usuarios, PK = Id)
             btnEditar.Click += (_, __) =>
             {
                 if (grid.CurrentRow?.DataBoundItem is not Usuario sel) return;
@@ -73,13 +73,13 @@ namespace TeoAccesorios.Desktop
                     var u = f.Result;
 
                     Db.Exec(@"
-                        UPDATE dbo.usuario
-                           SET nombreUsuario=@n,
+                        UPDATE dbo.Usuarios
+                           SET NombreUsuario=@n,
                                correo=@c,
                                contrasenia=@p,
                                rol=@r,
-                               activo=@a
-                         WHERE id_usuario=@id;",
+                               Activo=@a
+                         WHERE Id=@id;",
                         new SqlParameter("@id", u.Id),
                         new SqlParameter("@n", u.NombreUsuario ?? ""),
                         new SqlParameter("@c", u.Correo ?? ""),
@@ -97,6 +97,7 @@ namespace TeoAccesorios.Desktop
 
         void LoadData()
         {
+            // Lectura por vista (ok)
             var dt = Db.Query(@"
                 SELECT  id_usuario     AS Id,
                         nombreUsuario  AS NombreUsuario,

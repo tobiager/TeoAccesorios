@@ -16,19 +16,20 @@ namespace TeoAccesorios.Desktop
         // ========= CLIENTES =========
         public static List<Cliente> ListarClientes(bool incluirInactivos = false)
         {
+            // Vista de lectura (sin apellido)
             var dt = Db.Query(@"
-                SELECT  id_cliente      AS Id,
-                        (nombre + ' ' + apellido) AS Nombre,
-                        email           AS Email,
-                        telefono        AS Telefono,
-                        direccion       AS Direccion,
-                        1               AS Activo
+                SELECT  id_cliente  AS Id,
+                        nombre      AS Nombre,
+                        email       AS Email,
+                        telefono    AS Telefono,
+                        direccion   AS Direccion,
+                        CAST(1 AS int) AS Activo
                 FROM dbo.cliente", Array.Empty<SqlParameter>());
 
             var list = dt.AsEnumerable().Select(r => new Cliente
             {
                 Id = r.Field<int>("Id"),
-                Nombre = r.Field<string>("Nombre") ?? "",
+                Nombre = r.Field<string?>("Nombre") ?? "",
                 Email = r.Field<string?>("Email") ?? "",
                 Telefono = r.Field<string?>("Telefono") ?? "",
                 Direccion = r.Field<string?>("Direccion") ?? "",
@@ -43,9 +44,9 @@ namespace TeoAccesorios.Desktop
         public static int InsertarCliente(Cliente c)
         {
             const string sql = @"
-                INSERT INTO dbo.cliente (nombre, apellido, email, telefono, direccion)
-                VALUES (@nom, '', @mail, @tel, @dir);
-                SELECT SCOPE_IDENTITY();";
+                INSERT INTO dbo.Clientes (Nombre, Email, Telefono, Direccion, Activo)
+                OUTPUT INSERTED.Id
+                VALUES (@nom, @mail, @tel, @dir, 1);";
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
@@ -60,9 +61,9 @@ namespace TeoAccesorios.Desktop
         public static void ActualizarCliente(Cliente c)
         {
             const string sql = @"
-                UPDATE dbo.cliente
-                SET nombre=@nom, email=@mail, telefono=@tel, direccion=@dir
-                WHERE id_cliente=@id;";
+                UPDATE dbo.Clientes
+                   SET Nombre=@nom, Email=@mail, Telefono=@tel, Direccion=@dir
+                 WHERE Id=@id;";
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
@@ -78,6 +79,7 @@ namespace TeoAccesorios.Desktop
         // ========= USUARIOS =========
         public static List<Usuario> ListarUsuarios()
         {
+            // Lectura por vista (ok)
             var dt = Db.Query(@"
                 SELECT  id_usuario     AS Id,
                         nombreUsuario  AS NombreUsuario,
@@ -85,7 +87,7 @@ namespace TeoAccesorios.Desktop
                         contrasenia    AS Contrasenia,
                         rol            AS Rol,
                         activo         AS Activo
-                FROM dbo.usuario", Array.Empty<SqlParameter>()); // <- nombre correcto de tabla
+                FROM dbo.usuario", Array.Empty<SqlParameter>());
 
             return dt.AsEnumerable().Select(r => new Usuario
             {
@@ -118,6 +120,7 @@ namespace TeoAccesorios.Desktop
 
         public static List<Producto> ListarProductos(bool incluirInactivos = false)
         {
+            // Lectura por vistas de compatibilidad
             var dt = Db.Query(@"
                 SELECT p.id_producto          AS Id,
                        p.nombre               AS Nombre,
@@ -155,10 +158,12 @@ namespace TeoAccesorios.Desktop
 
         public static int InsertarProducto(Producto p)
         {
+            // WRITE a tabla real
             const string sql = @"
-                INSERT INTO dbo.producto (nombre, descripcion, precio, stock, stockMinimo, activo, id_subcategoria, fechaAlta)
-                VALUES (@nom, @desc, @precio, @stock, @min, 1, @sub, GETDATE());
-                SELECT SCOPE_IDENTITY();";
+                INSERT INTO dbo.Productos
+                    (Nombre, Descripcion, Precio, Stock, StockMinimo, CategoriaId, Activo)
+                OUTPUT INSERTED.Id
+                VALUES (@nom, @desc, @precio, @stock, @min, @cat, 1);";
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
@@ -167,7 +172,7 @@ namespace TeoAccesorios.Desktop
             cmd.Parameters.AddWithValue("@precio", p.Precio);
             cmd.Parameters.AddWithValue("@stock", p.Stock);
             cmd.Parameters.AddWithValue("@min", p.StockMinimo);
-            cmd.Parameters.AddWithValue("@sub", p.SubcategoriaId);
+            cmd.Parameters.AddWithValue("@cat", p.SubcategoriaId); // subcategoria vista mapea a CategoriaId real
             cn.Open();
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
@@ -175,10 +180,10 @@ namespace TeoAccesorios.Desktop
         public static void ActualizarProducto(Producto p)
         {
             const string sql = @"
-                UPDATE dbo.producto
-                SET nombre=@nom, descripcion=@desc, precio=@precio,
-                    stock=@stock, stockMinimo=@min, id_subcategoria=@sub
-                WHERE id_producto=@id;";
+                UPDATE dbo.Productos
+                   SET Nombre=@nom, Descripcion=@desc, Precio=@precio,
+                       Stock=@stock, StockMinimo=@min, CategoriaId=@cat, Activo=@act
+                 WHERE Id=@id;";
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
@@ -188,7 +193,8 @@ namespace TeoAccesorios.Desktop
             cmd.Parameters.AddWithValue("@precio", p.Precio);
             cmd.Parameters.AddWithValue("@stock", p.Stock);
             cmd.Parameters.AddWithValue("@min", p.StockMinimo);
-            cmd.Parameters.AddWithValue("@sub", p.SubcategoriaId);
+            cmd.Parameters.AddWithValue("@cat", p.SubcategoriaId);
+            cmd.Parameters.AddWithValue("@act", p.Activo);
             cn.Open();
             cmd.ExecuteNonQuery();
         }
@@ -197,52 +203,58 @@ namespace TeoAccesorios.Desktop
         public static List<Venta> ListarVentas(bool incluirAnuladas = false)
         {
             var dt = Db.Query(@"
-                SELECT  v.Id,
-                        v.Fecha,
-                        v.ClienteId,
-                        v.Vendedor,
-                        v.Canal,
-                        v.DireccionEnvio,
-                        ISNULL(v.Anulada,0) AS Anulada,
-                        (c.nombre + ' ' + c.apellido) AS ClienteNombre
-                FROM dbo.Ventas v
-                LEFT JOIN dbo.cliente c ON c.id_cliente = v.ClienteId",
-                Array.Empty<SqlParameter>());
+        SELECT  v.Id,
+                v.Fecha,
+                v.ClienteId,
+                v.Vendedor,
+                v.Canal,
+                v.DireccionEnvio,
+                CAST(ISNULL(v.Anulada, 0) AS bit) AS Anulada,
+                c.Nombre AS ClienteNombre
+        FROM dbo.Ventas v
+        LEFT JOIN dbo.Clientes c ON c.Id = v.ClienteId",
+                Array.Empty<Microsoft.Data.SqlClient.SqlParameter>()
+            );
 
-            var ventas = dt.AsEnumerable().Select(r => new Venta
-            {
-                Id = r.Field<int>("Id"),
-                FechaVenta = r.Field<DateTime>("Fecha"),
-                ClienteId = r.Field<int>("ClienteId"),
-                ClienteNombre = r.Field<string?>("ClienteNombre") ?? "",
-                Vendedor = r.Field<string?>("Vendedor") ?? "",
-                Canal = r.Field<string?>("Canal") ?? "",
-                DireccionEnvio = r.Field<string?>("DireccionEnvio") ?? "",
-                Anulada = r.Field<int>("Anulada") == 1
-            }).ToList();
+            var ventas = dt.AsEnumerable()
+                .Select(r => new Venta
+                {
+                    Id = r.Field<int>("Id"),
+                    FechaVenta = r.Field<DateTime>("Fecha"),
+                    ClienteId = r.Field<int>("ClienteId"),
+                    ClienteNombre = r.Field<string?>("ClienteNombre") ?? "",
+                    Vendedor = r.Field<string?>("Vendedor") ?? "",
+                    Canal = r.Field<string?>("Canal") ?? "",
+                    DireccionEnvio = r.Field<string?>("DireccionEnvio") ?? "",
+                    Anulada = r.Field<bool>("Anulada")
+                })
+                .ToList();
 
+            // leer detalles desde la vista de compatibilidad (subtotal ya calculado)
             var dtDet = Db.Query(@"
-                SELECT  d.id_detalle      AS Id,
-                        d.id_venta        AS VentaId,
-                        d.id_producto     AS ProductoId,
-                        p.nombre          AS ProductoNombre,
-                        d.cantidad        AS Cantidad,
-                        d.precioUnitario  AS PrecioUnitario,
-                        d.subtotal        AS Subtotal
-                FROM dbo.DetalleVenta d
-                JOIN dbo.producto p ON p.id_producto = d.id_producto",
-                Array.Empty<SqlParameter>());
+        SELECT  Id,
+                id_venta       AS VentaId,
+                id_producto    AS ProductoId,
+                ProductoNombre,
+                cantidad       AS Cantidad,
+                precioUnitario AS PrecioUnitario,
+                subtotal       AS Subtotal
+        FROM dbo.detalleventa_ext",
+                Array.Empty<Microsoft.Data.SqlClient.SqlParameter>()
+            );
 
-            var detalles = dtDet.AsEnumerable().Select(r => new DetalleVenta
-            {
-                Id = r.Field<int>("Id"),
-                VentaId = r.Field<int>("VentaId"),
-                ProductoId = r.Field<int>("ProductoId"),
-                ProductoNombre = r.Field<string?>("ProductoNombre") ?? "",
-                Cantidad = r.Field<int>("Cantidad"),
-                PrecioUnitario = r.Field<decimal>("PrecioUnitario"),
-                Subtotal = r.Field<decimal>("Subtotal")
-            }).ToList();
+            var detalles = dtDet.AsEnumerable()
+                .Select(r => new DetalleVenta
+                {
+                    Id = r.Field<int>("Id"),
+                    VentaId = r.Field<int>("VentaId"),
+                    ProductoId = r.Field<int>("ProductoId"),
+                    ProductoNombre = r.Field<string?>("ProductoNombre") ?? "",
+                    Cantidad = r.Field<int>("Cantidad"),
+                    PrecioUnitario = r.Field<decimal>("PrecioUnitario"),
+                    Subtotal = r.Field<decimal>("Subtotal")
+                })
+                .ToList();
 
             foreach (var v in ventas)
             {
@@ -255,6 +267,7 @@ namespace TeoAccesorios.Desktop
             return ventas.OrderByDescending(v => v.FechaVenta).ToList();
         }
 
+
         public static int InsertarVenta(Venta v)
         {
             using var cn = new SqlConnection(Db.ConnectionString);
@@ -265,8 +278,8 @@ namespace TeoAccesorios.Desktop
             {
                 var cmdCab = new SqlCommand(@"
                     INSERT INTO dbo.Ventas (Fecha, Vendedor, Canal, ClienteId, DireccionEnvio, Anulada)
-                    VALUES (@fecha, @vend, @canal, @cli, @dir, 0);
-                    SELECT SCOPE_IDENTITY();", cn, tx);
+                    OUTPUT INSERTED.Id
+                    VALUES (@fecha, @vend, @canal, @cli, @dir, 0);", cn, tx);
 
                 cmdCab.Parameters.AddWithValue("@fecha", v.FechaVenta);
                 cmdCab.Parameters.AddWithValue("@vend", v.Vendedor ?? "");
@@ -279,18 +292,18 @@ namespace TeoAccesorios.Desktop
                 foreach (var d in v.Detalles)
                 {
                     var cmdDet = new SqlCommand(@"
-                        INSERT INTO dbo.DetalleVenta (id_venta, id_producto, cantidad, precioUnitario, subtotal)
-                        VALUES (@v,@p,@c,@pu,@st);", cn, tx);
+                        INSERT INTO dbo.DetalleVenta (VentaId, ProductoId, ProductoNombre, Cantidad, PrecioUnitario)
+                        VALUES (@v, @p, @pn, @c, @pu);", cn, tx);
 
                     cmdDet.Parameters.AddWithValue("@v", idVenta);
                     cmdDet.Parameters.AddWithValue("@p", d.ProductoId);
+                    cmdDet.Parameters.AddWithValue("@pn", d.ProductoNombre ?? "");
                     cmdDet.Parameters.AddWithValue("@c", d.Cantidad);
                     cmdDet.Parameters.AddWithValue("@pu", d.PrecioUnitario);
-                    cmdDet.Parameters.AddWithValue("@st", d.Subtotal);
                     cmdDet.ExecuteNonQuery();
 
                     var cmdStock = new SqlCommand(
-                        "UPDATE dbo.producto SET stock = stock - @c WHERE id_producto=@p;", cn, tx);
+                        "UPDATE dbo.Productos SET Stock = Stock - @c WHERE Id=@p;", cn, tx);
                     cmdStock.Parameters.AddWithValue("@c", d.Cantidad);
                     cmdStock.Parameters.AddWithValue("@p", d.ProductoId);
                     cmdStock.ExecuteNonQuery();
@@ -322,7 +335,7 @@ namespace TeoAccesorios.Desktop
 
                 var dtDet = new DataTable();
                 using (var da = new SqlDataAdapter(
-                    "SELECT id_producto, cantidad FROM dbo.DetalleVenta WHERE id_venta=@id", cn))
+                    "SELECT ProductoId, Cantidad FROM dbo.DetalleVenta WHERE VentaId=@id", cn))
                 {
                     da.SelectCommand.Transaction = tx;
                     da.SelectCommand.Parameters.AddWithValue("@id", idVenta);
@@ -331,13 +344,13 @@ namespace TeoAccesorios.Desktop
 
                 foreach (DataRow r in dtDet.Rows)
                 {
-                    int prod = (int)r["id_producto"];
-                    int cant = (int)r["cantidad"];
+                    int prod = (int)r["ProductoId"];
+                    int cant = (int)r["Cantidad"];
 
                     var cmdStock = new SqlCommand(
                         anulada
-                            ? "UPDATE dbo.producto SET stock = stock + @c WHERE id_producto=@p;"
-                            : "UPDATE dbo.producto SET stock = stock - @c WHERE id_producto=@p;",
+                            ? "UPDATE dbo.Productos SET Stock = Stock + @c WHERE Id=@p;"
+                            : "UPDATE dbo.Productos SET Stock = Stock - @c WHERE Id=@p;",
                         cn, tx);
                     cmdStock.Parameters.AddWithValue("@c", cant);
                     cmdStock.Parameters.AddWithValue("@p", prod);

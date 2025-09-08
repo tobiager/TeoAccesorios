@@ -7,16 +7,24 @@
       "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\repository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\tobias orban\\lsi\\taller de programacion 2\\teoaccesorios\\teoaccesorios.desktop\\db.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\db.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\tobias orban\\lsi\\taller de programacion 2\\teoaccesorios\\teoaccesorios.desktop\\loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\tobias orban\\lsi\\taller de programacion 2\\teoaccesorios\\teoaccesorios.desktop\\usuariosform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\usuariosform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\tobias orban\\lsi\\taller de programacion 2\\teoaccesorios\\teoaccesorios.desktop\\reportesform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\reportesform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\tobias orban\\lsi\\taller de programacion 2\\teoaccesorios\\teoaccesorios.desktop\\kpisview.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\kpisview.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\tobias orban\\lsi\\taller de programacion 2\\teoaccesorios\\teoaccesorios.desktop\\usuariosform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\usuariosform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\tobias orban\\lsi\\taller de programacion 2\\teoaccesorios\\teoaccesorios.desktop\\db.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\db.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,19 +34,46 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
+              "Title": "LoginForm.cs",
+              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\LoginForm.cs",
+              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\LoginForm.cs",
+              "ToolTip": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\LoginForm.cs",
+              "RelativeToolTip": "TeoAccesorios.Desktop\\LoginForm.cs",
+              "ViewState": "AgIAAGAAAAAAAAAAAAAiwIYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-08T21:40:53.553Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ReportesForm.cs",
+              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\ReportesForm.cs",
+              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\ReportesForm.cs",
+              "ToolTip": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\ReportesForm.cs",
+              "RelativeToolTip": "TeoAccesorios.Desktop\\ReportesForm.cs",
+              "ViewState": "AgIAAOgAAAAAAAAAAAAiwA4BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-08T21:40:20.049Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
               "Title": "KPIsView.cs",
               "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\KPIsView.cs",
               "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\KPIsView.cs",
               "ToolTip": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\KPIsView.cs",
               "RelativeToolTip": "TeoAccesorios.Desktop\\KPIsView.cs",
-              "ViewState": "AgIAAGAAAAAAAAAAAAAqwH0AAAAnAAAAAAAAAA==",
+              "ViewState": "AgIAAGIAAAAAAAAAAAAiwIgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-08T13:00:36.825Z"
+              "WhenOpened": "2025-09-08T13:00:36.825Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -48,32 +83,33 @@
               "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\Repository.cs",
               "ToolTip": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\Repository.cs",
               "RelativeToolTip": "TeoAccesorios.Desktop\\Repository.cs",
-              "ViewState": "AgIAAAIAAAAAAAAAAAAkwBwAAAANAAAAAAAAAA==",
+              "ViewState": "AgIAAOcAAAAAAAAAAADwvwwBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-08T13:00:33.473Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
               "Title": "UsuariosForm.cs",
               "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\UsuariosForm.cs",
               "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\UsuariosForm.cs",
               "ToolTip": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\UsuariosForm.cs",
               "RelativeToolTip": "TeoAccesorios.Desktop\\UsuariosForm.cs",
-              "ViewState": "AgIAAFIAAAAAAAAAAAAiwHgAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAFMAAAAAAAAAAAAiwHkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-08T13:00:32.813Z"
+              "WhenOpened": "2025-09-08T13:00:32.813Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 5,
               "Title": "Db.cs",
               "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\Db.cs",
               "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\Db.cs",
               "ToolTip": "C:\\Users\\Usuario\\Documents\\Tobias Orban\\LSI\\Taller de Programacion 2\\TeoAccesorios\\TeoAccesorios.Desktop\\Db.cs",
               "RelativeToolTip": "TeoAccesorios.Desktop\\Db.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAADIAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAACEAAAAAAAAAAAAiwC4AAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-07T23:05:04.42Z",
               "EditorCaption": ""

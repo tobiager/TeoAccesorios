@@ -69,7 +69,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadFromDb()
         {
-            // KPIs rápidos
+            // KPIs rápidos (vistas de compatibilidad)
             var ventasHoy = Db.Scalar<int>(
                 "SELECT COUNT(*) FROM cabeceraventa WHERE CAST(fechaVenta AS date) = CAST(GETDATE() AS date)");
             var ingresosHoy = Db.Scalar<decimal>(@"
@@ -104,30 +104,24 @@ namespace TeoAccesorios.Desktop
                 Array.Empty<SqlParameter>());
             topGrid.DataSource = dtTop;
 
-            // Últimas ventas: total calculado desde detalleventa_ext
+            // Últimas ventas (join directo a tablas reales)
             var dtUlt = Db.Query(@"
                 SELECT TOP (12)
                        v.Id AS Id,
                        FORMAT(v.Fecha, 'dd/MM HH:mm') AS Fecha,
-                       COALESCE(
-                           NULLIF(LTRIM(RTRIM(c.Nombre)), ''),
-                           LTRIM(RTRIM(v.ClienteId))      -- fallback: lo que esté en Ventas.ClienteId (puede ser nombre o id en texto)
-                       ) AS Cliente,
+                       COALESCE(NULLIF(LTRIM(RTRIM(c.Nombre)), ''), LTRIM(RTRIM(CAST(v.ClienteId AS nvarchar(20))))) AS Cliente,
                        v.Vendedor AS Usuario,
                        SUM(d.Cantidad * d.PrecioUnitario) AS Total
                 FROM dbo.Ventas v
-                LEFT JOIN dbo.Clientes c
-                       ON CAST(c.Id AS nvarchar(150)) = LTRIM(RTRIM(v.ClienteId))  -- comparar TEXTO↔TEXTO (evita 'Juan Pérez'→INT)
-                JOIN dbo.DetalleVenta d
-                       ON d.VentaId = v.Id
+                LEFT JOIN dbo.Clientes c   ON c.Id = v.ClienteId
+                LEFT JOIN dbo.DetalleVenta d ON d.VentaId = v.Id
+                WHERE ISNULL(v.Anulada,0)=0
                 GROUP BY v.Id, v.Fecha, c.Nombre, v.ClienteId, v.Vendedor
                 ORDER BY v.Fecha DESC;",
-             Array.Empty<Microsoft.Data.SqlClient.SqlParameter>());
+             Array.Empty<SqlParameter>());
             ultGrid.DataSource = dtUlt;
 
-
-
-            // Bajo stock
+            // Bajo stock (vistas)
             var dtStock = Db.Query(@"
                 SELECT p.nombre AS Producto, s.descripcion AS Subcategoria, c.nombre AS Categoria, p.stock, p.stockMinimo
                 FROM producto p
