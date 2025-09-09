@@ -141,3 +141,6 @@ C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesori
 C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ClientesForm.resources
 C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ProductosForm.resources
 C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.NuevaVentaForm.resources
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ClientesForm.resources
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.NuevaVentaForm.resources
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ProductosForm.resources
