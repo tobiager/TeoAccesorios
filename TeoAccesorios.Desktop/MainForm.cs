@@ -9,9 +9,14 @@ namespace TeoAccesorios.Desktop
         public MainForm()
         {
             Text = "TeoAccesorios — Principal";
-            Width = 1000;
-            Height = 640;
             StartPosition = FormStartPosition.CenterScreen;
+
+            // 👉 arranca maximizado y con tamaño mínimo
+            WindowState = FormWindowState.Maximized;
+            MinimumSize = new Size(1200, 700);
+
+            // Doble seguridad: si algo cambia el estado, lo re-maximiza al cargar
+            this.Load += (_, __) => this.WindowState = FormWindowState.Maximized;
 
             var top = new FlowLayoutPanel
             {
@@ -28,15 +33,19 @@ namespace TeoAccesorios.Desktop
             var btnCategorias = new Button { Text = "Categorías", AutoSize = true };
             var btnReportes = new Button { Text = "Reportes", AutoSize = true };
 
-            top.Controls.AddRange(new Control[] { btnClientes, btnProductos, btnVentas, btnUsuarios, btnCategorias, btnReportes });
+            top.Controls.AddRange(new Control[]
+            {
+                btnClientes, btnProductos, btnVentas,
+                btnUsuarios, btnCategorias, btnReportes
+            });
 
             var lblSesion = new Label
             {
                 Dock = DockStyle.Top,
                 Height = 24,
-                TextAlign = ContentAlignment.MiddleRight
+                TextAlign = ContentAlignment.MiddleRight,
+                Text = $"Sesión: {Sesion.Usuario} — Rol: {Sesion.Rol}"
             };
-            lblSesion.Text = $"Sesión: {Sesion.Usuario} — Rol: {Sesion.Rol}";
 
             Controls.Add(lblSesion);
             Controls.Add(top);

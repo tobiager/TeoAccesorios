@@ -11,4 +11,18 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Update="DashboardResources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DashboardResources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="DashboardResources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>DashboardResources.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>TeoAccesorios.Desktop.Resources</CustomToolNamespace>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

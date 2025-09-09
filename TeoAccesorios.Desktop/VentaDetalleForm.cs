@@ -19,6 +19,7 @@ namespace TeoAccesorios.Desktop
             Controls.Add(info);
             
             GridHelper.Estilizar(grid);
+            GridHelperLock.WireDataBindingLock(grid);
 
         }
     }

@@ -106,7 +106,8 @@ namespace TeoAccesorios.Desktop
 
            
             GridHelper.Estilizar(grid);
-
+            GridHelperLock.SoloLectura(grid);
+            GridHelperLock.WireDataBindingLock(grid);
             LoadData();
         }
 

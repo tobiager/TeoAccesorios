@@ -40,19 +40,29 @@ namespace TeoAccesorios.Desktop
             btnRefrescar.Click += (_, __) => LoadFromDb();
             stats.Controls.Add(btnRefrescar, 4, 0);
 
+            // Top productos
             var topBox = new GroupBox { Text = "Top productos vendidos (últimas 50 ventas)", Dock = DockStyle.Fill };
+            topBox.ForeColor = Color.White;
+            topBox.Font = new Font("Segoe UI", 11, FontStyle.Bold);
             topGrid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
             topBox.Controls.Add(topGrid);
 
+            // Panel inferior
             var bottom = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
             bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
             bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
 
+            // Últimas ventas
             var ultBox = new GroupBox { Text = "Últimas ventas", Dock = DockStyle.Fill };
+            ultBox.ForeColor = Color.White;
+            ultBox.Font = new Font("Segoe UI", 11, FontStyle.Bold);
             ultGrid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
             ultBox.Controls.Add(ultGrid);
 
+            // Bajo stock
             var stockBox = new GroupBox { Text = "Bajo stock", Dock = DockStyle.Fill };
+            stockBox.ForeColor = Color.White;
+            stockBox.Font = new Font("Segoe UI", 11, FontStyle.Bold);
             stockGrid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
             stockBox.Controls.Add(stockGrid);
 
@@ -64,17 +74,52 @@ namespace TeoAccesorios.Desktop
             main.Controls.Add(bottom, 0, 2);
             Controls.Add(main);
 
-            
+            // Tu estilo previo
             GridHelper.Estilizar(topGrid);
             GridHelper.Estilizar(ultGrid);
             GridHelper.Estilizar(stockGrid);
 
+            // Forzar colores para evitar herencia del GroupBox
+            ThemeGrid(topGrid);
+            ThemeGrid(ultGrid);
+            ThemeGrid(stockGrid);
+
+            GridHelperLock.SoloLectura(topGrid);
+            GridHelperLock.WireDataBindingLock(topGrid);
+            GridHelperLock.SoloLectura(ultGrid);
+            GridHelperLock.WireDataBindingLock(ultGrid);
+            GridHelperLock.SoloLectura(stockGrid);
+            GridHelperLock.WireDataBindingLock(stockGrid);
             LoadFromDb();
+        }
+
+        // === Estilo fijo para celdas/headers (negro sobre blanco) ===
+        private void ThemeGrid(DataGridView g)
+        {
+            g.EnableHeadersVisualStyles = false;
+
+            // Encabezados
+            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(37, 99, 235); // azul
+            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+
+            // Celdas
+            g.DefaultCellStyle.BackColor = Color.White;
+            g.DefaultCellStyle.ForeColor = Color.Black;
+            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(14, 165, 233);
+            g.DefaultCellStyle.SelectionForeColor = Color.White;
+
+            // Bordes y varios
+            g.BackgroundColor = Color.White;
+            g.BorderStyle = BorderStyle.None;
+            g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            g.RowHeadersVisible = false;
+            g.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
         private void LoadFromDb()
         {
-            // KPIs rápidos (vistas de compatibilidad)
+            // KPIs rápidos
             var ventasHoy = Db.Scalar<int>(
                 "SELECT COUNT(*) FROM cabeceraventa WHERE CAST(fechaVenta AS date) = CAST(GETDATE() AS date)");
             var ingresosHoy = Db.Scalar<decimal>(@"
@@ -90,7 +135,7 @@ namespace TeoAccesorios.Desktop
             lblClientes.Text = totalClientes.ToString();
             lblProductos.Text = totalProductos.ToString();
 
-            // Top productos en las últimas 50 ventas
+            // Top productos (últimas 50 ventas)
             var dtTop = Db.Query(@"
                 WITH ult AS (
                     SELECT TOP (50) v.id_venta
@@ -109,7 +154,7 @@ namespace TeoAccesorios.Desktop
                 Array.Empty<SqlParameter>());
             topGrid.DataSource = dtTop;
 
-            // Últimas ventas (join directo a tablas reales)
+            // Últimas ventas
             var dtUlt = Db.Query(@"
                 SELECT TOP (12)
                        v.Id AS Id,
@@ -126,7 +171,7 @@ namespace TeoAccesorios.Desktop
              Array.Empty<SqlParameter>());
             ultGrid.DataSource = dtUlt;
 
-            // Bajo stock (vistas)
+            // Bajo stock
             var dtStock = Db.Query(@"
                 SELECT p.nombre AS Producto, s.descripcion AS Subcategoria, c.nombre AS Categoria, p.stock, p.stockMinimo
                 FROM producto p

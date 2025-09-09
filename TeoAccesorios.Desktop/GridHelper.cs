@@ -5,23 +5,56 @@ namespace TeoAccesorios.Desktop
 {
     public static class GridHelper
     {
-        public static void Estilizar(DataGridView grid)
+        public static void Estilizar(DataGridView g)
         {
-            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells;
-            grid.RowHeadersVisible = false;
-            grid.AllowUserToAddRows = false;
-            grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            grid.MultiSelect = false;
+            // Bordes y grilla
+            g.CellBorderStyle = DataGridViewCellBorderStyle.Single;
+            g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+            g.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+            g.GridColor = Color.FromArgb(203, 213, 225);
+            g.BorderStyle = BorderStyle.None;
+            g.RowHeadersVisible = false;
 
-            // Fuente general
-            grid.DefaultCellStyle.Font = new Font("Segoe UI", 11F);
-            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+            // Ajustes generales
+            g.EnableHeadersVisualStyles = false;
+            g.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            g.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            g.MultiSelect = false;
+            g.BackgroundColor = Color.White;
+
+            // Fuente global más grande
+            g.DefaultCellStyle.Font = new Font("Segoe UI", 11); // celdas
+            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11, FontStyle.Bold); // encabezados
 
             // Encabezados
-            grid.EnableHeadersVisualStyles = false;
-            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(37, 99, 235);
+            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            g.ColumnHeadersDefaultCellStyle.SelectionBackColor = g.ColumnHeadersDefaultCellStyle.BackColor;
+            g.ColumnHeadersDefaultCellStyle.SelectionForeColor = g.ColumnHeadersDefaultCellStyle.ForeColor;
+
+            // Celdas
+            g.DefaultCellStyle.BackColor = Color.White;
+            g.DefaultCellStyle.ForeColor = Color.Black;
+            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(14, 165, 233);
+            g.DefaultCellStyle.SelectionForeColor = Color.White;
+            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
+
+            // Altura de filas (para que no se vea apretado con letra 11pt)
+            g.RowTemplate.Height = 32;
+            g.ColumnHeadersHeight = 36;
+
+            // --- Sin selección por defecto ---
+            g.DataBindingComplete += (_, __) =>
+            {
+                try { g.CurrentCell = null; } catch { }
+                g.ClearSelection();
+            };
+            g.SelectionChanged += (_, __) =>
+            {
+                if (!g.Focused) g.ClearSelection();
+            };
+            g.Leave += (_, __) => { g.ClearSelection(); };
         }
     }
+
 }

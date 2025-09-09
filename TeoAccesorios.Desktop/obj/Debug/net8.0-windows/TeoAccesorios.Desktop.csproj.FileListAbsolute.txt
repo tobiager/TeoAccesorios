@@ -65,7 +65,6 @@ C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.dll
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.csproj.AssemblyReference.cache
-C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.DashboardForm.resources
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.KPIsView.resources
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.LoginForm.resources
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.UsuarioEditForm.resources
@@ -144,3 +143,6 @@ C:\Users\Usuario\Documents\Tobias Orban\LSI\Taller de Programacion 2\TeoAccesori
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ClientesForm.resources
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.NuevaVentaForm.resources
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ProductosForm.resources
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.DashboardResources.resources
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.ProductoEditForm.resources
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.VentaDetalleForm.resources

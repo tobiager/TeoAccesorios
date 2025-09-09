@@ -45,6 +45,8 @@ namespace TeoAccesorios.Desktop
             Controls.Add(top);
             grid.DataSource = bs;
             GridHelper.Estilizar(grid);
+            GridHelperLock.SoloLectura(grid);
+            GridHelperLock.WireDataBindingLock(grid);
 
 
             // Estética de la grilla
