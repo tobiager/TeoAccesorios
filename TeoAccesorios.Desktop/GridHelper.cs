@@ -55,6 +55,19 @@ namespace TeoAccesorios.Desktop
             };
             g.Leave += (_, __) => { g.ClearSelection(); };
         }
+
+        public static void WideColumns(DataGridView g)
+        {
+            if (g == null) return;
+            g.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            foreach (DataGridViewColumn c in g.Columns)
+            {
+                c.MinimumWidth = 60;
+                if (string.Equals(c.Name, "Nombre", StringComparison.OrdinalIgnoreCase))
+                    c.MinimumWidth = 160;
+            }
+        }
+
     }
 
 }

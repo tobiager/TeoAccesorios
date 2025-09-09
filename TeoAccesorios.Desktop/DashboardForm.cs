@@ -37,6 +37,11 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(Btn("Nueva Venta", (_, __) => ShowInContent(new NuevaVentaForm())));
             side.Controls.Add(Btn("Ver Ventas", (_, __) => ShowInContent(new VentasForm())));
             side.Controls.Add(Btn("Productos", (_, __) => ShowInContent(new ProductosForm())));
+
+            // <<< BOTÓN NUEVO AQUÍ (debajo de Productos)
+            side.Controls.Add(Btn("Categorías", (_, __) => ShowInContent(new CategoriasForm())));
+            // >>>
+
             side.Controls.Add(Btn("Clientes", (_, __) => ShowInContent(new ClientesForm())));
 
             if (Sesion.Rol == RolUsuario.Admin)

@@ -7,55 +7,54 @@ namespace TeoAccesorios.Desktop
 {
     public class ProductosForm : Form
     {
-        private DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
-        private TextBox txtBuscar = new TextBox { PlaceholderText = "Buscar por nombre...", Width = 220 };
-        private ComboBox cboCategoria = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
-        private CheckBox chkInactivos = new CheckBox { Text = "Ver inactivos" };
-        private BindingSource bs = new BindingSource();
+        private readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
+        private readonly TextBox txtBuscar = new TextBox { PlaceholderText = "Buscar por nombre...", Width = 220 };
+        private readonly ComboBox cboCategoria = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
+        private readonly ComboBox cboSubcategoria = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
+        private readonly CheckBox chkInactivos = new CheckBox { Text = "Ver inactivos" };
+        private readonly BindingSource bs = new BindingSource();
 
         public ProductosForm()
         {
             Text = "Productos";
-            Width = 900;
-            Height = 600;
+            Width = 1200;
+            Height = 720;
             StartPosition = FormStartPosition.CenterParent;
 
+            // Barra superior (filtros + ABM)
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8), AutoSize = false };
             top.Controls.Add(txtBuscar);
+            top.Controls.Add(new Label { Text = "Categoría", AutoSize = true, Padding = new Padding(8, 8, 4, 0) });
             top.Controls.Add(cboCategoria);
+            top.Controls.Add(new Label { Text = "Subcategoría", AutoSize = true, Padding = new Padding(8, 8, 4, 0) });
+            top.Controls.Add(cboSubcategoria);
             top.Controls.Add(chkInactivos);
             var btnFiltrar = new Button { Text = "Filtrar" };
             top.Controls.Add(btnFiltrar);
 
-            // ABM solo para Admin
+            // ABM solo Admin
             if (Sesion.Rol == RolUsuario.Admin)
             {
                 var btnNuevo = new Button { Text = "Nuevo" };
                 var btnEditar = new Button { Text = "Editar" };
                 var btnEliminar = new Button { Text = "Eliminar" };
                 var btnRestaurar = new Button { Text = "Restaurar" };
-
-                top.Controls.Add(btnNuevo);
-                top.Controls.Add(btnEditar);
-                top.Controls.Add(btnEliminar);
-                top.Controls.Add(btnRestaurar);
+                top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnRestaurar });
 
                 btnNuevo.Click += (s, e) =>
                 {
                     var pr = new Producto();
-                    using (var f = new ProductoEditForm(pr))
+                    using var f = new ProductoEditForm(pr);
+                    if (f.ShowDialog(this) == DialogResult.OK)
                     {
-                        if (f.ShowDialog(this) == DialogResult.OK)
-                        {
-                            pr.Id = Repository.InsertarProducto(pr);
-                            LoadData();
-                        }
+                        pr.Id = Repository.InsertarProducto(pr);
+                        LoadData();
                     }
                 };
 
                 btnEditar.Click += (s, e) =>
                 {
-                    if (grid.CurrentRow != null && grid.CurrentRow.DataBoundItem is Producto sel)
+                    if (grid.CurrentRow?.DataBoundItem is Producto sel)
                     {
                         var tmp = new Producto
                         {
@@ -65,39 +64,34 @@ namespace TeoAccesorios.Desktop
                             Precio = sel.Precio,
                             Stock = sel.Stock,
                             StockMinimo = sel.StockMinimo,
-                            CategoriaId = sel.CategoriaId
+                            CategoriaId = sel.CategoriaId,
+                            SubcategoriaId = sel.SubcategoriaId,
+                            Activo = sel.Activo
                         };
-
-                        using (var f = new ProductoEditForm(tmp))
+                        using var f = new ProductoEditForm(tmp);
+                        if (f.ShowDialog(this) == DialogResult.OK)
                         {
-                            if (f.ShowDialog(this) == DialogResult.OK)
-                            {
-                                sel.Nombre = tmp.Nombre;
-                                sel.Descripcion = tmp.Descripcion;
-                                sel.Precio = tmp.Precio;
-                                sel.Stock = tmp.Stock;
-                                sel.StockMinimo = tmp.StockMinimo;
-                                sel.CategoriaId = tmp.CategoriaId;
-                                LoadData();
-                            }
+                            Repository.ActualizarProducto(tmp);
+                            LoadData();
                         }
                     }
                 };
 
                 btnEliminar.Click += (s, e) =>
                 {
-                    if (grid.CurrentRow != null && grid.CurrentRow.DataBoundItem is Producto sel)
+                    if (grid.CurrentRow?.DataBoundItem is Producto sel)
                     {
-                        sel.Activo = false;
+                        Repository.EliminarProducto(sel.Id);
                         LoadData();
                     }
                 };
 
                 btnRestaurar.Click += (s, e) =>
                 {
-                    if (grid.CurrentRow != null && grid.CurrentRow.DataBoundItem is Producto sel)
+                    if (grid.CurrentRow?.DataBoundItem is Producto sel)
                     {
                         sel.Activo = true;
+                        Repository.ActualizarProducto(sel);
                         LoadData();
                     }
                 };
@@ -107,46 +101,69 @@ namespace TeoAccesorios.Desktop
                 grid.ReadOnly = true; // vendedor: solo ver
             }
 
+            // Layout principal: solo la grilla
+            Controls.Add(grid);
+            Controls.Add(top);
+
+            // Estilo grilla
+            GridHelper.Estilizar(grid);
+            GridHelperLock.SoloLectura(grid);
+            GridHelperLock.WireDataBindingLock(grid);
+
             // Filtros
             btnFiltrar.Click += (s, e) => LoadData();
             chkInactivos.CheckedChanged += (s, e) => LoadData();
             txtBuscar.TextChanged += (s, e) => LoadData();
-            cboCategoria.SelectedIndexChanged += (s, e) => LoadData();
+            cboCategoria.SelectedIndexChanged += (s, e) => { CargarSubcategorias(); LoadData(); };
+            cboSubcategoria.SelectedIndexChanged += (s, e) => LoadData();
 
-            // Categorías
+            // Cargar combos
             cboCategoria.Items.Clear();
-            cboCategoria.Items.Add("Todas las categorías");
-            foreach (var c in Repository.ListarCategorias()) cboCategoria.Items.Add(string.Format("{0} - {1}", c.Id, c.Nombre));
+            cboCategoria.Items.Add(new ComboItem { Text = "Todas las categorías", Value = null });
+            foreach (var c in Repository.ListarCategorias())
+                cboCategoria.Items.Add(new ComboItem { Text = $"{c.Id} - {c.Nombre}", Value = c.Id });
             cboCategoria.SelectedIndex = 0;
 
-            Controls.Add(grid);
-            Controls.Add(top);
-           
-            GridHelper.Estilizar(grid);
-            GridHelperLock.SoloLectura(grid);
-            GridHelperLock.WireDataBindingLock(grid);
+            CargarSubcategorias();
             LoadData();
+        }
+
+        private void CargarSubcategorias()
+        {
+            cboSubcategoria.Items.Clear();
+            cboSubcategoria.Items.Add(new ComboItem { Text = "Todas las subcategorías", Value = null });
+
+            int? catId = (cboCategoria.SelectedItem as ComboItem)?.Value;
+            var subs = Repository.ListarSubcategorias(catId);
+            foreach (var s in subs)
+                cboSubcategoria.Items.Add(new ComboItem { Text = $"{s.Id} - {s.Nombre}", Value = s.Id });
+
+            cboSubcategoria.SelectedIndex = 0;
         }
 
         private void LoadData()
         {
             var data = Repository.ListarProductos(chkInactivos.Checked).AsEnumerable();
 
-            var q = txtBuscar.Text != null ? txtBuscar.Text.Trim() : string.Empty;
+            var q = txtBuscar.Text?.Trim() ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(q))
-                data = data.Where(p => p.Nombre != null && p.Nombre.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
+                data = data.Where(p => (p.Nombre ?? "").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
 
-            if (cboCategoria.SelectedIndex > 0)
-            {
-                var sel = cboCategoria.SelectedItem.ToString();
-                var id = int.Parse(sel.Split('-')[0].Trim());
-                data = data.Where(p => p.CategoriaId == id);
-            }
+            int? catId = (cboCategoria.SelectedItem as ComboItem)?.Value;
+            if (catId != null) data = data.Where(p => p.CategoriaId == catId.Value);
 
-            /* activo ya filtrado arriba */
+            int? subId = (cboSubcategoria.SelectedItem as ComboItem)?.Value;
+            if (subId != null) data = data.Where(p => p.SubcategoriaId == subId.Value);
 
             bs.DataSource = data.ToList();
             grid.DataSource = bs;
+        }
+
+        private class ComboItem
+        {
+            public string Text { get; set; } = "";
+            public int? Value { get; set; }
+            public override string ToString() => Text;
         }
     }
 }
