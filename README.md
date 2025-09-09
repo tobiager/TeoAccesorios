@@ -19,14 +19,16 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 
 1. [Características principales](#características-principales)
 2. [Arquitectura y tecnologías](#arquitectura-y-tecnologías)
-3. [Requisitos](#requisitos)
-4. [Configuración y ejecución](#configuración-y-ejecución)
-5. [Flujo de uso](#flujo-de-uso)
-6. [Roles de usuario](#roles-de-usuario)
-7. [Módulos disponibles](#módulos-disponibles)
-8. [Capturas](#capturas)
-9. [Estado actual y roadmap](#estado-actual-y-roadmap)
-10. [Autores](#autores)
+3. [Estructura del repositorio](#estructura-del-repositorio)
+4. [Base de datos](#base-de-datos)
+5. [Requisitos](#requisitos)
+6. [Configuración y ejecución](#configuración-y-ejecución)
+7. [Flujo de uso](#flujo-de-uso)
+8. [Roles de usuario](#roles-de-usuario)
+9. [Módulos disponibles](#módulos-disponibles)
+10. [Capturas](#capturas)
+11. [Estado actual y roadmap](#estado-actual-y-roadmap)
+12. [Autores](#autores)
 
 ---
 
@@ -47,6 +49,45 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 - **Base de datos:** SQL Server (base `TeoAccesorios` incluida en `DataBase/TeoAccesorios.sql`)
 - **Patrón de acceso a datos:** `Repository` con consultas a tablas `cliente`, `usuario`, `categoria`, `subcategoria`, `producto`, `cabeceraventa` y `detalleventa`.
 
+## Estructura del repositorio
+
+```text
+.
+├─ TeoAccesorios.Desktop/        Código fuente de la aplicación WinForms
+│  ├─ Models/                    Clases de dominio (Cliente, Producto, etc.)
+│  ├─ Repository.cs              Acceso a datos basado en Db.Query/Exec
+│  ├─ Db.cs                      Helper de conexión y ejecución SQL
+│  ├─ *.cs/.resx                 Formularios (Login, Dashboard, Ventas, etc.)
+│  └─ utilidades                 (GridHelper, FormValidator, …)
+├─ DataBase/TeoAccesorios.sql    Script de creación + datos de ejemplo
+├─ assets/                       Capturas usadas en la documentación
+└─ TeoAccesorios-Desktop.sln     Solución de Visual Studio
+```
+
+## Base de datos
+
+El archivo `DataBase/TeoAccesorios.sql` genera el esquema completo de SQL Server **y carga datos de ejemplo** para un arranque rápido. Contiene inserciones de categorías, clientes, usuarios, productos, ventas y sus detalles.
+
+Ejemplo de datos precargados:
+
+```sql
+SET IDENTITY_INSERT [dbo].[Categorias] ON
+INSERT [dbo].[Categorias] ([Id], [Nombre], [Descripcion], [Activo]) VALUES (1, N'Carteras', N'Carteras de cuero y eco cuero', 1)
+...
+SET IDENTITY_INSERT [dbo].[Clientes] ON
+INSERT [dbo].[Clientes] ([Id], [Nombre], [Email], [Telefono], [Direccion], [Localidad], [Provincia], [Activo]) VALUES (1, N'Juan Pérez', N'juan@example.com', N'+54 9 379 555-1234', N'Junín 123', N'Corrientes', N'Corrientes', 1)
+
+SET IDENTITY_INSERT [dbo].[Usuarios] ON
+INSERT [dbo].[Usuarios] ([Id], [NombreUsuario], [Rol], [Activo], [correo], [contrasenia]) VALUES (1, N'admin', N'Admin', 1, N'', N'admin123')
+```
+
+La cadena de conexión por defecto se define en `Db.cs` y puede ajustarse según la instancia local:
+
+```csharp
+public static readonly string ConnectionString =
+    "Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;";
+```
+
 ## Requisitos
 
 - Windows 10 u 11
@@ -57,7 +98,7 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 ## Configuración y ejecución
 
 1. Clonar el repositorio o descargar el ZIP.
-2. Ejecutar `DataBase/TeoAccesorios.sql` para crear la base de datos local (si aún no existe). La cadena de conexión por defecto es `Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;` y puede modificarse en `Db.cs`.
+2. Ejecutar `DataBase/TeoAccesorios.sql` para crear la base de datos local **con datos de ejemplo**. La cadena de conexión por defecto es `Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;` y puede modificarse en `Db.cs`.
 3. Abrir `TeoAccesorios-Desktop.sln` en **Visual Studio 2022**.
 4. Compilar y ejecutar en modo **Debug** (`F5`).
 
