@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TeoAccesorios.Desktop")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0104a8cf5e74083d359cba0945eae5165bdf70e0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cc37d379aa0cea1359f5da500ad7faef1d99ced8")]
 [assembly: System.Reflection.AssemblyProductAttribute("TeoAccesorios.Desktop")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TeoAccesorios.Desktop")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -3,24 +3,8 @@
   "WorkspaceRootPath": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\github\\teoaccesorios\\teoaccesorios.desktop\\productoeditform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\productoeditform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\github\\teoaccesorios\\teoaccesorios.desktop\\repository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\repository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\github\\teoaccesorios\\teoaccesorios.desktop\\productosform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\productosform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\github\\teoaccesorios\\teoaccesorios.desktop\\dashboardform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\dashboardform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\github\\teoaccesorios\\teoaccesorios.desktop\\categoriasform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\categoriasform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|c:\\users\\usuario\\documents\\github\\teoaccesorios\\teoaccesorios.desktop\\loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{22222222-2222-2222-2222-222222222222}|TeoAccesorios.Desktop\\TeoAccesorios.Desktop.csproj|solutionrelative:teoaccesorios.desktop\\loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -35,65 +19,15 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ProductoEditForm.cs",
-              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\ProductoEditForm.cs",
-              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\ProductoEditForm.cs",
-              "ToolTip": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\ProductoEditForm.cs",
-              "RelativeToolTip": "TeoAccesorios.Desktop\\ProductoEditForm.cs",
-              "ViewState": "AgIAAIAAAAAAAAAAAAAiwJ4AAAAAAAAAAAAAAA==",
+              "Title": "LoginForm.cs",
+              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\LoginForm.cs",
+              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\LoginForm.cs",
+              "ToolTip": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\LoginForm.cs",
+              "RelativeToolTip": "TeoAccesorios.Desktop\\LoginForm.cs",
+              "ViewState": "AgIAAHkAAAAAAAAAAAAUwI8AAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-10T00:59:08.671Z",
+              "WhenOpened": "2025-09-10T11:12:11.848Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ProductosForm.cs",
-              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\ProductosForm.cs",
-              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\ProductosForm.cs",
-              "ToolTip": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\ProductosForm.cs",
-              "RelativeToolTip": "TeoAccesorios.Desktop\\ProductosForm.cs",
-              "ViewState": "AgIAAIYAAAAAAAAAAAAiwKkAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-09T14:06:57.79Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "DashboardForm.cs",
-              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\DashboardForm.cs",
-              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\DashboardForm.cs",
-              "ToolTip": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\DashboardForm.cs",
-              "RelativeToolTip": "TeoAccesorios.Desktop\\DashboardForm.cs",
-              "ViewState": "AgIAADYAAAAAAAAAAAAiwFwAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-09T14:01:54.805Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Repository.cs",
-              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\Repository.cs",
-              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\Repository.cs",
-              "ToolTip": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\Repository.cs",
-              "RelativeToolTip": "TeoAccesorios.Desktop\\Repository.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAA0AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-09T14:01:40.727Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "CategoriasForm.cs",
-              "DocumentMoniker": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\CategoriasForm.cs",
-              "RelativeDocumentMoniker": "TeoAccesorios.Desktop\\CategoriasForm.cs",
-              "ToolTip": "C:\\Users\\Usuario\\Documents\\GitHub\\TeoAccesorios\\TeoAccesorios.Desktop\\CategoriasForm.cs",
-              "RelativeToolTip": "TeoAccesorios.Desktop\\CategoriasForm.cs",
-              "ViewState": "AgIAALgAAAAAAAAAAAAiwMkAAAAJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-09T14:01:29.539Z"
             }
           ]
         }
