@@ -26,8 +26,8 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 7. [Flujo de uso](#flujo-de-uso)
 8. [Roles de usuario](#roles-de-usuario)
 9. [Módulos disponibles](#módulos-disponibles)
-10. [Capturas](#capturas)
-11. [Estado actual y roadmap](#estado-actual-y-roadmap)
+10. [Exportación de reportes](#exportación-de-reportes)
+11. [Capturas](#capturas)
 12. [Autores](#autores)
 
 ---
@@ -131,7 +131,39 @@ public static readonly string ConnectionString =
 - **Productos:** filtro por texto/categoría y ABM (solo Admin).
 - **Usuarios/Empleados:** administración de cuentas (solo Admin).
 - **Ventas:** creación de nuevas ventas, listado con detalles y anulación/restauración con reglas por rol.
-- **Reportes:** rango semanal, mensual o personalizado, con exportación en CSV/TSV/JSON.
+- Exportación en  PDF y Excel.
+
+---
+
+## Exportación de reportes
+
+La última iteración incorporó un **pipeline de exportación multi-formato** que reutiliza la misma proyección que alimenta la grilla de Reportes y la vuelca a distintos destinos según la necesidad del usuario.
+
+### Formatos disponibles
+
+- **PDF**  
+  Se genera un documento con cabecera, período de análisis, tabla de ventas y totales.  
+  Se utiliza la librería **QuestPDF**, que permite definir layouts declarativos, estilos consistentes y paginación automática.  
+  La lógica está encapsulada en un `PdfReportExporter`, responsable de aplicar la tipografía, colores de encabezado y estructura de tabla.
+
+- **Excel (XLSX)**  
+  Se crea un `Workbook` mediante **ClosedXML**, una librería especializada en OpenXML.  
+  El `ExcelReportExporter` se encarga de definir los tipos numéricos, aplicar formatos monetarios, resaltar la fila de totales y autoajustar columnas.  
+  El archivo resultante queda listo para pivotar, graficar o aplicar filtros.
+
+### Flujo técnico
+
+1. El **`ReportService`** ejecuta la consulta LINQ y la proyecta en un objeto inmutable `ReportSnapshot`.  
+2. Cada exportador implementa la interfaz **`IReportExporter`** y recibe el snapshot más la ruta de destino.  
+3. Los exportadores delegan en las bibliotecas externas (QuestPDF / ClosedXML) para materializar el documento final, manteniendo el dominio desacoplado de dependencias de terceros.  
+4. La **UI** invoca el exportador elegido desde el diálogo *Exportar*, y registra eventos de telemetría para trazabilidad.
+
+### Dependencias externas
+
+- **QuestPDF** → motor de composición de documentos PDF para .NET (distribuido vía NuGet, licencia compatible con uso académico).  
+- **ClosedXML** → motor de manipulación de hojas de cálculo Excel en formato OpenXML.  
+
+---
 
 ## Capturas
 
@@ -175,17 +207,7 @@ public static readonly string ConnectionString =
   <img src="assets/reportes.png" width="900"/>
 </p>
 
-## Estado actual y roadmap
-
-✔️ Pantallas funcionales en WinForms conectadas a SQL Server.
-✔️ Navegación integrada en una sola ventana (sidebar fijo + panel central).
-✔️ Roles diferenciados (Admin / Vendedor).
-
-Para almacenar también la columna `Anulada` en `cabeceraventa`, ejecutar:
-
-```sql
-ALTER TABLE dbo.cabeceraventa ADD Anulada BIT NOT NULL DEFAULT 0;
-```
+---
 
 ## Autores
 
