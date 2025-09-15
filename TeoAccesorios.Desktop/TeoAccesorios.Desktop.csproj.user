@@ -41,6 +41,9 @@
     <Compile Update="SubcategoriaEditForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="SubcategoriaForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="UsuarioEditForm.cs">
       <SubType>Form</SubType>
     </Compile>

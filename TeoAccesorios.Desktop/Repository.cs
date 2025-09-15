@@ -172,13 +172,13 @@ namespace TeoAccesorios.Desktop
         public static List<Subcategoria> ListarSubcategorias(int? categoriaId = null, bool incluirInactivas = true)
         {
             var dt = Db.Query(@"
-                SELECT  s.Id, s.Nombre, s.Descripcion, s.CategoriaId, s.Activo,
-                        c.Nombre AS CategoriaNombre
-                FROM dbo.Subcategorias s
-                JOIN dbo.Categorias c ON c.Id = s.CategoriaId
-                WHERE (@cat IS NULL OR s.CategoriaId=@cat)
-                  AND (@all = 1 OR s.Activo = 1)
-                ORDER BY c.Nombre, s.Nombre;",
+            SELECT  s.Id, s.Nombre, s.Descripcion, s.CategoriaId, s.Activo,
+                    c.Nombre AS CategoriaNombre
+            FROM dbo.Subcategorias s
+            JOIN dbo.Categorias c ON c.Id = s.CategoriaId
+            WHERE (@cat IS NULL OR s.CategoriaId = @cat)
+              AND (@all = 1 OR s.Activo = 1)
+            ORDER BY c.Nombre, s.Nombre;",
                 new SqlParameter("@cat", (object?)categoriaId ?? DBNull.Value),
                 new SqlParameter("@all", incluirInactivas ? 1 : 0));
 
@@ -197,9 +197,9 @@ namespace TeoAccesorios.Desktop
         public static int InsertarCategoria(Categoria c)
         {
             const string sql = @"
-        INSERT INTO dbo.Categorias (Nombre, Descripcion, Activo)
-        OUTPUT INSERTED.Id
-        VALUES (@nom, @desc, @act);";
+                INSERT INTO dbo.Categorias (Nombre, Descripcion, Activo)
+                OUTPUT INSERTED.Id
+                VALUES (@nom, @desc, @act);";
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
             cmd.Parameters.AddWithValue("@nom", c.Nombre ?? "");
@@ -212,9 +212,9 @@ namespace TeoAccesorios.Desktop
         public static void ActualizarCategoria(Categoria c)
         {
             const string sql = @"
-        UPDATE dbo.Categorias
-           SET Nombre=@nom, Descripcion=@desc, Activo=@act
-         WHERE Id=@id;";
+                UPDATE dbo.Categorias
+                   SET Nombre=@nom, Descripcion=@desc, Activo=@act
+                 WHERE Id=@id;";
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
             cmd.Parameters.AddWithValue("@id", c.Id);
@@ -236,9 +236,9 @@ namespace TeoAccesorios.Desktop
         public static int InsertarSubcategoria(Subcategoria s)
         {
             const string sql = @"
-        INSERT INTO dbo.Subcategorias (Nombre, Descripcion, CategoriaId, Activo)
-        OUTPUT INSERTED.Id
-        VALUES (@nom, @desc, @cat, @act);";
+                INSERT INTO dbo.Subcategorias (Nombre, Descripcion, CategoriaId, Activo)
+                OUTPUT INSERTED.Id
+                VALUES (@nom, @desc, @cat, @act);";
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
             cmd.Parameters.AddWithValue("@nom", s.Nombre ?? "");
@@ -252,9 +252,9 @@ namespace TeoAccesorios.Desktop
         public static void ActualizarSubcategoria(Subcategoria s)
         {
             const string sql = @"
-        UPDATE dbo.Subcategorias
-           SET Nombre=@nom, Descripcion=@desc, CategoriaId=@cat, Activo=@act
-         WHERE Id=@id;";
+                UPDATE dbo.Subcategorias
+                   SET Nombre=@nom, Descripcion=@desc, CategoriaId=@cat, Activo=@act
+                 WHERE Id=@id;";
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
             cmd.Parameters.AddWithValue("@id", s.Id);
@@ -272,6 +272,44 @@ namespace TeoAccesorios.Desktop
                 new SqlParameter("@a", activa ? 1 : 0),
                 new SqlParameter("@id", id));
         }
+
+        // ===== VALIDACIÓN PARA BLOQUEAR LA BAJA (soft delete seguro) =====
+        public static int ContarProductosPorCategoria(int categoriaId)
+        {
+            var dt = Db.Query(@"
+                SELECT COUNT(*) AS Cnt
+                FROM dbo.Productos
+                WHERE CategoriaId = @id;",
+                new SqlParameter("@id", categoriaId));
+            return dt.AsEnumerable().Select(r => r.Field<int>("Cnt")).FirstOrDefault();
+        }
+
+        public static int ContarProductosPorSubcategoria(int subcategoriaId)
+        {
+            var dt = Db.Query(@"
+                SELECT COUNT(*) AS Cnt
+                FROM dbo.Productos
+                WHERE SubcategoriaId = @id;",
+                new SqlParameter("@id", subcategoriaId));
+            return dt.AsEnumerable().Select(r => r.Field<int>("Cnt")).FirstOrDefault();
+        }
+
+        public static bool TryDesactivarCategoria(int id, out int productosAsociados)
+        {
+            productosAsociados = ContarProductosPorCategoria(id);
+            if (productosAsociados > 0) return false;   
+            SetCategoriaActiva(id, false);              
+            return true;
+        }
+
+        public static bool TryDesactivarSubcategoria(int id, out int productosAsociados)
+        {
+            productosAsociados = ContarProductosPorSubcategoria(id);
+            if (productosAsociados > 0) return false;   
+            SetSubcategoriaActiva(id, false);          
+            return true;
+        }
+
 
         // ========= PRODUCTOS =========
         public static List<Producto> ListarProductos(bool incluirInactivos = false)

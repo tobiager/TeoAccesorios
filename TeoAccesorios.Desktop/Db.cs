@@ -7,11 +7,11 @@ namespace TeoAccesorios.Desktop
 {
     public static class Db
     {
-        // Ajustá si hace falta
+        
         public static readonly string ConnectionString =
             "Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;";
 
-        // -------- SELECT (SIN parámetros) -> PROHIBIDO --------
+        
         [Obsolete("Usar Query(sql, params SqlParameter[]) parametrizado", error: true)]
         public static DataTable Query(string sql)
         {
@@ -23,7 +23,7 @@ namespace TeoAccesorios.Desktop
             return dt;
         }
 
-        // -------- SELECT (CON parámetros) --------
+        
         public static DataTable Query(string sql, params SqlParameter[] ps)
         {
             using var cn = new SqlConnection(ConnectionString);
@@ -49,7 +49,7 @@ namespace TeoAccesorios.Desktop
             return dt;
         }
 
-        // -------- INSERT/UPDATE/DELETE (SIN parámetros) --------
+        
         public static int Exec(string sql)
         {
             using var cn = new SqlConnection(ConnectionString);
@@ -65,7 +65,7 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // -------- INSERT/UPDATE/DELETE (CON parámetros) --------
+        
         public static int Exec(string sql, params SqlParameter[] ps)
         {
             using var cn = new SqlConnection(ConnectionString);
@@ -87,7 +87,7 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // -------- ESCALAR (SIN parámetros) --------
+        
         public static T Scalar<T>(string sql)
         {
             using var cn = new SqlConnection(ConnectionString);
@@ -105,7 +105,7 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // -------- ESCALAR (CON parámetros) --------
+        
         public static T Scalar<T>(string sql, params SqlParameter[] ps)
         {
             using var cn = new SqlConnection(ConnectionString);
@@ -129,7 +129,7 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // -------- Helper para crear parámetros --------
+        
         public static SqlParameter P(string name, SqlDbType type, int size, object? value)
         {
             var p = new SqlParameter(name, type) { Value = value ?? DBNull.Value };

@@ -148,3 +148,4 @@ C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\ref\TeoAccesorios.Desktop.dll
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.g.resources
 C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.Properties.Resources.resources
+C:\Users\Usuario\Documents\GitHub\TeoAccesorios\TeoAccesorios.Desktop\obj\Debug\net8.0-windows\TeoAccesorios.Desktop.CategoriaEditForm.resources

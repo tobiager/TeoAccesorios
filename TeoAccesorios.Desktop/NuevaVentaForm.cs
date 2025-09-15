@@ -12,7 +12,6 @@ namespace TeoAccesorios.Desktop
         private readonly ComboBox cboProducto = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
         private readonly NumericUpDown numCant = new NumericUpDown { Minimum = 1, Maximum = 1000, Value = 1, Width = 80 };
 
-        // NUEVO: canal + dirección envío
         private readonly ComboBox cboCanal = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
         private readonly TextBox txtDireccionEnvio = new TextBox { Width = 320, PlaceholderText = "Dirección de envío" };
 
@@ -20,7 +19,18 @@ namespace TeoAccesorios.Desktop
         private readonly Button btnQuitar = new Button { Text = "Quitar" };
         private readonly Button btnGuardar = new Button { Text = "Guardar" };
 
-        private readonly DataGridView gridDetalles = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false };
+        private readonly DataGridView gridDetalles = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = true,
+            AutoGenerateColumns = false,
+            AllowUserToAddRows = false,
+            RowHeadersVisible = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            MultiSelect = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+        };
+
         private readonly BindingSource bs = new BindingSource();
         private readonly List<DetalleVenta> carrito = new List<DetalleVenta>();
 
@@ -54,11 +64,48 @@ namespace TeoAccesorios.Desktop
 
             GridHelper.Estilizar(gridDetalles);
 
+            // Configurar columnas
             gridDetalles.Columns.Clear();
-            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Producto", HeaderText = "Producto", DataPropertyName = "Producto" });
-            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Cant", HeaderText = "Cant", DataPropertyName = "Cant", FillWeight = 15 });
-            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Precio", HeaderText = "Precio", DataPropertyName = "Precio", FillWeight = 20, DefaultCellStyle = { Format = "N2" } });
-            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn { Name = "Subtotal", HeaderText = "Subtotal", DataPropertyName = "Subtotal", FillWeight = 20, DefaultCellStyle = { Format = "N2" } });
+            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Producto",
+                HeaderText = "Producto",
+                DataPropertyName = "Producto"
+            });
+
+            var colCant = new DataGridViewTextBoxColumn
+            {
+                Name = "Cant",
+                HeaderText = "Cant",
+                DataPropertyName = "Cant",
+                FillWeight = 15
+            };
+            colCant.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+
+            var colPrecio = new DataGridViewTextBoxColumn
+            {
+                Name = "Precio",
+                HeaderText = "Precio",
+                DataPropertyName = "Precio",
+                FillWeight = 20
+            };
+            colPrecio.DefaultCellStyle.Format = "N2";
+            colPrecio.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+
+            var colSubtotal = new DataGridViewTextBoxColumn
+            {
+                Name = "Subtotal",
+                HeaderText = "Subtotal",
+                DataPropertyName = "Subtotal",
+                FillWeight = 20
+            };
+            colSubtotal.DefaultCellStyle.Format = "N2";
+            colSubtotal.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+
+            gridDetalles.Columns.Add(colCant);
+            gridDetalles.Columns.Add(colPrecio);
+            gridDetalles.Columns.Add(colSubtotal);
+
             gridDetalles.DataSource = bs;
 
             // Combos
@@ -88,6 +135,7 @@ namespace TeoAccesorios.Desktop
 
             RefrescarGrid();
 
+            // Botones
             btnAgregar.Click += (s, e) =>
             {
                 if (cboProducto.SelectedItem is not Producto p) return;

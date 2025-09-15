@@ -44,7 +44,7 @@ namespace TeoAccesorios.Desktop
             Controls.Add(buttons);
             Controls.Add(grid);
 
-            // bind
+            
             txtNombre.Text = model.Nombre ?? "";
             txtDesc.Text = model.Descripcion ?? "";
             chkActivo.Checked = model.Activo;
