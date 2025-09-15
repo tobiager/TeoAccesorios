@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using TeoAccesorios.Desktop.Models;
@@ -7,15 +8,12 @@ namespace TeoAccesorios.Desktop
 {
     public class CategoriasForm : Form
     {
-        // ---- Estado
         private enum Modo { Categorias, Subcategorias }
         private Modo _modo = Modo.Categorias;
 
-        // ---- Controles compartidos
         private readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
         private readonly BindingSource bs = new BindingSource();
 
-        // ---- Barra superior: siempre visibles
         private readonly CheckBox chkInactivas = new CheckBox { Text = "Ver inactivas", AutoSize = true };
         private readonly Button btnNuevo;
         private readonly Button btnEditar;
@@ -23,25 +21,26 @@ namespace TeoAccesorios.Desktop
         private readonly Button btnRestaurar;
         private readonly Button btnSwitch;
 
-        // ---- Solo en modo Subcategorías
         private readonly Label lblCat = new Label { Text = "Categoría:", AutoSize = true, Padding = new Padding(0, 10, 6, 0), Visible = false };
         private readonly ComboBox cboFiltroCat = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Visible = false };
 
+        private readonly bool esAdmin;
+
         public CategoriasForm()
         {
+            esAdmin = Sesion.Rol == RolUsuario.Admin;
+
             Text = "Categorías";
             Width = 900;
             Height = 600;
             StartPosition = FormStartPosition.CenterParent;
 
-            // Crear botones con estilo angosto
             btnNuevo = CrearBoton("Nuevo");
             btnEditar = CrearBoton("Editar");
             btnEliminar = CrearBoton("Eliminar");
             btnRestaurar = CrearBoton("Restaurar");
             btnSwitch = CrearBoton("Subcategorías");
 
-            // Barra superior
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6), WrapContents = false };
             top.Controls.Add(chkInactivas);
             top.Controls.Add(btnNuevo);
@@ -49,58 +48,65 @@ namespace TeoAccesorios.Desktop
             top.Controls.Add(btnEliminar);
             top.Controls.Add(btnRestaurar);
             top.Controls.Add(btnSwitch);
-            // Controles visibles solo en Subcategorías
             top.Controls.Add(lblCat);
             top.Controls.Add(cboFiltroCat);
 
             Controls.Add(grid);
             Controls.Add(top);
 
-            // Estilo
             GridHelper.Estilizar(grid);
             GridHelperLock.SoloLectura(grid);
             grid.DataSource = bs;
 
-            // Eventos globales
             chkInactivas.CheckedChanged += (s, e) => LoadData();
             btnSwitch.Click += (s, e) => SwitchMode();
 
-            // Handlers de acción
-            btnNuevo.Click += (s, e) => OnNuevo();
-            btnEditar.Click += (s, e) => OnEditar();
-            btnEliminar.Click += (s, e) => OnEliminar();
-            btnRestaurar.Click += (s, e) => OnRestaurar();
+            btnNuevo.Click += (s, e) => { if (esAdmin) OnNuevo(); };
+            btnEditar.Click += (s, e) => { if (esAdmin) OnEditar(); };
+            btnEliminar.Click += (s, e) => { if (esAdmin) OnEliminar(); };
+            btnRestaurar.Click += (s, e) => { if (esAdmin) OnRestaurar(); };
 
-            // Eventos de subcategorías
             cboFiltroCat.SelectedIndexChanged += (s, e) => { if (_modo == Modo.Subcategorias) LoadData(); };
 
-            // Inicial
-            SetMode(Modo.Categorias);
-        }
-
-        // ===== Helper para crear botones angostos =====
-        private Button CrearBoton(string texto)
-        {
-            return new Button
+            // ---- Permisos de vendedor: fuerza modo Subcategorías y oculta acciones ----
+            if (!esAdmin)
             {
-                Text = texto,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Padding = new Padding(3, 1, 3, 1), // menos alto
-                Margin = new Padding(2),
-                MinimumSize = new Size(0, 24)       // altura más baja
-            };
+                // Forzar modo Subcategorías, sin poder volver a Categorías
+                _modo = Modo.Subcategorias;
+                btnSwitch.Visible = false;
+
+                // Ocultar acciones (solo vista)
+                btnNuevo.Visible = btnEditar.Visible = btnEliminar.Visible = btnRestaurar.Visible = false;
+            }
+
+            SetMode(_modo);
         }
 
-        // ===== Alternar modo =====
+        private Button CrearBoton(string texto) => new Button
+        {
+            Text = texto,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(3, 1, 3, 1),
+            Margin = new Padding(2),
+            MinimumSize = new Size(0, 24)
+        };
+
         private void SwitchMode()
         {
+            // Solo admin puede alternar entre modos
+            if (!esAdmin) return;
+
             var nuevo = _modo == Modo.Categorias ? Modo.Subcategorias : Modo.Categorias;
             SetMode(nuevo);
         }
 
         private void SetMode(Modo m)
         {
+            // Vendedor no puede entrar a Categorías
+            if (!esAdmin && m == Modo.Categorias)
+                m = Modo.Subcategorias;
+
             _modo = m;
 
             if (_modo == Modo.Categorias)
@@ -130,7 +136,6 @@ namespace TeoAccesorios.Desktop
             LoadData();
         }
 
-        // ===== Cargar datos =====
         private void LoadData()
         {
             if (_modo == Modo.Categorias)
@@ -153,7 +158,6 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // ===== Acciones =====
         private void OnNuevo()
         {
             if (_modo == Modo.Categorias)
@@ -289,7 +293,6 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // ===== Helper combo =====
         private class ComboItem
         {
             public string Text { get; set; } = "";

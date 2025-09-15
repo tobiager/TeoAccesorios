@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; 
 
 namespace TeoAccesorios.Desktop
 {
@@ -34,22 +36,33 @@ namespace TeoAccesorios.Desktop
                 return b;
             }
 
-            side.Controls.Add(Btn("Nueva Venta", (_, __) => ShowInContent(new NuevaVentaForm())));
-            side.Controls.Add(Btn("Ver Ventas", (_, __) => ShowInContent(new VentasForm())));
-            side.Controls.Add(Btn("Productos", (_, __) => ShowInContent(new ProductosForm())));
+            
+            var btnCerrarSesion = Btn("Cerrar sesión", (_, __) => { Hide(); using var l = new LoginForm(); l.ShowDialog(this); Close(); });
+            var btnInicio = Btn("Inicio (Dashboard)", (_, __) => ShowKpis());
+            var btnReportes = Btn("Reportes", (_, __) => ShowInContent(new ReportesForm()));
+            var btnEmpleados = Btn("Empleados", (_, __) => ShowInContent(new UsuariosForm()));
+            var btnClientes = Btn("Clientes", (_, __) => ShowInContent(new ClientesForm()));
+            var btnCategorias = Btn("Categorías", (_, __) => ShowInContent(new CategoriasForm()));
+            var btnProductos = Btn("Productos", (_, __) => ShowInContent(new ProductosForm()));
+            var btnVerVentas = Btn("Ver Ventas", (_, __) => ShowInContent(new VentasForm()));
+            var btnNuevaVenta = Btn("Nueva Venta", (_, __) => ShowInContent(new NuevaVentaForm()));
 
-            // <<< BOTÓN NUEVO AQUÍ (debajo de Productos)
-            side.Controls.Add(Btn("Categorías", (_, __) => ShowInContent(new CategoriasForm())));
-            // >>>
-
-            side.Controls.Add(Btn("Clientes", (_, __) => ShowInContent(new ClientesForm())));
-
+           
+            Button? btnBackup = null;
             if (Sesion.Rol == RolUsuario.Admin)
-                side.Controls.Add(Btn("Empleados", (_, __) => ShowInContent(new UsuariosForm())));
+                btnBackup = Btn("Backup BD", (_, __) => DoBackup());
 
-            side.Controls.Add(Btn("Reportes", (_, __) => ShowInContent(new ReportesForm())));
-            side.Controls.Add(Btn("Inicio (Dashboard)", (_, __) => ShowKpis()));
-            side.Controls.Add(Btn("Cerrar sesión", (_, __) => { Hide(); using var l = new LoginForm(); l.ShowDialog(this); Close(); }));
+            
+            side.Controls.Add(btnNuevaVenta);
+            side.Controls.Add(btnVerVentas);
+            side.Controls.Add(btnProductos);
+            side.Controls.Add(btnCategorias);
+            side.Controls.Add(btnClientes);
+            if (Sesion.Rol == RolUsuario.Admin) side.Controls.Add(btnEmpleados);
+            side.Controls.Add(btnReportes);
+            side.Controls.Add(btnInicio);
+            if (btnBackup != null) side.Controls.Add(btnBackup);
+            side.Controls.Add(btnCerrarSesion);                  
 
             header = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(10, 14, 28), Padding = new Padding(12) };
             var lblUser = new Label
@@ -87,6 +100,69 @@ namespace TeoAccesorios.Desktop
             f.Dock = DockStyle.Fill;
             content.Controls.Add(f);
             f.Show();
+        }
+
+        // ---------- BACKUP (automático a C:\Backups) ----------
+        private void DoBackup()
+        {
+            // Seguridad: sólo Admin ejecuta
+            if (Sesion.Rol != RolUsuario.Admin)
+            {
+                MessageBox.Show("Sólo un administrador puede realizar backups.", "Acceso denegado",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using var conn = new SqlConnection(Db.ConnectionString);
+                conn.Open();
+
+                
+                var csb = new SqlConnectionStringBuilder(conn.ConnectionString);
+                var dbName = string.IsNullOrWhiteSpace(csb.InitialCatalog) ? "TeoAccesorios" : csb.InitialCatalog;
+
+                // Carpeta fija (del lado del servidor SQL)
+                var folder = @"C:\Backups";
+                if (!Directory.Exists(folder))
+                    Directory.CreateDirectory(folder); 
+
+                var filePath = Path.Combine(folder, $"{dbName}_{DateTime.Now:yyyyMMdd_HHmmss}.bak");
+                var target = filePath.Replace("'", "''");
+
+                var sql = $@"
+                    BACKUP DATABASE [{dbName}]
+                    TO DISK = '{target}'
+                    WITH FORMAT, INIT, NAME = 'Backup {dbName}',
+                         SKIP, NOREWIND, NOUNLOAD, STATS = 10, COMPRESSION;";
+
+                using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 0 };
+                cmd.ExecuteNonQuery();
+
+                MessageBox.Show($"✅ Backup creado en:\n{filePath}\n\n" +
+                                "Nota: la ruta es accesible para el SERVICIO de SQL Server.",
+                                "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (UnauthorizedAccessException uaex)
+            {
+                MessageBox.Show("Permisos insuficientes para escribir en C:\\Backups.\n" +
+                                "Dale permisos de escritura a la cuenta del servicio de SQL Server (p. ej. NT SERVICE\\MSSQLSERVER).\n\n" +
+                                uaex.Message, "Permisos insuficientes",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (SqlException sqlex)
+            {
+                MessageBox.Show("SQL Server rechazó la operación de backup.\n" +
+                                "• Verificá permisos BACKUP DATABASE.\n" +
+                                "• Asegurá que C:\\Backups existe en el SERVIDOR SQL y el servicio tiene escritura.\n\n" +
+                                sqlex.Message, "Error SQL",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al hacer backup: " + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

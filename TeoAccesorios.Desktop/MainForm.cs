@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; 
 
 namespace TeoAccesorios.Desktop
 {
@@ -11,11 +13,8 @@ namespace TeoAccesorios.Desktop
             Text = "TeoAccesorios — Principal";
             StartPosition = FormStartPosition.CenterScreen;
 
-            // 👉 arranca maximizado y con tamaño mínimo
             WindowState = FormWindowState.Maximized;
             MinimumSize = new Size(1200, 700);
-
-            // Doble seguridad: si algo cambia el estado, lo re-maximiza al cargar
             this.Load += (_, __) => this.WindowState = FormWindowState.Maximized;
 
             var top = new FlowLayoutPanel
@@ -32,11 +31,11 @@ namespace TeoAccesorios.Desktop
             var btnUsuarios = new Button { Text = "Usuarios", AutoSize = true };
             var btnCategorias = new Button { Text = "Categorías", AutoSize = true };
             var btnReportes = new Button { Text = "Reportes", AutoSize = true };
-
+            var btnBackup = new Button { Text = "Backup", AutoSize = true }; 
             top.Controls.AddRange(new Control[]
             {
                 btnClientes, btnProductos, btnVentas,
-                btnUsuarios, btnCategorias, btnReportes
+                btnUsuarios, btnCategorias, btnReportes, btnBackup
             });
 
             var lblSesion = new Label
@@ -57,6 +56,8 @@ namespace TeoAccesorios.Desktop
             btnUsuarios.Click += (_, __) => new UsuariosForm().ShowDialog(this);
             btnCategorias.Click += (_, __) => new CategoriasForm().ShowDialog(this);
             btnReportes.Click += (_, __) => new ReportesForm().ShowDialog(this);
+         
         }
+
     }
 }
