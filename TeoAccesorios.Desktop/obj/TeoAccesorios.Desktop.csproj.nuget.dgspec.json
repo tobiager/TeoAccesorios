@@ -50,9 +50,17 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
+            "ClosedXML": {
+              "target": "Package",
+              "version": "[0.105.0, )"
+            },
             "Microsoft.Data.SqlClient": {
               "target": "Package",
               "version": "[6.1.1, )"
+            },
+            "QuestPDF": {
+              "target": "Package",
+              "version": "[2025.7.1, )"
             }
           },
           "imports": [

@@ -1,11 +1,19 @@
+using ClosedXML.Excel;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using System;
-using System.IO;
-using System.Text;
-using System.Text.Json;
-using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Windows.Forms;
+
+// Aliases para resolver ambigüedades
+using DrawingColor = System.Drawing.Color;
+using PdfDocument = QuestPDF.Fluent.Document;
 
 namespace TeoAccesorios.Desktop
 {
@@ -33,6 +41,8 @@ namespace TeoAccesorios.Desktop
         private readonly Label kpiProductos = new();
 
         private readonly DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
+
+        private List<Models.Venta> _ventasFiltradas = new();
 
         public ReportesForm()
         {
@@ -104,19 +114,20 @@ namespace TeoAccesorios.Desktop
             btnAplicar.Click += (_, __) => LoadData();
             btnExport.Click += (_, __) => Exportar();
 
-           
             GridHelper.Estilizar(grid);
             GridHelperLock.SoloLectura(grid);
             GridHelperLock.WireDataBindingLock(grid);
             LoadData();
+
+            QuestPDF.Settings.License = LicenseType.Community;
         }
 
         private Control Card(string titulo, Label valueLabel)
         {
-            var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(18, 22, 35), Padding = new Padding(10) };
-            var t = new Label { Text = titulo, ForeColor = Color.Gainsboro, Dock = DockStyle.Top, Height = 22 };
+            var panel = new Panel { Dock = DockStyle.Fill, BackColor = DrawingColor.FromArgb(18, 22, 35), Padding = new Padding(10) };
+            var t = new Label { Text = titulo, ForeColor = DrawingColor.Gainsboro, Dock = DockStyle.Top, Height = 22 };
             valueLabel.Text = "-";
-            valueLabel.ForeColor = Color.White;
+            valueLabel.ForeColor = DrawingColor.White;
             valueLabel.Dock = DockStyle.Fill;
             valueLabel.Font = new Font("Segoe UI", 18, FontStyle.Bold);
             valueLabel.TextAlign = ContentAlignment.MiddleLeft;
@@ -130,18 +141,30 @@ namespace TeoAccesorios.Desktop
             {
                 var d = dpSemana.Value.Date;
                 var start = d.AddDays(-(((int)d.DayOfWeek + 6) % 7)); // lunes
-                var end = start.AddDays(7);
+                var end = start.AddDays(7);                           // exclusivo
                 return (start, end);
             }
             if (rbMes.Checked)
             {
                 var start = new DateTime(dpMes.Value.Year, dpMes.Value.Month, 1);
-                var end = start.AddMonths(1);
+                var end = start.AddMonths(1);                         // exclusivo
                 return (start, end);
             }
             var s = dpDesde.Value.Date;
-            var e = dpHasta.Value.Date.AddDays(1);
+            var e = dpHasta.Value.Date.AddDays(1);                    // exclusivo
             return (s, e);
+        }
+
+        // Texto amigable del período a mostrar en el reporte
+        private string GetPeriodoTexto()
+        {
+            var (start, endExcl) = GetRange();
+            var endIncl = endExcl.AddDays(-1); // mostrar inclusivo
+            if (rbSemana.Checked)
+                return $"Semana: {start:dd/MM/yyyy} - {endIncl:dd/MM/yyyy}";
+            if (rbMes.Checked)
+                return $"Mes: {dpMes.Value:MM/yyyy} ({start:dd/MM/yyyy} - {endIncl:dd/MM/yyyy})";
+            return $"Rango: {start:dd/MM/yyyy} - {endIncl:dd/MM/yyyy}";
         }
 
         private void LoadData()
@@ -176,8 +199,9 @@ namespace TeoAccesorios.Desktop
             kpiClientes.Text = clientesUnicos.ToString();
             kpiProductos.Text = detallesCount.ToString();
 
-            grid.DataSource = q
-                .OrderByDescending(v => v.FechaVenta)
+            _ventasFiltradas = q.OrderByDescending(v => v.FechaVenta).ToList();
+
+            grid.DataSource = _ventasFiltradas
                 .Select(v => new
                 {
                     Vendedor = v.Vendedor,
@@ -189,7 +213,7 @@ namespace TeoAccesorios.Desktop
                 .ToList();
         }
 
-        // ====== EXPORTES ======
+        // ====== EXPORTAR ======
         private void Exportar()
         {
             using var dlg = new Form
@@ -197,78 +221,202 @@ namespace TeoAccesorios.Desktop
                 Text = "Exportar",
                 StartPosition = FormStartPosition.CenterParent,
                 Width = 360,
-                Height = 180,
+                Height = 170,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false,
                 MinimizeBox = false
             };
+
             var p = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12) };
-            var b1 = new Button { Text = "CSV (coma)", Width = 140, Height = 34 };
-            var b2 = new Button { Text = "CSV (punto y coma)", Width = 140, Height = 34 };
-            var b3 = new Button { Text = "TSV", Width = 140, Height = 34 };
-            var b4 = new Button { Text = "JSON", Width = 140, Height = 34 };
+            var b5 = new Button { Text = "Excel (.xlsx) + resumen", Width = 180, Height = 34 };
+            var b6 = new Button { Text = "PDF + resumen", Width = 180, Height = 34 };
 
-            b1.Click += (_, __) => { dlg.Close(); ExportCsvLike("CSV (*.csv)", ","); };
-            b2.Click += (_, __) => { dlg.Close(); ExportCsvLike("CSV (*.csv)", ";"); };
-            b3.Click += (_, __) => { dlg.Close(); ExportCsvLike("TSV (*.tsv)", "\t"); };
-            b4.Click += (_, __) => { dlg.Close(); ExportJson(); };
+            b5.Click += (_, __) => { dlg.Close(); ExportExcelConResumen(); };
+            b6.Click += (_, __) => { dlg.Close(); ExportPdfConResumen(); };
 
-            p.Controls.AddRange(new Control[] { b1, b2, b3, b4 });
+            p.Controls.AddRange(new Control[] { b5, b6 });
             dlg.Controls.Add(p);
             dlg.ShowDialog(this);
         }
 
-        private void ExportCsvLike(string filterName, string delimiter)
+        // ===== Excel (.xlsx) con resumen arriba y fila TOTAL al final =====
+        private void ExportExcelConResumen()
         {
-            if (grid.DataSource == null) return;
+            if (_ventasFiltradas == null || _ventasFiltradas.Count == 0)
+            {
+                MessageBox.Show("No hay datos para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
-            using var sfd = new SaveFileDialog { Filter = $"{filterName}|*.*", FileName = "reporte.csv" };
+            using var sfd = new SaveFileDialog
+            {
+                Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                FileName = "reporte.xlsx"
+            };
             if (sfd.ShowDialog(this) != DialogResult.OK) return;
 
-            using var fs = new FileStream(sfd.FileName, FileMode.Create, FileAccess.Write);
-            using var w = new StreamWriter(fs, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            var periodo = GetPeriodoTexto();
+            var cantidad = _ventasFiltradas.Count;
+            var total = _ventasFiltradas.Sum(v => v.Total);
 
-            for (int i = 0; i < grid.Columns.Count; i++)
-            {
-                if (i > 0) w.Write(delimiter);
-                w.Write(grid.Columns[i].HeaderText);
-            }
-            w.WriteLine();
+            using var wb = new XLWorkbook();
+            var ws = wb.AddWorksheet("Ventas");
 
-            foreach (DataGridViewRow r in grid.Rows)
+            // Resumen arriba
+            ws.Cell(1, 1).Value = "Reporte de ventas";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+
+            ws.Cell(2, 1).Value = "Período:";
+            ws.Cell(2, 2).Value = periodo;
+
+            ws.Cell(3, 1).Value = "Generado:";
+            ws.Cell(3, 2).Value = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+
+            ws.Cell(4, 1).Value = "Cantidad de ventas:";
+            ws.Cell(4, 2).Value = cantidad;
+
+            ws.Cell(5, 1).Value = "Total ventas:";
+            ws.Cell(5, 2).Value = total;
+            ws.Cell(5, 2).Style.NumberFormat.Format = "$ #,##0";
+
+            // Encabezados (a partir de fila 7)
+            var row = 7;
+            ws.Cell(row, 1).Value = "Vendedor";
+            ws.Cell(row, 2).Value = "Cliente";
+            ws.Cell(row, 3).Value = "IdVenta";
+            ws.Cell(row, 4).Value = "Fecha";
+            ws.Cell(row, 5).Value = "Total";
+            ws.Range(row, 1, row, 5).Style.Font.Bold = true;
+            ws.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.FromHtml("#E9EEF7");
+            row++;
+
+            foreach (var v in _ventasFiltradas)
             {
-                if (r.IsNewRow) continue;
-                for (int i = 0; i < grid.Columns.Count; i++)
-                {
-                    if (i > 0) w.Write(delimiter);
-                    var val = r.Cells[i].Value?.ToString() ?? "";
-                    if (delimiter != "\t" && (val.Contains(delimiter) || val.Contains("\"") || val.Contains('\n')))
-                        val = "\"" + val.Replace("\"", "\"\"") + "\"";
-                    w.Write(val);
-                }
-                w.WriteLine();
+                ws.Cell(row, 1).Value = v.Vendedor;
+                ws.Cell(row, 2).Value = v.ClienteNombre;
+                ws.Cell(row, 3).Value = v.Id;
+                ws.Cell(row, 4).Value = v.FechaVenta;
+                ws.Cell(row, 4).Style.DateFormat.Format = "dd/MM/yyyy HH:mm";
+                ws.Cell(row, 5).Value = v.Total;
+                ws.Cell(row, 5).Style.NumberFormat.Format = "$ #,##0";
+                row++;
             }
+
+            // Fila TOTAL
+            ws.Cell(row, 1).Value = "TOTAL";
+            ws.Range(row, 1, row, 4).Merge();
+            ws.Range(row, 1, row, 4).Style.Font.Bold = true;
+            ws.Cell(row, 5).FormulaA1 = $"SUM(E8:E{row - 1})";
+            ws.Cell(row, 5).Style.NumberFormat.Format = "$ #,##0";
+            ws.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.FromHtml("#F6F6F6");
+            ws.Range(7, 1, row, 5).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(7, 1, row, 5).Style.Border.InsideBorder = XLBorderStyleValues.Dotted;
+
+            ws.Columns().AdjustToContents();
+
+            wb.SaveAs(sfd.FileName);
+            MessageBox.Show("Excel generado correctamente.", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void ExportJson()
+        // ===== PDF con resumen arriba =====
+        private void ExportPdfConResumen()
         {
-            if (grid.DataSource == null) return;
-
-            using var sfd = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = "reporte.json" };
-            if (sfd.ShowDialog(this) != DialogResult.OK) return;
-
-            var rows = new List<Dictionary<string, object?>>();
-            foreach (DataGridViewRow r in grid.Rows)
+            if (_ventasFiltradas == null || _ventasFiltradas.Count == 0)
             {
-                if (r.IsNewRow) continue;
-                var dict = new Dictionary<string, object?>();
-                foreach (DataGridViewColumn c in grid.Columns)
-                    dict[c.HeaderText] = r.Cells[c.Index].Value;
-                rows.Add(dict);
+                MessageBox.Show("No hay datos para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
 
-            var json = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(sfd.FileName, json, new UTF8Encoding(true));
+            using var sfd = new SaveFileDialog
+            {
+                Filter = "PDF (*.pdf)|*.pdf",
+                FileName = "reporte.pdf"
+            };
+            if (sfd.ShowDialog(this) != DialogResult.OK) return;
+
+            var periodo = GetPeriodoTexto();
+            var cantidad = _ventasFiltradas.Count;
+            var total = _ventasFiltradas.Sum(v => v.Total);
+
+            var ventas = _ventasFiltradas
+                .Select(v => new
+                {
+                    v.Vendedor,
+                    v.ClienteNombre,
+                    v.Id,
+                    Fecha = v.FechaVenta.ToString("dd/MM/yyyy HH:mm"),
+                    v.Total
+                })
+                .ToList();
+
+            var doc = PdfDocument.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Margin(30);
+                    page.Header().Column(col =>
+                    {
+                        col.Item().Text("Reporte de ventas").FontSize(16).SemiBold();
+                        col.Item().Text(text => { text.Span("Período: ").SemiBold(); text.Span(periodo); });
+                        col.Item().Text(text => { text.Span("Generado: ").SemiBold(); text.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm")); });
+                        col.Item().Text(text => { text.Span("Cantidad de ventas: ").SemiBold(); text.Span(cantidad.ToString()); });
+                        col.Item().Text(text => { text.Span("Total: ").SemiBold(); text.Span("$ " + total.ToString("N0")); });
+                    });
+
+                    page.Content().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(2);   // Vendedor
+                            cols.RelativeColumn(2);   // Cliente
+                            cols.RelativeColumn(1);   // IdVenta
+                            cols.RelativeColumn(2);   // Fecha
+                            cols.RelativeColumn(1);   // Total
+                        });
+
+                        table.Header(h =>
+                        {
+                            h.Cell().Element(CellHeader).Text("Vendedor");
+                            h.Cell().Element(CellHeader).Text("Cliente");
+                            h.Cell().Element(CellHeader).Text("IdVenta");
+                            h.Cell().Element(CellHeader).Text("Fecha");
+                            h.Cell().Element(CellHeader).Text("Total");
+
+                            static IContainer CellHeader(IContainer container) =>
+                                container.DefaultTextStyle(x => x.SemiBold())
+                                         .PaddingVertical(6)
+                                         .Background("#E9EEF7")
+                                         .BorderBottom(1)
+                                         .BorderColor("#B8C2D3");
+                        });
+
+                        foreach (var r in ventas)
+                        {
+                            table.Cell().Element(CellBody).Text(r.Vendedor ?? "");
+                            table.Cell().Element(CellBody).Text(r.ClienteNombre ?? "");
+                            table.Cell().Element(CellBody).Text(r.Id.ToString());
+                            table.Cell().Element(CellBody).Text(r.Fecha);
+                            table.Cell().Element(CellBody).AlignRight().Text("$ " + r.Total.ToString("N0"));
+
+                            static IContainer CellBody(IContainer container) =>
+                                container.PaddingVertical(3).BorderBottom(0.5f).BorderColor("#EEEEEE");
+                        }
+                    });
+
+                    page.Footer().AlignRight().Text(x =>
+                    {
+                        x.Span("Página ").SemiBold();
+                        x.CurrentPageNumber();
+                        x.Span(" / ");
+                        x.TotalPages();
+                    });
+                });
+            });
+
+            using var stream = new FileStream(sfd.FileName, FileMode.Create);
+            doc.GeneratePdf(stream);
+
+            MessageBox.Show("PDF generado correctamente.", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
