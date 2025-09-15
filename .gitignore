@@ -1,0 +1,22 @@
+# Visual Studio temporary files and folders
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+
+# User-specific project files
+*.csproj.user
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Other temporary files
+*.log
+*.tmp
+*.swp
