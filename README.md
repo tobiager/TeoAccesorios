@@ -36,7 +36,7 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 
 - Gestión de clientes, productos, usuarios y ventas en una única interfaz.
 - Reportes con KPIs (ingresos, ventas, clientes únicos y productos vendidos).
-- Exportación de reportes en **CSV**, **TSV** y **JSON**.
+- Exportación de reportes en **PDF** y **XLSX**.
 - Roles diferenciados (**Administrador** y **Vendedor**) con permisos específicos.
 - Interfaz en español con navegación desde un panel lateral.
 
