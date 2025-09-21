@@ -197,6 +197,11 @@ La última iteración incorporó un **pipeline de exportación multi-formato** q
   <img src="assets/ver%20ventas.png" width="900"/>
 </p>
 
+### Venta Detalle
+<p align="center">
+  <img src="assets/ventadetalle.png" width="900"/>
+</p>
+
 ### Nueva Venta
 <p align="center">
   <img src="assets/nueva%20venta.png" width="900"/>
