@@ -17,12 +17,12 @@ namespace TeoAccesorios.Desktop
             ReadOnly = true,
             AutoGenerateColumns = true,
 
-            // Para que se vea la tabla completa:
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,        // columnas ocupan todo el ancho
-            AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells,    // altura según contenido
+           
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,        
+            AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells,    
 
-            RowHeadersVisible = false,          // quita margen gris
-            AllowUserToAddRows = false,         // quita fila vacía
+            RowHeadersVisible = false,          
+            AllowUserToAddRows = false,        
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             MultiSelect = false,
             ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize,
@@ -49,18 +49,18 @@ namespace TeoAccesorios.Desktop
             GridHelperLock.WireDataBindingLock(grid);
 
 
-            // Estética de la grilla
+            
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
 
-            // Fuente de las celdas (contenido)
+           
             grid.DefaultCellStyle.Font = new Font("Segoe UI", 11F);
 
-            // Fuente de los encabezados
+           
             grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
 
 
-            // === NUEVO (INSERT a tabla real dbo.Usuarios) ===
+            // === NUEVO - Agregar a tabla real dbo.Usuarios
             btnNuevo.Click += (s, e) =>
             {
                 var u = new Usuario();
@@ -88,7 +88,7 @@ namespace TeoAccesorios.Desktop
                 }
             };
 
-            // === EDITAR (UPDATE a tabla real dbo.Usuarios, PK = Id) ===
+            // === EDITAR - Actualizar a tabla real dbo.Usuarios, PK = Id
             btnEditar.Click += (s, e) =>
             {
                 if (grid.CurrentRow == null || !(grid.CurrentRow.DataBoundItem is Usuario sel)) return;
@@ -126,7 +126,7 @@ namespace TeoAccesorios.Desktop
                         );
 
                         LoadData();
-                        // mantener la fila seleccionada
+                        
                         TrySelectRowById(u.Id);
                     }
                 }
@@ -137,7 +137,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-            // Lectura por vista (ok)
+           
             var dt = Db.Query(@"
                 SELECT  id_usuario     AS Id,
                         nombreUsuario  AS NombreUsuario,

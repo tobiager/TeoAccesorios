@@ -7,11 +7,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.Json;
 using System.Windows.Forms;
 
-// Aliases para resolver ambigüedades
+
 using DrawingColor = System.Drawing.Color;
 using PdfDocument = QuestPDF.Fluent.Document;
 
@@ -93,16 +91,24 @@ namespace TeoAccesorios.Desktop
             kpis.Controls.Add(Card("Clientes (únicos)", kpiClientes), 2, 0);
             kpis.Controls.Add(Card("Productos vendidos", kpiProductos), 3, 0);
 
+            //  Doble clic: abrir detalle de la venta
             grid.CellDoubleClick += (_, e) =>
             {
-                if (e.RowIndex >= 0)
+                if (e.RowIndex < 0) return;
+
+                var cell = grid.Rows[e.RowIndex].Cells["IdVenta"];
+                if (cell == null) return;
+
+                if (int.TryParse(cell.Value?.ToString(), out int id))
                 {
-                    var cell = grid.Rows[e.RowIndex].Cells["IdVenta"];
-                    if (cell != null && int.TryParse(cell.Value?.ToString(), out int id))
-                    {
-                        var venta = Repository.ListarVentas(true).FirstOrDefault(x => x.Id == id);
-                        if (venta != null) new VentaDetalleForm(venta).ShowDialog(this);
-                    }
+                    
+                    var venta = _ventasFiltradas.FirstOrDefault(x => x.Id == id)
+                                ?? Repository.ListarVentas(true).FirstOrDefault(x => x.Id == id);
+
+                    if (venta == null) return;
+
+                    var cliente = Repository.Clientes.FirstOrDefault(c => c.Id == venta.ClienteId);
+                    new VentaDetalleForm(venta, cliente).ShowDialog(this);
                 }
             };
 
@@ -140,18 +146,18 @@ namespace TeoAccesorios.Desktop
             if (rbSemana.Checked)
             {
                 var d = dpSemana.Value.Date;
-                var start = d.AddDays(-(((int)d.DayOfWeek + 6) % 7)); // lunes
-                var end = start.AddDays(7);                           // exclusivo
+                var start = d.AddDays(-(((int)d.DayOfWeek + 6) % 7)); 
+                var end = start.AddDays(7);                           
                 return (start, end);
             }
             if (rbMes.Checked)
             {
                 var start = new DateTime(dpMes.Value.Year, dpMes.Value.Month, 1);
-                var end = start.AddMonths(1);                         // exclusivo
+                var end = start.AddMonths(1);                         
                 return (start, end);
             }
             var s = dpDesde.Value.Date;
-            var e = dpHasta.Value.Date.AddDays(1);                    // exclusivo
+            var e = dpHasta.Value.Date.AddDays(1);                    
             return (s, e);
         }
 
@@ -159,7 +165,7 @@ namespace TeoAccesorios.Desktop
         private string GetPeriodoTexto()
         {
             var (start, endExcl) = GetRange();
-            var endIncl = endExcl.AddDays(-1); // mostrar inclusivo
+            var endIncl = endExcl.AddDays(-1); 
             if (rbSemana.Checked)
                 return $"Semana: {start:dd/MM/yyyy} - {endIncl:dd/MM/yyyy}";
             if (rbMes.Checked)
@@ -213,7 +219,7 @@ namespace TeoAccesorios.Desktop
                 .ToList();
         }
 
-        // ====== EXPORTAR ======
+        //  EXPORTAR 
         private void Exportar()
         {
             using var dlg = new Form
@@ -239,7 +245,7 @@ namespace TeoAccesorios.Desktop
             dlg.ShowDialog(this);
         }
 
-        // ===== Excel (.xlsx) con resumen arriba y fila TOTAL al final =====
+        //  Excel (.xlsx) con resumen arriba y fila TOTAL al final 
         private void ExportExcelConResumen()
         {
             if (_ventasFiltradas == null || _ventasFiltradas.Count == 0)
@@ -318,7 +324,7 @@ namespace TeoAccesorios.Desktop
             MessageBox.Show("Excel generado correctamente.", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        // ===== PDF con resumen arriba =====
+        // PDF con resumen arriba 
         private void ExportPdfConResumen()
         {
             if (_ventasFiltradas == null || _ventasFiltradas.Count == 0)
@@ -367,11 +373,11 @@ namespace TeoAccesorios.Desktop
                     {
                         table.ColumnsDefinition(cols =>
                         {
-                            cols.RelativeColumn(2);   // Vendedor
-                            cols.RelativeColumn(2);   // Cliente
-                            cols.RelativeColumn(1);   // IdVenta
-                            cols.RelativeColumn(2);   // Fecha
-                            cols.RelativeColumn(1);   // Total
+                            cols.RelativeColumn(2);   
+                            cols.RelativeColumn(2);   
+                            cols.RelativeColumn(1);   
+                            cols.RelativeColumn(2);   
+                            cols.RelativeColumn(1);   
                         });
 
                         table.Header(h =>

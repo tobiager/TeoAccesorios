@@ -74,7 +74,7 @@ namespace TeoAccesorios.Desktop
             main.Controls.Add(bottom, 0, 2);
             Controls.Add(main);
 
-            // Tu estilo previo
+           
             GridHelper.Estilizar(topGrid);
             GridHelper.Estilizar(ultGrid);
             GridHelper.Estilizar(stockGrid);
@@ -93,23 +93,23 @@ namespace TeoAccesorios.Desktop
             LoadFromDb();
         }
 
-        // === Estilo fijo para celdas/headers (negro sobre blanco) ===
+        
         private void ThemeGrid(DataGridView g)
         {
             g.EnableHeadersVisualStyles = false;
 
-            // Encabezados
-            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(37, 99, 235); // azul
+            
+            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(37, 99, 235); 
             g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
 
-            // Celdas
+            
             g.DefaultCellStyle.BackColor = Color.White;
             g.DefaultCellStyle.ForeColor = Color.Black;
             g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(14, 165, 233);
             g.DefaultCellStyle.SelectionForeColor = Color.White;
 
-            // Bordes y varios
+            
             g.BackgroundColor = Color.White;
             g.BorderStyle = BorderStyle.None;
             g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
@@ -119,7 +119,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadFromDb()
         {
-            // KPIs rápidos
+           
             var ventasHoy = Db.Scalar<int>(
                 "SELECT COUNT(*) FROM cabeceraventa WHERE CAST(fechaVenta AS date) = CAST(GETDATE() AS date)");
             var ingresosHoy = Db.Scalar<decimal>(@"
@@ -153,6 +153,9 @@ namespace TeoAccesorios.Desktop
                 ORDER BY Cantidad DESC;",
                 Array.Empty<SqlParameter>());
             topGrid.DataSource = dtTop;
+
+            if (topGrid.Columns.Contains("id_producto"))
+                topGrid.Columns["id_producto"].HeaderText = "Id";
 
             // Últimas ventas
             var dtUlt = Db.Query(@"

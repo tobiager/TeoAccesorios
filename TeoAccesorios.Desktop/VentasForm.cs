@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using TeoAccesorios.Desktop.Models;
 
 namespace TeoAccesorios.Desktop
 {
     public class VentasForm : Form
     {
-        // ===== UI =====
         private readonly DataGridView grid = new()
         {
             Dock = DockStyle.Fill,
@@ -32,9 +32,8 @@ namespace TeoAccesorios.Desktop
         private readonly Button btnRestaurar = new() { Text = "Restaurar" };
         private readonly Button btnLimpiar = new() { Text = "Limpiar filtros" };
 
-        // ===== Estado =====
-        private List<Models.Venta> _ventasSource = new(); // crudo desde Repo (ya con anuladas o no)
-        private List<Models.Venta> _ventasFiltradas = new(); // luego de filtros
+        private List<Models.Venta> _ventasSource = new();
+        private List<Models.Venta> _ventasFiltradas = new();
         private bool _colsConfigured = false;
 
         public VentasForm()
@@ -44,11 +43,9 @@ namespace TeoAccesorios.Desktop
             Height = 650;
             StartPosition = FormStartPosition.CenterParent;
 
-            // Top bar (acciones)
             var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, Padding = new Padding(8) };
             actions.Controls.AddRange(new Control[] { btnAnular, btnRestaurar, chkAnuladas, btnNueva });
 
-            // Filtros
             var filtros = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(8) };
             filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(0, 8, 0, 0) });
             filtros.Controls.Add(cboVendedor);
@@ -67,12 +64,10 @@ namespace TeoAccesorios.Desktop
             Controls.Add(filtros);
             Controls.Add(actions);
 
-            // Estilos base
             GridHelper.Estilizar(grid);
             GridHelperLock.SoloLectura(grid);
             GridHelperLock.WireDataBindingLock(grid);
 
-            // Eventos
             btnNueva.Click += (_, __) =>
             {
                 using var f = new NuevaVentaForm();
@@ -125,12 +120,19 @@ namespace TeoAccesorios.Desktop
                 txtBuscar.Clear();
             };
 
+            
             grid.CellDoubleClick += (_, e) =>
             {
                 if (e.RowIndex < 0) return;
                 if (!TryGetVentaFromRow(grid.Rows[e.RowIndex], out var v)) return;
-                new VentaDetalleForm(v).ShowDialog(this);
+
+                
+                var cliente = FindClienteById(v.ClienteId);
+
+                using var f = new VentaDetalleForm(v, cliente);
+                f.ShowDialog(this);
             };
+           
 
             grid.DataBindingComplete += (_, __) =>
             {
@@ -143,10 +145,9 @@ namespace TeoAccesorios.Desktop
             LoadData();
         }
 
-        // ===== Datos =====
+        // Datos 
         private void LoadCombos()
         {
-            // Vendedores
             var vendedores = Repository.ListarUsuarios()
                 .Where(u => u.Activo)
                 .Select(u => u.NombreUsuario)
@@ -160,7 +161,6 @@ namespace TeoAccesorios.Desktop
             foreach (var v in vendedores) cboVendedor.Items.Add(v);
             cboVendedor.SelectedIndex = 0;
 
-            // Clientes
             var clientes = Repository.Clientes
                 .Select(c => c.Nombre)
                 .Where(s => !string.IsNullOrWhiteSpace(s))
@@ -176,10 +176,8 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-            // 1) Traer ventas (con/ sin anuladas)
             _ventasSource = Repository.ListarVentas(chkAnuladas.Checked) ?? new List<Models.Venta>();
 
-            // 2) Si el rol es vendedor, filtro por usuario logueado
             if (Sesion.Rol == RolUsuario.Vendedor)
             {
                 _ventasSource = _ventasSource
@@ -187,10 +185,7 @@ namespace TeoAccesorios.Desktop
                     .ToList();
             }
 
-            // 3) Aplicar filtros de UI
             ApplyFilters();
-
-            // habilitar reconfig de columnas si cambia el schema
             _colsConfigured = false;
         }
 
@@ -198,29 +193,25 @@ namespace TeoAccesorios.Desktop
         {
             IEnumerable<Models.Venta> q = _ventasSource;
 
-            // Rango de fechas opcional
             if (chkRango.Checked)
             {
                 var desde = dpDesde.Value.Date;
-                var hasta = dpHasta.Value.Date.AddDays(1); // fin del día
+                var hasta = dpHasta.Value.Date.AddDays(1);
                 q = q.Where(v => v.FechaVenta >= desde && v.FechaVenta < hasta);
             }
 
-            // Vendedor
             if (cboVendedor.SelectedIndex > 0)
             {
                 var vend = cboVendedor.SelectedItem!.ToString()!;
                 q = q.Where(v => string.Equals(v.Vendedor, vend, StringComparison.OrdinalIgnoreCase));
             }
 
-            // Cliente
             if (cboCliente.SelectedIndex > 0)
             {
                 var cli = cboCliente.SelectedItem!.ToString()!;
                 q = q.Where(v => string.Equals(v.ClienteNombre, cli, StringComparison.OrdinalIgnoreCase));
             }
 
-            // Búsqueda libre
             var term = txtBuscar.Text?.Trim();
             if (!string.IsNullOrWhiteSpace(term))
             {
@@ -249,7 +240,7 @@ namespace TeoAccesorios.Desktop
             }).ToList();
         }
 
-        // ===== UI helpers =====
+        // UI helpers
         private void ConfigureColumns()
         {
             DataGridViewColumn FindCol(string key) =>
@@ -293,6 +284,23 @@ namespace TeoAccesorios.Desktop
 
             venta = _ventasFiltradas.FirstOrDefault(v => v.Id == id)!;
             return venta != null;
+        }
+
+        //  Helper chico para conseguir el cliente por Id
+        private Cliente? FindClienteById(int clienteId)
+        {
+            
+            try
+            {
+               
+                
+                var m = typeof(Repository).GetMethod("GetClienteById");
+                if (m != null) return (Cliente?)m.Invoke(null, new object[] { clienteId });
+            }
+            catch { /* fallback abajo */ }
+
+           
+            return Repository.Clientes?.FirstOrDefault(c => c.Id == clienteId);
         }
     }
 }

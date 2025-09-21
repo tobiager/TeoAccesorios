@@ -1,76 +1,132 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient;
 using TeoAccesorios.Desktop.Models;
+using System.Drawing;
+using System.Reflection;
 
 namespace TeoAccesorios.Desktop
 {
     public class NuevaVentaForm : Form
     {
-        private readonly ComboBox cboCliente = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
-        private readonly ComboBox cboProducto = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
-        private readonly NumericUpDown numCant = new NumericUpDown { Minimum = 1, Maximum = 1000, Value = 1, Width = 80 };
+        //  UI principal 
+        private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
+        private readonly ComboBox cboProducto = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 320 };
+        private readonly NumericUpDown numCant = new() { Minimum = 1, Maximum = 1000, Value = 1, Width = 90, TextAlign = HorizontalAlignment.Right };
+        private readonly ComboBox cboCanal = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
+        private readonly TextBox txtDireccionEnvio = new() { Width = 420, PlaceholderText = "Dirección de envío" };
 
-        private readonly ComboBox cboCanal = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
-        private readonly TextBox txtDireccionEnvio = new TextBox { Width = 320, PlaceholderText = "Dirección de envío" };
+        private readonly Button btnAgregar = new() { Text = "Agregar", AutoSize = true };
+        private readonly Button btnQuitar = new() { Text = "Quitar", AutoSize = true };
+        private readonly Button btnGuardar = new() { Text = "Guardar", AutoSize = true };
 
-        private readonly Button btnAgregar = new Button { Text = "Agregar" };
-        private readonly Button btnQuitar = new Button { Text = "Quitar" };
-        private readonly Button btnGuardar = new Button { Text = "Guardar" };
-
-        private readonly DataGridView gridDetalles = new DataGridView
+        //  Grilla (solo lectura + legible) 
+        private readonly DataGridView gridDetalles = new()
         {
             Dock = DockStyle.Fill,
-            ReadOnly = true,
             AutoGenerateColumns = false,
             AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            ReadOnly = true,                     
+            EditMode = DataGridViewEditMode.EditProgrammatically, 
             RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             MultiSelect = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            EnableHeadersVisualStyles = false,
+            BorderStyle = BorderStyle.None,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single,
+            GridColor = Color.FromArgb(203, 213, 225),
+            BackgroundColor = Color.White
         };
 
-        private readonly BindingSource bs = new BindingSource();
-        private readonly List<DetalleVenta> carrito = new List<DetalleVenta>();
+        // Totales (más grandes)
+        private readonly Label lblTotal = new()
+        {
+            AutoSize = true,
+            Font = new Font("Segoe UI", 13.5F, FontStyle.Bold),
+            Text = "Total: $0,00"
+        };
+        private readonly Label lblItems = new()
+        {
+            AutoSize = true,
+            Font = new Font("Segoe UI", 10.5F, FontStyle.Regular),
+            Text = "Ítems: 0"
+        };
+
+        private readonly BindingSource bs = new();
+        private readonly List<DetalleVenta> carrito = new();
+        private List<Cliente> _clientes = new();
+        private List<Producto> _productos = new();
+        private readonly CultureInfo _culture = new("es-AR");
+
+       
+        private static readonly Color BRAND_BLUE = Color.FromArgb(37, 99, 235); 
 
         public NuevaVentaForm()
         {
             Text = "Nueva Venta";
-            Width = 1100;
-            Height = 600;
+            Width = 1200;
+            Height = 680;
             StartPosition = FormStartPosition.CenterParent;
+            Font = new Font("Segoe UI", 10F);
 
-            var fila1 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(8), AutoSize = false };
-            fila1.Controls.Add(new Label { Text = "Cliente", AutoSize = true, Padding = new Padding(0, 8, 6, 0) });
-            fila1.Controls.Add(cboCliente);
-            fila1.Controls.Add(new Label { Text = "Canal", AutoSize = true, Padding = new Padding(12, 8, 6, 0) });
-            fila1.Controls.Add(cboCanal);
-            fila1.Controls.Add(new Label { Text = "Dirección envío", AutoSize = true, Padding = new Padding(12, 8, 6, 0) });
-            fila1.Controls.Add(txtDireccionEnvio);
+            // --- Fila 1: cliente / canal / dirección
+            var fila1 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(12, 10, 12, 6), WrapContents = false };
+            fila1.Controls.AddRange(new Control[]
+            {
+                Etiqueta("Cliente"), cboCliente,
+                Separador(16),
+                Etiqueta("Canal"), cboCanal,
+                Separador(16),
+                Etiqueta("Dirección envío"), txtDireccionEnvio
+            });
 
-            var fila2 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(8), AutoSize = false };
-            fila2.Controls.Add(new Label { Text = "Producto", AutoSize = true, Padding = new Padding(0, 8, 6, 0) });
-            fila2.Controls.Add(cboProducto);
-            fila2.Controls.Add(new Label { Text = "Cant.", AutoSize = true, Padding = new Padding(12, 8, 6, 0) });
-            fila2.Controls.Add(numCant);
-            fila2.Controls.Add(btnAgregar);
-            fila2.Controls.Add(btnQuitar);
-            fila2.Controls.Add(btnGuardar);
+            // --- Fila 2: producto / cantidad / acciones
+            var fila2 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(12, 6, 12, 10), WrapContents = false };
+            fila2.Controls.AddRange(new Control[]
+            {
+                Etiqueta("Producto"), cboProducto,
+                Separador(16),
+                Etiqueta("Cant."), numCant,
+                Separador(18),
+                btnAgregar, btnQuitar, btnGuardar
+            });
+
+            // --- Pie (totales a la derecha)
+            var pie = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 54,
+                Padding = new Padding(12, 8, 16, 10),
+                FlowDirection = FlowDirection.RightToLeft
+            };
+            pie.Controls.Add(lblTotal);
+            pie.Controls.Add(Separador(24));
+            pie.Controls.Add(lblItems);
 
             Controls.Add(gridDetalles);
+            Controls.Add(pie);
             Controls.Add(fila2);
             Controls.Add(fila1);
 
-            GridHelper.Estilizar(gridDetalles);
+            // Estilo de DataGridView accesible
+            EstilizarGrilla(gridDetalles);
 
-            // Configurar columnas
+            // Columnas
             gridDetalles.Columns.Clear();
             gridDetalles.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Producto",
                 HeaderText = "Producto",
-                DataPropertyName = "Producto"
+                DataPropertyName = "Producto",
+                FillWeight = 48,
+                ReadOnly = true
             });
 
             var colCant = new DataGridViewTextBoxColumn
@@ -78,70 +134,79 @@ namespace TeoAccesorios.Desktop
                 Name = "Cant",
                 HeaderText = "Cant",
                 DataPropertyName = "Cant",
-                FillWeight = 15
+                FillWeight = 12,
+                ReadOnly = true
             };
             colCant.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 
             var colPrecio = new DataGridViewTextBoxColumn
             {
                 Name = "Precio",
-                HeaderText = "Precio",
+                HeaderText = "Precio (ARS)",
                 DataPropertyName = "Precio",
-                FillWeight = 20
+                FillWeight = 20,
+                ReadOnly = true
             };
-            colPrecio.DefaultCellStyle.Format = "N2";
             colPrecio.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colPrecio.DefaultCellStyle.FormatProvider = _culture;
+            colPrecio.DefaultCellStyle.Format = "C2";
 
             var colSubtotal = new DataGridViewTextBoxColumn
             {
                 Name = "Subtotal",
-                HeaderText = "Subtotal",
+                HeaderText = "Subtotal (ARS)",
                 DataPropertyName = "Subtotal",
-                FillWeight = 20
+                FillWeight = 20,
+                ReadOnly = true
             };
-            colSubtotal.DefaultCellStyle.Format = "N2";
             colSubtotal.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colSubtotal.DefaultCellStyle.FormatProvider = _culture;
+            colSubtotal.DefaultCellStyle.Format = "C2";
 
-            gridDetalles.Columns.Add(colCant);
-            gridDetalles.Columns.Add(colPrecio);
-            gridDetalles.Columns.Add(colSubtotal);
-
+            gridDetalles.Columns.AddRange(colCant, colPrecio, colSubtotal);
             gridDetalles.DataSource = bs;
 
-            // Combos
-            var clientes = Repository.ListarClientes(false);
+            // Datos
+            _clientes = Repository.ListarClientes(false);
             cboCliente.ValueMember = nameof(Cliente.Id);
             cboCliente.DisplayMember = nameof(Cliente.Nombre);
-            cboCliente.DataSource = clientes;
-            if (clientes.Count > 0) cboCliente.SelectedIndex = 0;
+            cboCliente.DataSource = _clientes;
+            if (_clientes.Count > 0) cboCliente.SelectedIndex = 0;
 
-            var productos = Repository.ListarProductos(false);
+            _productos = Repository.ListarProductos(false);
             cboProducto.ValueMember = nameof(Producto.Id);
             cboProducto.DisplayMember = nameof(Producto.Nombre);
-            cboProducto.DataSource = productos;
-            if (productos.Count > 0) cboProducto.SelectedIndex = 0;
+            cboProducto.DataSource = _productos;
+            if (_productos.Count > 0) cboProducto.SelectedIndex = 0;
 
-            // Canal
             cboCanal.Items.AddRange(new[] { "WhatsApp", "Instagram", "Facebook", "MercadoLibre", "Local", "Otro" });
             cboCanal.SelectedIndex = 0;
 
-            // Prefill dirección según cliente
             cboCliente.SelectedIndexChanged += (_, __) =>
             {
-                if (cboCliente.SelectedItem is Cliente cli)
-                    txtDireccionEnvio.Text = cli.Direccion ?? "";
+                if (cboCliente.SelectedItem is Cliente cli) txtDireccionEnvio.Text = cli.Direccion ?? "";
             };
             if (cboCliente.SelectedItem is Cliente cli0) txtDireccionEnvio.Text = cli0.Direccion ?? "";
 
             RefrescarGrid();
 
-            // Botones
+            //  Acciones 
             btnAgregar.Click += (s, e) =>
             {
                 if (cboProducto.SelectedItem is not Producto p) return;
-
-                var cant = (int)numCant.Value;
+                int cant = (int)numCant.Value;
                 if (cant <= 0) return;
+
+                int yaEnCarrito = carrito.Where(d => d.ProductoId == p.Id).Sum(d => d.Cantidad);
+                int disponible = p.Stock - yaEnCarrito;
+
+                if (disponible <= 0 || cant > disponible)
+                {
+                    MessageBox.Show(
+                        $"No hay stock suficiente de \"{p.Nombre}\".\nDisponibles: {Math.Max(disponible, 0)} • Pedidos: {cant}",
+                        "Stock insuficiente", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
                 var linea = carrito.FirstOrDefault(d => d.ProductoId == p.Id);
                 if (linea == null)
@@ -179,22 +244,26 @@ namespace TeoAccesorios.Desktop
 
             btnGuardar.Click += (s, e) =>
             {
-                if (carrito.Count == 0)
+                if (carrito.Count == 0) { MessageBox.Show("Agregá al menos un producto.", "Aviso"); return; }
+                if (cboCliente.SelectedItem is not Cliente cli) { MessageBox.Show("Seleccioná un cliente.", "Aviso"); return; }
+
+                foreach (var linea in carrito)
                 {
-                    MessageBox.Show("Agregá al menos un producto.", "Aviso");
-                    return;
-                }
-                if (cboCliente.SelectedItem is not Cliente cli)
-                {
-                    MessageBox.Show("Seleccioná un cliente.", "Aviso");
-                    return;
+                    var prod = _productos.First(p => p.Id == linea.ProductoId);
+                    int pedida = carrito.Where(d => d.ProductoId == prod.Id).Sum(d => d.Cantidad);
+                    if (pedida > prod.Stock)
+                    {
+                        MessageBox.Show($"No hay stock suficiente de \"{prod.Nombre}\".\nDisponibles: {prod.Stock} • Pedidos: {pedida}",
+                            "Stock insuficiente", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
                 }
 
                 var venta = new Venta
                 {
                     FechaVenta = DateTime.Now,
                     Vendedor = Sesion.Usuario,
-                    Canal = (string)cboCanal.SelectedItem,
+                    Canal = (string)cboCanal.SelectedItem!,
                     ClienteId = cli.Id,
                     ClienteNombre = cli.Nombre,
                     DireccionEnvio = txtDireccionEnvio.Text?.Trim() ?? "",
@@ -210,17 +279,55 @@ namespace TeoAccesorios.Desktop
                 try
                 {
                     var id = Repository.InsertarVenta(venta);
-                    MessageBox.Show("Venta guardada (Id " + id + ").", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"Venta guardada (Id {id}).", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     DialogResult = DialogResult.OK;
                     Close();
                 }
+                catch (SqlException ex) when (
+                    ex.Number == 547 ||
+                    (ex.Message.Contains("CHECK", StringComparison.OrdinalIgnoreCase) && ex.Message.Contains("Stock", StringComparison.OrdinalIgnoreCase)))
+                {
+                    MessageBox.Show("El stock cambió y ya no alcanza.\nActualizá o ajustá cantidades.",
+                        "Stock insuficiente", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("No se pudo guardar la venta.\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Ocurrió un error al guardar la venta.\n\n" + ex.Message,
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
         }
 
+        //  Estilizado accesible de la grilla 
+        private void EstilizarGrilla(DataGridView g)
+        {
+           
+            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 12.5F, FontStyle.Bold);
+            g.DefaultCellStyle.Font = new Font("Segoe UI", 11.5F, FontStyle.Regular);
+            g.RowTemplate.Height = 38;
+            g.ColumnHeadersHeight = 44;
+
+            
+            g.ColumnHeadersDefaultCellStyle.BackColor = BRAND_BLUE;
+            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+
+            
+            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 247, 250);
+            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(29, 78, 216); 
+            g.DefaultCellStyle.SelectionForeColor = Color.White;
+
+            
+            g.ReadOnly = true;
+            g.EditMode = DataGridViewEditMode.EditProgrammatically;
+            foreach (DataGridViewColumn c in g.Columns) c.ReadOnly = true;
+
+            
+            typeof(DataGridView).InvokeMember("DoubleBuffered",
+                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty,
+                null, g, new object[] { true });
+        }
+
+        //  Datos en grilla + totales 
         private void RefrescarGrid()
         {
             var view = carrito.Select(d => new DetalleView
@@ -228,18 +335,29 @@ namespace TeoAccesorios.Desktop
                 Producto = d.ProductoNombre,
                 Cant = d.Cantidad,
                 Precio = d.PrecioUnitario,
-                Subtotal = d.Subtotal
+                Subtotal = d.Cantidad * d.PrecioUnitario
             }).ToList();
 
             bs.DataSource = view;
+
+            lblTotal.Text = $"Total: {view.Sum(v => v.Subtotal).ToString("C2", _culture)}";
+            lblItems.Text = $"Ítems: {view.Sum(v => v.Cant)}";
         }
 
+        // DTO para la grilla
         private class DetalleView
         {
-            public string Producto { get; set; }
+            public string Producto { get; set; } = "";
             public int Cant { get; set; }
             public decimal Precio { get; set; }
             public decimal Subtotal { get; set; }
+            public decimal PrecioUnitario => Precio; 
         }
+
+        // ===== Helpers UI mínimos =====
+        private static Label Etiqueta(string texto) =>
+            new() { Text = texto, AutoSize = true, Padding = new Padding(0, 10, 8, 0) };
+
+        private static Control Separador(int width) => new Label { Width = width };
     }
 }
