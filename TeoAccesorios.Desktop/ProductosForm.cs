@@ -10,7 +10,7 @@ namespace TeoAccesorios.Desktop
 {
     public class ProductosForm : Form
     {
-        // === Grilla + filtros ===
+        //  Grilla + filtros 
         private readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
         private readonly TextBox txtBuscar = new TextBox { PlaceholderText = "Buscar por nombre...", Width = 220 };
         private readonly ComboBox cboCategoria = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
@@ -18,12 +18,12 @@ namespace TeoAccesorios.Desktop
         private readonly CheckBox chkInactivos = new CheckBox { Text = "Ver inactivos" };
         private readonly BindingSource bs = new BindingSource();
 
-        // === Column picker (context menu) ===
+        //  Selector de columnas 
         private readonly Button btnColumnas = new Button { Text = "⚙ Columnas ▾" };
         private readonly ContextMenuStrip cmsColumnas = new ContextMenuStrip();
         private bool _buildingMenu = false;   // evita reentradas al sincronizar checks
 
-        // === Persistencia de preferencias ===
+        //  Persistencia de preferencias 
         private readonly string prefsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "TeoAccesorios", "grid_productos_cols.json");
@@ -120,7 +120,7 @@ namespace TeoAccesorios.Desktop
             }
             else
             {
-                grid.ReadOnly = true; // vendedor: solo ver
+                grid.ReadOnly = true; 
             }
 
             // Layout
@@ -139,11 +139,11 @@ namespace TeoAccesorios.Desktop
             cboCategoria.SelectedIndexChanged += (s, e) => { CargarSubcategorias(); LoadData(); };
             cboSubcategoria.SelectedIndexChanged += (s, e) => LoadData();
 
-            // Post-binding: aplicar preferencias (Opción 2 con default inicial)
+            
             grid.DataBindingComplete += (s, e) =>
             {
-                AplicarPreferenciasGuardadas(); // si no hay archivo => aplica predeterminada
-                // Al construir el menú después del binding, respeta visibilidades actuales
+                AplicarPreferenciasGuardadas(); 
+              
                 ConstruirMenuColumnas();
             };
 
@@ -161,7 +161,7 @@ namespace TeoAccesorios.Desktop
             FormClosing += (s, e) => GuardarPreferencias();
         }
 
-        // ---------- Subcargas ----------
+        //  Subcargas 
         private void CargarSubcategorias()
         {
             cboSubcategoria.Items.Clear();
@@ -193,7 +193,7 @@ namespace TeoAccesorios.Desktop
             grid.DataSource = bs;
         }
 
-        // ---------- Column picker ----------
+        //  Selector de columnas
         private void ConstruirMenuColumnas()
         {
             _buildingMenu = true;
@@ -264,7 +264,7 @@ namespace TeoAccesorios.Desktop
             AplicarSetVisibles(visibles);
         }
 
-        // === Predeterminada (tu screenshot): Nombre, Precio, Stock, CategoriaNombre ===
+        //  Predeterminada 
         private void AplicarVistaPredeterminada()
         {
             var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -287,7 +287,7 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // ---------- Persistencia (Opción 2) ----------
+      
         private void AplicarPreferenciasGuardadas()
         {
             try
@@ -340,7 +340,7 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        // ---------- Helpers ----------
+        //  Helpers 
         private class ComboItem
         {
             public string Text { get; set; } = "";

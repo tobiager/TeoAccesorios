@@ -34,7 +34,7 @@ namespace TeoAccesorios.Desktop
         private readonly Button btnRestaurar = new() { Text = "Restaurar" };
         private readonly Button btnLimpiar = new() { Text = "Limpiar filtros" };
 
-        // ⚙ Column picker
+        // ⚙ Selector de columnas
         private readonly Button btnColumnas = new() { Text = "⚙", Width = 32, Height = 26, Padding = new Padding(0) };
         private readonly ContextMenuStrip cmsColumnas = new();
         private bool _buildingMenu = false;
@@ -135,7 +135,7 @@ namespace TeoAccesorios.Desktop
                 txtBuscar.Clear();
             };
 
-            // Doble click = detalles
+           
             grid.CellDoubleClick += (_, e) =>
             {
                 if (e.RowIndex < 0) return;
@@ -145,7 +145,7 @@ namespace TeoAccesorios.Desktop
                 f.ShowDialog(this);
             };
 
-            // Tras cada databind: ancho/headers + preferencias + menú
+            
             grid.DataBindingComplete += (_, __) =>
             {
                 if (!_colsConfigured)
@@ -154,8 +154,8 @@ namespace TeoAccesorios.Desktop
                     _colsConfigured = true;
                 }
 
-                AplicarPreferenciasGuardadas(); // opción 2: si no hay archivo, usa predeterminada
-                ConstruirMenuColumnas();        // refleja visibilidad actual
+                AplicarPreferenciasGuardadas(); 
+                ConstruirMenuColumnas();        
             };
 
             // Click en la ruedita
@@ -172,7 +172,7 @@ namespace TeoAccesorios.Desktop
             LoadData();
         }
 
-        // ====== Datos y filtros ======
+        //  Datos y filtros 
         private void LoadCombos()
         {
             var vendedores = Repository.ListarUsuarios()
@@ -267,7 +267,7 @@ namespace TeoAccesorios.Desktop
             }).ToList();
         }
 
-        // ====== Cols y “ruedita” ======
+        // Cols y ruedita
         private void ConfigureColumns()
         {
             DataGridViewColumn FindCol(string key) =>
@@ -309,7 +309,7 @@ namespace TeoAccesorios.Desktop
             cmsColumnas.Items.Add(miOcultarTodo);
             cmsColumnas.Items.Add(new ToolStripSeparator());
 
-            // Lista de columnas con check
+           
             foreach (DataGridViewColumn col in grid.Columns.Cast<DataGridViewColumn>().OrderBy(c => c.DisplayIndex))
             {
                 if (string.IsNullOrEmpty(col.Name)) continue;
@@ -346,7 +346,7 @@ namespace TeoAccesorios.Desktop
                     mi.Checked = visible;
         }
 
-        // Vista rápida (operativa): Id, Fecha, Cliente, Total, Anulada
+        // Vista rápida 
         private void AplicarVistaRapida()
         {
             var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -372,7 +372,7 @@ namespace TeoAccesorios.Desktop
                     mi.Checked = visibles.Contains(name);
         }
 
-        // ====== Persistencia de columnas visibles ======
+        //  Persistencia de columnas visibles 
         private void AplicarPreferenciasGuardadas()
         {
             try
@@ -424,7 +424,7 @@ namespace TeoAccesorios.Desktop
             public List<string> VisibleColumns { get; set; } = new();
         }
 
-        // ===== Ventas helpers =====
+        //  Ventas helpers 
         private bool TryGetSelectedVenta(out Models.Venta venta)
         {
             venta = null!;
