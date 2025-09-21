@@ -8,6 +8,7 @@ using TeoAccesorios.Desktop.Models;
 namespace TeoAccesorios.Desktop
 {
     // ====== DTOs para la vista inferior (stats) ======
+    // (Si preferís, movelos a su propio archivo bajo TeoAccesorios.Desktop.Models)
     namespace Models
     {
         public class CategoriaStat
@@ -35,9 +36,10 @@ namespace TeoAccesorios.Desktop
 
     public static class Repository
     {
-        public static List<Venta> Ventas => ListarVentas(true);
-        public static List<Producto> Productos => ListarProductos(true);
-        public static List<Cliente> Clientes => ListarClientes(true);
+        public static List<Venta> Ventas => ListarVentas(incluirAnuladas: false);
+        public static List<Producto> Productos => ListarProductos(incluirInactivos: false);
+        public static List<Cliente> Clientes => ListarClientes(incluirInactivos: false);
+        public static List<Usuario> Usuarios => ListarUsuarios();
 
         // ========= CLIENTES =========
         public static List<Cliente> ListarClientes(bool incluirInactivos = false)
@@ -51,10 +53,12 @@ namespace TeoAccesorios.Desktop
                         c.Localidad,
                         c.Provincia,
                         c.Activo
-                FROM dbo.Clientes c;",
-                Array.Empty<SqlParameter>());
+                FROM dbo.Clientes c
+                WHERE (@all = 1 OR c.Activo = 1)
+                ORDER BY c.Nombre;",
+                new SqlParameter("@all", incluirInactivos ? 1 : 0));
 
-            var list = dt.AsEnumerable().Select(r => new Cliente
+            return dt.AsEnumerable().Select(r => new Cliente
             {
                 Id = r.Field<int>("Id"),
                 Nombre = r.Field<string?>("Nombre") ?? "",
@@ -65,8 +69,6 @@ namespace TeoAccesorios.Desktop
                 Provincia = r.Field<string?>("Provincia") ?? "",
                 Activo = r.Field<bool>("Activo")
             }).ToList();
-
-            return incluirInactivos ? list : list.Where(c => c.Activo).ToList();
         }
 
         public static int InsertarCliente(Cliente c)
@@ -79,12 +81,14 @@ namespace TeoAccesorios.Desktop
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@nom", c.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@mail", (object?)c.Email ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@tel", (object?)c.Telefono ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@dir", (object?)c.Direccion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@loc", (object?)c.Localidad ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@prov", (object?)c.Provincia ?? DBNull.Value);
+
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = c.Nombre ?? "";
+            cmd.Parameters.Add("@mail", SqlDbType.NVarChar, 200).Value = (object?)c.Email ?? DBNull.Value;
+            cmd.Parameters.Add("@tel", SqlDbType.NVarChar, 50).Value = (object?)c.Telefono ?? DBNull.Value;
+            cmd.Parameters.Add("@dir", SqlDbType.NVarChar, 200).Value = (object?)c.Direccion ?? DBNull.Value;
+            cmd.Parameters.Add("@loc", SqlDbType.NVarChar, 100).Value = (object?)c.Localidad ?? DBNull.Value;
+            cmd.Parameters.Add("@prov", SqlDbType.NVarChar, 100).Value = (object?)c.Provincia ?? DBNull.Value;
+
             cn.Open();
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
@@ -104,19 +108,21 @@ namespace TeoAccesorios.Desktop
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@id", c.Id);
-            cmd.Parameters.AddWithValue("@nom", c.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@mail", (object?)c.Email ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@tel", (object?)c.Telefono ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@dir", (object?)c.Direccion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@loc", (object?)c.Localidad ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@prov", (object?)c.Provincia ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@act", c.Activo);
+
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = c.Id;
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = c.Nombre ?? "";
+            cmd.Parameters.Add("@mail", SqlDbType.NVarChar, 200).Value = (object?)c.Email ?? DBNull.Value;
+            cmd.Parameters.Add("@tel", SqlDbType.NVarChar, 50).Value = (object?)c.Telefono ?? DBNull.Value;
+            cmd.Parameters.Add("@dir", SqlDbType.NVarChar, 200).Value = (object?)c.Direccion ?? DBNull.Value;
+            cmd.Parameters.Add("@loc", SqlDbType.NVarChar, 100).Value = (object?)c.Localidad ?? DBNull.Value;
+            cmd.Parameters.Add("@prov", SqlDbType.NVarChar, 100).Value = (object?)c.Provincia ?? DBNull.Value;
+            cmd.Parameters.Add("@act", SqlDbType.Bit).Value = c.Activo;
+
             cn.Open();
             cmd.ExecuteNonQuery();
         }
 
-        // Soft delete
+        // Soft delete Cliente
         public static void EliminarCliente(int id)
         {
             Db.Exec("UPDATE dbo.Clientes SET Activo=0 WHERE Id=@id",
@@ -130,7 +136,6 @@ namespace TeoAccesorios.Desktop
                 SELECT  u.Id              AS Id,
                         u.NombreUsuario   AS NombreUsuario,
                         u.correo          AS Correo,
-                        u.contrasenia     AS Contrasenia,
                         u.Rol             AS Rol,
                         u.Activo          AS Activo
                 FROM dbo.Usuarios u;",
@@ -141,12 +146,10 @@ namespace TeoAccesorios.Desktop
                 Id = r.Field<int>("Id"),
                 NombreUsuario = r.Field<string?>("NombreUsuario") ?? "",
                 Correo = r.Field<string?>("Correo") ?? "",
-                Contrasenia = r.Field<string?>("Contrasenia") ?? "",
                 Rol = r.Field<string?>("Rol") ?? "",
                 Activo = r.Field<bool>("Activo")
             }).ToList();
         }
-        public static List<Usuario> Usuarios => ListarUsuarios();
 
         // ========= CATEGORÍAS =========
         public static List<Categoria> ListarCategorias(bool incluirInactivas = true)
@@ -154,18 +157,61 @@ namespace TeoAccesorios.Desktop
             var dt = Db.Query(@"
                 SELECT Id, Nombre, Descripcion, Activo
                 FROM dbo.Categorias
+                WHERE (@all = 1 OR Activo = 1)
                 ORDER BY Nombre;",
-                Array.Empty<SqlParameter>());
+                new SqlParameter("@all", incluirInactivas ? 1 : 0));
 
-            var list = dt.AsEnumerable().Select(r => new Categoria
+            return dt.AsEnumerable().Select(r => new Categoria
             {
                 Id = r.Field<int>("Id"),
                 Nombre = r.Field<string?>("Nombre") ?? "",
                 Descripcion = r.Field<string?>("Descripcion"),
                 Activo = r.Field<bool>("Activo")
             }).ToList();
+        }
 
-            return incluirInactivas ? list : list.Where(x => x.Activo).ToList();
+        public static int InsertarCategoria(Categoria c)
+        {
+            const string sql = @"
+                INSERT INTO dbo.Categorias (Nombre, Descripcion, Activo)
+                OUTPUT INSERTED.Id
+                VALUES (@nom, @desc, @act);";
+
+            using var cn = new SqlConnection(Db.ConnectionString);
+            using var cmd = new SqlCommand(sql, cn);
+
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = c.Nombre ?? "";
+            cmd.Parameters.Add("@desc", SqlDbType.NVarChar, 200).Value = (object?)c.Descripcion ?? DBNull.Value;
+            cmd.Parameters.Add("@act", SqlDbType.Bit).Value = c.Activo;
+
+            cn.Open();
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        public static void ActualizarCategoria(Categoria c)
+        {
+            const string sql = @"
+                UPDATE dbo.Categorias
+                   SET Nombre=@nom, Descripcion=@desc, Activo=@act
+                 WHERE Id=@id;";
+
+            using var cn = new SqlConnection(Db.ConnectionString);
+            using var cmd = new SqlCommand(sql, cn);
+
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = c.Id;
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = c.Nombre ?? "";
+            cmd.Parameters.Add("@desc", SqlDbType.NVarChar, 200).Value = (object?)c.Descripcion ?? DBNull.Value;
+            cmd.Parameters.Add("@act", SqlDbType.Bit).Value = c.Activo;
+
+            cn.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public static void SetCategoriaActiva(int id, bool activa)
+        {
+            Db.Exec("UPDATE dbo.Categorias SET Activo=@a WHERE Id=@id",
+                new SqlParameter("@a", activa ? 1 : 0),
+                new SqlParameter("@id", id));
         }
 
         // ========= SUBCATEGORÍAS =========
@@ -193,58 +239,21 @@ namespace TeoAccesorios.Desktop
             }).ToList();
         }
 
-        // ===== CATEGORÍAS: CRUD =====
-        public static int InsertarCategoria(Categoria c)
-        {
-            const string sql = @"
-                INSERT INTO dbo.Categorias (Nombre, Descripcion, Activo)
-                OUTPUT INSERTED.Id
-                VALUES (@nom, @desc, @act);";
-            using var cn = new SqlConnection(Db.ConnectionString);
-            using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@nom", c.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@desc", (object?)c.Descripcion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@act", c.Activo);
-            cn.Open();
-            return Convert.ToInt32(cmd.ExecuteScalar());
-        }
-
-        public static void ActualizarCategoria(Categoria c)
-        {
-            const string sql = @"
-                UPDATE dbo.Categorias
-                   SET Nombre=@nom, Descripcion=@desc, Activo=@act
-                 WHERE Id=@id;";
-            using var cn = new SqlConnection(Db.ConnectionString);
-            using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@id", c.Id);
-            cmd.Parameters.AddWithValue("@nom", c.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@desc", (object?)c.Descripcion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@act", c.Activo);
-            cn.Open();
-            cmd.ExecuteNonQuery();
-        }
-
-        public static void SetCategoriaActiva(int id, bool activa)
-        {
-            Db.Exec("UPDATE dbo.Categorias SET Activo=@a WHERE Id=@id",
-                new SqlParameter("@a", activa ? 1 : 0),
-                new SqlParameter("@id", id));
-        }
-
-        // ===== SUBCATEGORÍAS: CRUD =====
         public static int InsertarSubcategoria(Subcategoria s)
         {
             const string sql = @"
                 INSERT INTO dbo.Subcategorias (Nombre, Descripcion, CategoriaId, Activo)
                 OUTPUT INSERTED.Id
                 VALUES (@nom, @desc, @cat, @act);";
+
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@nom", s.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@desc", (object?)s.Descripcion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@cat", s.CategoriaId);
-            cmd.Parameters.AddWithValue("@act", s.Activo);
+
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = s.Nombre ?? "";
+            cmd.Parameters.Add("@desc", SqlDbType.NVarChar, 200).Value = (object?)s.Descripcion ?? DBNull.Value;
+            cmd.Parameters.Add("@cat", SqlDbType.Int).Value = s.CategoriaId;
+            cmd.Parameters.Add("@act", SqlDbType.Bit).Value = s.Activo;
+
             cn.Open();
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
@@ -255,13 +264,16 @@ namespace TeoAccesorios.Desktop
                 UPDATE dbo.Subcategorias
                    SET Nombre=@nom, Descripcion=@desc, CategoriaId=@cat, Activo=@act
                  WHERE Id=@id;";
+
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@id", s.Id);
-            cmd.Parameters.AddWithValue("@nom", s.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@desc", (object?)s.Descripcion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@cat", s.CategoriaId);
-            cmd.Parameters.AddWithValue("@act", s.Activo);
+
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = s.Id;
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = s.Nombre ?? "";
+            cmd.Parameters.Add("@desc", SqlDbType.NVarChar, 200).Value = (object?)s.Descripcion ?? DBNull.Value;
+            cmd.Parameters.Add("@cat", SqlDbType.Int).Value = s.CategoriaId;
+            cmd.Parameters.Add("@act", SqlDbType.Bit).Value = s.Activo;
+
             cn.Open();
             cmd.ExecuteNonQuery();
         }
@@ -297,19 +309,18 @@ namespace TeoAccesorios.Desktop
         public static bool TryDesactivarCategoria(int id, out int productosAsociados)
         {
             productosAsociados = ContarProductosPorCategoria(id);
-            if (productosAsociados > 0) return false;   
-            SetCategoriaActiva(id, false);              
+            if (productosAsociados > 0) return false;
+            SetCategoriaActiva(id, false);
             return true;
         }
 
         public static bool TryDesactivarSubcategoria(int id, out int productosAsociados)
         {
             productosAsociados = ContarProductosPorSubcategoria(id);
-            if (productosAsociados > 0) return false;   
-            SetSubcategoriaActiva(id, false);          
+            if (productosAsociados > 0) return false;
+            SetSubcategoriaActiva(id, false);
             return true;
         }
-
 
         // ========= PRODUCTOS =========
         public static List<Producto> ListarProductos(bool incluirInactivos = false)
@@ -320,10 +331,11 @@ namespace TeoAccesorios.Desktop
                         p.SubcategoriaId, s.Nombre AS SubcategoriaNombre
                 FROM dbo.Productos p
                 LEFT JOIN dbo.Categorias    c ON c.Id = p.CategoriaId
-                LEFT JOIN dbo.Subcategorias s ON s.Id = p.SubcategoriaId;",
-                Array.Empty<SqlParameter>());
+                LEFT JOIN dbo.Subcategorias s ON s.Id = p.SubcategoriaId
+                WHERE (@all = 1 OR p.Activo = 1);",
+                new SqlParameter("@all", incluirInactivos ? 1 : 0));
 
-            var list = dt.AsEnumerable().Select(r => new Producto
+            return dt.AsEnumerable().Select(r => new Producto
             {
                 Id = r.Field<int>("Id"),
                 Nombre = r.Field<string?>("Nombre") ?? "",
@@ -337,8 +349,6 @@ namespace TeoAccesorios.Desktop
                 SubcategoriaId = r.Field<int?>("SubcategoriaId"),
                 SubcategoriaNombre = r.Field<string?>("SubcategoriaNombre") ?? ""
             }).ToList();
-
-            return incluirInactivos ? list : list.Where(p => p.Activo).ToList();
         }
 
         public static int InsertarProducto(Producto p)
@@ -351,13 +361,18 @@ namespace TeoAccesorios.Desktop
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@nom", p.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@desc", (object?)p.Descripcion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@precio", p.Precio);
-            cmd.Parameters.AddWithValue("@stock", p.Stock);
-            cmd.Parameters.AddWithValue("@min", p.StockMinimo);
-            cmd.Parameters.AddWithValue("@cat", p.CategoriaId);
-            cmd.Parameters.AddWithValue("@sub", (object?)p.SubcategoriaId ?? DBNull.Value);
+
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = p.Nombre ?? "";
+            cmd.Parameters.Add("@desc", SqlDbType.NVarChar, 500).Value = (object?)p.Descripcion ?? DBNull.Value;
+
+            var parPrecio = cmd.Parameters.Add("@precio", SqlDbType.Decimal);
+            parPrecio.Precision = 12; parPrecio.Scale = 2; parPrecio.Value = p.Precio;
+
+            cmd.Parameters.Add("@stock", SqlDbType.Int).Value = p.Stock;
+            cmd.Parameters.Add("@min", SqlDbType.Int).Value = p.StockMinimo;
+            cmd.Parameters.Add("@cat", SqlDbType.Int).Value = p.CategoriaId;
+            cmd.Parameters.Add("@sub", SqlDbType.Int).Value = (object?)p.SubcategoriaId ?? DBNull.Value;
+
             cn.Open();
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
@@ -378,27 +393,32 @@ namespace TeoAccesorios.Desktop
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@id", p.Id);
-            cmd.Parameters.AddWithValue("@nom", p.Nombre ?? "");
-            cmd.Parameters.AddWithValue("@desc", (object?)p.Descripcion ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@precio", p.Precio);
-            cmd.Parameters.AddWithValue("@stock", p.Stock);
-            cmd.Parameters.AddWithValue("@min", p.StockMinimo);
-            cmd.Parameters.AddWithValue("@cat", p.CategoriaId);
-            cmd.Parameters.AddWithValue("@sub", (object?)p.SubcategoriaId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@act", p.Activo);
+
+            cmd.Parameters.Add("@id", SqlDbType.Int).Value = p.Id;
+            cmd.Parameters.Add("@nom", SqlDbType.NVarChar, 100).Value = p.Nombre ?? "";
+            cmd.Parameters.Add("@desc", SqlDbType.NVarChar, 500).Value = (object?)p.Descripcion ?? DBNull.Value;
+
+            var parPrecio = cmd.Parameters.Add("@precio", SqlDbType.Decimal);
+            parPrecio.Precision = 12; parPrecio.Scale = 2; parPrecio.Value = p.Precio;
+
+            cmd.Parameters.Add("@stock", SqlDbType.Int).Value = p.Stock;
+            cmd.Parameters.Add("@min", SqlDbType.Int).Value = p.StockMinimo;
+            cmd.Parameters.Add("@cat", SqlDbType.Int).Value = p.CategoriaId;
+            cmd.Parameters.Add("@sub", SqlDbType.Int).Value = (object?)p.SubcategoriaId ?? DBNull.Value;
+            cmd.Parameters.Add("@act", SqlDbType.Bit).Value = p.Activo;
+
             cn.Open();
             cmd.ExecuteNonQuery();
         }
 
-        // Soft delete
+        // Soft delete Producto
         public static void EliminarProducto(int id)
         {
             Db.Exec("UPDATE dbo.Productos SET Activo=0 WHERE Id=@id",
                 new SqlParameter("@id", id));
         }
 
-        // ========= STATS (para la vista de abajo) =========
+        // ========= STATS =========
         public static List<Models.CategoriaStat> GetCategoriaStats(bool incluirInactivos = true)
         {
             var dt = Db.Query(@"
@@ -466,7 +486,7 @@ namespace TeoAccesorios.Desktop
         // ========= VENTAS =========
         public static List<Venta> ListarVentas(bool incluirAnuladas = false)
         {
-            var dt = Db.Query(@"
+            var dtCab = Db.Query(@"
                 SELECT  v.Id,
                         v.Fecha,
                         v.ClienteId,
@@ -476,10 +496,12 @@ namespace TeoAccesorios.Desktop
                         CAST(ISNULL(v.Anulada, 0) AS bit) AS Anulada,
                         c.Nombre AS ClienteNombre
                 FROM dbo.Ventas v
-                LEFT JOIN dbo.Clientes c ON c.Id = v.ClienteId;",
-                Array.Empty<SqlParameter>());
+                LEFT JOIN dbo.Clientes c ON c.Id = v.ClienteId
+                WHERE (@all = 1 OR ISNULL(v.Anulada,0) = 0)
+                ORDER BY v.Fecha DESC;",
+                new SqlParameter("@all", incluirAnuladas ? 1 : 0));
 
-            var ventas = dt.AsEnumerable().Select(r => new Venta
+            var ventas = dtCab.AsEnumerable().Select(r => new Venta
             {
                 Id = r.Field<int>("Id"),
                 FechaVenta = r.Field<DateTime>("Fecha"),
@@ -488,8 +510,12 @@ namespace TeoAccesorios.Desktop
                 Vendedor = r.Field<string?>("Vendedor") ?? "",
                 Canal = r.Field<string?>("Canal") ?? "",
                 DireccionEnvio = r.Field<string?>("DireccionEnvio") ?? "",
-                Anulada = r.Field<bool>("Anulada")
+                Anulada = r.Field<bool>("Anulada"),
+                Detalles = new List<DetalleVenta>(),
+                Total = 0m
             }).ToList();
+
+            if (ventas.Count == 0) return ventas;
 
             var dtDet = Db.Query(@"
                 SELECT  Id,
@@ -499,7 +525,8 @@ namespace TeoAccesorios.Desktop
                         Cantidad,
                         PrecioUnitario,
                         (Cantidad * PrecioUnitario) AS Subtotal
-                FROM dbo.DetalleVenta;",
+                FROM dbo.DetalleVenta
+                WHERE VentaId IN (" + string.Join(",", ventas.Select(v => v.Id)) + ");",
                 Array.Empty<SqlParameter>());
 
             var detalles = dtDet.AsEnumerable().Select(r => new DetalleVenta
@@ -519,8 +546,7 @@ namespace TeoAccesorios.Desktop
                 v.Total = v.Detalles.Sum(d => d.Subtotal);
             }
 
-            if (!incluirAnuladas) ventas = ventas.Where(v => !v.Anulada).ToList();
-            return ventas.OrderByDescending(v => v.FechaVenta).ToList();
+            return ventas;
         }
 
         public static int InsertarVenta(Venta v)
@@ -536,11 +562,11 @@ namespace TeoAccesorios.Desktop
                     OUTPUT INSERTED.Id
                     VALUES (@fecha, @vend, @canal, @cli, @dir, 0);", cn, tx);
 
-                cmdCab.Parameters.AddWithValue("@fecha", v.FechaVenta);
-                cmdCab.Parameters.AddWithValue("@vend", v.Vendedor ?? "");
-                cmdCab.Parameters.AddWithValue("@canal", v.Canal ?? "");
-                cmdCab.Parameters.AddWithValue("@cli", v.ClienteId);
-                cmdCab.Parameters.AddWithValue("@dir", (object?)v.DireccionEnvio ?? DBNull.Value);
+                cmdCab.Parameters.Add("@fecha", SqlDbType.DateTime2).Value = v.FechaVenta;
+                cmdCab.Parameters.Add("@vend", SqlDbType.NVarChar, 100).Value = v.Vendedor ?? "";
+                cmdCab.Parameters.Add("@canal", SqlDbType.NVarChar, 50).Value = v.Canal ?? "";
+                cmdCab.Parameters.Add("@cli", SqlDbType.Int).Value = v.ClienteId;
+                cmdCab.Parameters.Add("@dir", SqlDbType.NVarChar, 200).Value = (object?)v.DireccionEnvio ?? DBNull.Value;
 
                 var idVenta = Convert.ToInt32(cmdCab.ExecuteScalar());
 
@@ -549,18 +575,30 @@ namespace TeoAccesorios.Desktop
                     var cmdDet = new SqlCommand(@"
                         INSERT INTO dbo.DetalleVenta (VentaId, ProductoId, ProductoNombre, Cantidad, PrecioUnitario)
                         VALUES (@v, @p, @pn, @c, @pu);", cn, tx);
-                    cmdDet.Parameters.AddWithValue("@v", idVenta);
-                    cmdDet.Parameters.AddWithValue("@p", d.ProductoId);
-                    cmdDet.Parameters.AddWithValue("@pn", d.ProductoNombre ?? "");
-                    cmdDet.Parameters.AddWithValue("@c", d.Cantidad);
-                    cmdDet.Parameters.AddWithValue("@pu", d.PrecioUnitario);
+
+                    cmdDet.Parameters.Add("@v", SqlDbType.Int).Value = idVenta;
+                    cmdDet.Parameters.Add("@p", SqlDbType.Int).Value = d.ProductoId;
+                    cmdDet.Parameters.Add("@pn", SqlDbType.NVarChar, 200).Value = d.ProductoNombre ?? "";
+                    cmdDet.Parameters.Add("@c", SqlDbType.Int).Value = d.Cantidad;
+
+                    var parPU = cmdDet.Parameters.Add("@pu", SqlDbType.Decimal);
+                    parPU.Precision = 12; parPU.Scale = 2; parPU.Value = d.PrecioUnitario;
+
                     cmdDet.ExecuteNonQuery();
 
-                    var cmdStock = new SqlCommand(
-                        "UPDATE dbo.Productos SET Stock = Stock - @c WHERE Id=@p;", cn, tx);
-                    cmdStock.Parameters.AddWithValue("@c", d.Cantidad);
-                    cmdStock.Parameters.AddWithValue("@p", d.ProductoId);
-                    cmdStock.ExecuteNonQuery();
+                    // Descuento atómico de stock (evita negativos si agregás CHECK (Stock >= 0) en BD)
+                    var cmdStock = new SqlCommand(@"
+                        UPDATE dbo.Productos
+                           SET Stock = Stock - @c
+                         WHERE Id=@p AND Stock >= @c;
+                        SELECT @@ROWCOUNT;", cn, tx);
+
+                    cmdStock.Parameters.Add("@c", SqlDbType.Int).Value = d.Cantidad;
+                    cmdStock.Parameters.Add("@p", SqlDbType.Int).Value = d.ProductoId;
+
+                    var rows = (int)cmdStock.ExecuteScalar();
+                    if (rows == 0)
+                        throw new InvalidOperationException("Stock insuficiente para el producto " + d.ProductoId);
                 }
 
                 tx.Commit();
@@ -595,7 +633,7 @@ namespace TeoAccesorios.Desktop
                     "SELECT ProductoId, Cantidad FROM dbo.DetalleVenta WHERE VentaId=@id", cn))
                 {
                     da.SelectCommand.Transaction = tx;
-                    da.SelectCommand.Parameters.AddWithValue("@id", idVenta);
+                    da.SelectCommand.Parameters.Add(new SqlParameter("@id", idVenta));
                     da.Fill(dtDet);
                 }
 
@@ -606,11 +644,24 @@ namespace TeoAccesorios.Desktop
 
                     var sql = anulada
                         ? "UPDATE dbo.Productos SET Stock = Stock + @c WHERE Id=@p;"
-                        : "UPDATE dbo.Productos SET Stock = Stock - @c WHERE Id=@p;";
-                    var cmdStock = new SqlCommand(sql, cn, tx);
-                    cmdStock.Parameters.AddWithValue("@c", cant);
-                    cmdStock.Parameters.AddWithValue("@p", prod);
-                    cmdStock.ExecuteNonQuery();
+                        : "UPDATE dbo.Productos SET Stock = Stock - @c WHERE Id=@p AND Stock >= @c; SELECT @@ROWCOUNT;";
+
+                    if (anulada)
+                    {
+                        var cmd = new SqlCommand(sql, cn, tx);
+                        cmd.Parameters.Add("@c", SqlDbType.Int).Value = cant;
+                        cmd.Parameters.Add("@p", SqlDbType.Int).Value = prod;
+                        cmd.ExecuteNonQuery();
+                    }
+                    else
+                    {
+                        var cmd = new SqlCommand(sql, cn, tx);
+                        cmd.Parameters.Add("@c", SqlDbType.Int).Value = cant;
+                        cmd.Parameters.Add("@p", SqlDbType.Int).Value = prod;
+                        var rows = (int)cmd.ExecuteScalar();
+                        if (rows == 0)
+                            throw new InvalidOperationException("Stock insuficiente al reactivar venta.");
+                    }
                 }
 
                 tx.Commit();
@@ -635,18 +686,19 @@ namespace TeoAccesorios.Desktop
                     "SELECT ProductoId, Cantidad FROM dbo.DetalleVenta WHERE VentaId=@id", cn))
                 {
                     da.SelectCommand.Transaction = tx;
-                    da.SelectCommand.Parameters.AddWithValue("@id", idVenta);
+                    da.SelectCommand.Parameters.Add(new SqlParameter("@id", idVenta));
                     da.Fill(dtDet);
                 }
 
+                // Devolver stock
                 foreach (DataRow r in dtDet.Rows)
                 {
                     int prod = (int)r["ProductoId"];
                     int cant = (int)r["Cantidad"];
                     var cmd = new SqlCommand(
                         "UPDATE dbo.Productos SET Stock = Stock + @c WHERE Id=@p;", cn, tx);
-                    cmd.Parameters.AddWithValue("@c", cant);
-                    cmd.Parameters.AddWithValue("@p", prod);
+                    cmd.Parameters.Add("@c", SqlDbType.Int).Value = cant;
+                    cmd.Parameters.Add("@p", SqlDbType.Int).Value = prod;
                     cmd.ExecuteNonQuery();
                 }
 
