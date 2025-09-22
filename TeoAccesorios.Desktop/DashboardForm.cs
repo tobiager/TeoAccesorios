@@ -24,6 +24,9 @@ namespace TeoAccesorios.Desktop
             Text = "TeoAccesorios — " + Sesion.Rol.ToString();
             Width = 1100; Height = 720; StartPosition = FormStartPosition.CenterScreen;
 
+            StartPosition = FormStartPosition.CenterScreen;
+            WindowState = FormWindowState.Maximized;
+
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2 };
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 240));
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));

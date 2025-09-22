@@ -10,7 +10,7 @@ namespace TeoAccesorios.Desktop
         {
             ApplicationConfiguration.Initialize();
 
-            // 1) Mostrar Login como diálogo (no como formulario principal)
+            // 1) Mostrar Login como dialogo (no como formulario principal)
             using (var login = new LoginForm { StartPosition = FormStartPosition.CenterScreen })
             {
                 var result = login.ShowDialog();
@@ -18,7 +18,7 @@ namespace TeoAccesorios.Desktop
                 // 2) Si el login fue OK, abrimos la app real (MainForm) ya maximizada
                 if (result == DialogResult.OK)
                 {
-                    Application.Run(new MainForm());   // MainForm ya se maximiza en su constructor
+                    Application.Run(new MainForm());   
                 }
                 // Si canceló o falló el login, simplemente salimos.
             }
