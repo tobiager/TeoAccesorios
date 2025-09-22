@@ -79,7 +79,7 @@ namespace TeoAccesorios.Desktop
             GridHelper.Estilizar(ultGrid);
             GridHelper.Estilizar(stockGrid);
 
-            // Forzar colores para evitar herencia del GroupBox
+           
             ThemeGrid(topGrid);
             ThemeGrid(ultGrid);
             ThemeGrid(stockGrid);

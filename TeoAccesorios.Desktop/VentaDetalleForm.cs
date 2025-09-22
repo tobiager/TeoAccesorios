@@ -26,14 +26,14 @@ namespace TeoAccesorios.Desktop
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         };
 
-        // Mantengo la venta y el cliente (lo recibo desde el form de lista)
+        
         private readonly Venta _venta;
         private readonly Cliente? _cliente;
 
         public VentaDetalleForm(Venta venta, Cliente? cliente = null)
         {
             _venta = venta;
-            _cliente = cliente; 
+            _cliente = cliente;
 
             // Ventana
             Text = $"Venta #{venta.Id}";
@@ -44,13 +44,12 @@ namespace TeoAccesorios.Desktop
             KeyPreview = true; BackColor = Color.White; Padding = new Padding(10);
             KeyDown += (s, e) => { if (e.KeyCode == Keys.Escape) Close(); };
 
-           
+            // Suaviza el scroll del grid
             typeof(DataGridView).InvokeMember(
                 "DoubleBuffered",
                 BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty,
                 null, grid, new object[] { true });
 
-            
             var root = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -96,13 +95,13 @@ namespace TeoAccesorios.Desktop
             root.Controls.Add(pnlTotal, 0, 2);
         }
 
-        // Header con tarjetas (fecha, cliente, dirección, vendedor, localidad, provincia)
+        // Header con tarjetas
         private Control BuildHeader()
         {
-            // Dirección desde Venta.*
+            // Dirección desde Venta.* (soporta varios nombres)
             var direccion = GetStringPath(_venta, "DireccionEnvio", "DirecciónEnvio", "Direccion", "Dirección");
 
-            // Localidad/Provincia: las saco del Cliente que recibo
+            // Localidad/Provincia: vienen del cliente que recibo
             var localidad = _cliente?.Localidad ?? "";
             var provincia = _cliente?.Provincia ?? "";
 
@@ -132,33 +131,51 @@ namespace TeoAccesorios.Desktop
             wrap.SetColumnSpan(title, 3);
 
             // Tarjetas 3×2
-            wrap.Controls.Add(InfoCard("\uE8A5  Fecha", _venta.Fecha.ToString("dd/MM/yyyy HH:mm")), 0, 1);
-            wrap.Controls.Add(InfoCard("\uE77B  Cliente", string.IsNullOrWhiteSpace(_venta.ClienteNombre) ? "-" : _venta.ClienteNombre), 1, 1);
-            wrap.Controls.Add(InfoCard("\uE13D  Dirección", string.IsNullOrWhiteSpace(direccion) ? "-" : direccion), 2, 1);
+            wrap.Controls.Add(InfoCard("Fecha", _venta.Fecha.ToString("dd/MM/yyyy HH:mm"), "\uE787"), 0, 1);                    
+            wrap.Controls.Add(InfoCard("Cliente", string.IsNullOrWhiteSpace(_venta.ClienteNombre) ? "-" : _venta.ClienteNombre, "\uE77B"), 1, 1);
+            wrap.Controls.Add(InfoCard("Dirección", string.IsNullOrWhiteSpace(direccion) ? "-" : direccion, "\uE707"), 2, 1);     
 
-            wrap.Controls.Add(InfoCard("\uE76E  Vendedor", string.IsNullOrWhiteSpace(_venta.Vendedor) ? "-" : _venta.Vendedor), 0, 2);
-            wrap.Controls.Add(InfoCard("\uE909  Localidad", string.IsNullOrWhiteSpace(localidad) ? "-" : localidad), 1, 2);
-            wrap.Controls.Add(InfoCard("\uE77C  Provincia", string.IsNullOrWhiteSpace(provincia) ? "-" : provincia), 2, 2);
+            wrap.Controls.Add(InfoCard("Vendedor", string.IsNullOrWhiteSpace(_venta.Vendedor) ? "-" : _venta.Vendedor, "\uE7EF"), 0, 2); 
+            wrap.Controls.Add(InfoCard("Localidad", string.IsNullOrWhiteSpace(localidad) ? "-" : localidad, "\uE80F"), 1, 2);    
+            wrap.Controls.Add(InfoCard("Provincia", string.IsNullOrWhiteSpace(provincia) ? "-" : provincia, "\uE909"), 2, 2);     
 
             return wrap;
         }
 
-        // Tarjeta con título + botón de copiar
-        private Control InfoCard(string titleWithIcon, string value)
+        // Tarjeta con icono + título + botón de copiar
+        private Control InfoCard(string title, string value, string mdl2Glyph)
         {
             var card = new Panel { Margin = new Padding(0, 0, 8, 8), Padding = new Padding(12), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             card.Paint += (s, e) => { using var p = new Pen(Color.FromArgb(235, 235, 235)); e.Graphics.DrawLine(p, 0, card.Height - 1, card.Width, card.Height - 1); };
 
-            var title = new Label { AutoSize = true, Text = titleWithIcon, Font = new Font("Segoe UI", 9f, FontStyle.Bold), ForeColor = Color.FromArgb(60, 72, 88) };
-            var txt = new Label { AutoSize = false, Dock = DockStyle.Top, Height = 24, Text = value ?? "-", Font = new Font("Segoe UI", 10f), ForeColor = Color.FromArgb(24, 28, 32), AutoEllipsis = true };
-            var tip = new ToolTip(); txt.MouseEnter += (s, e) => tip.SetToolTip(txt, value ?? "-");
+            // Encabezado
+            var icon = new Label
+            {
+                AutoSize = false,
+                Width = 20,
+                Height = 20,
+                Text = mdl2Glyph,
+                Font = new Font("Segoe MDL2 Assets", 12f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(60, 72, 88),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 0, 4, 0)
+            };
+
+            var titleLbl = new Label
+            {
+                AutoSize = true,
+                Text = title,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 72, 88),
+                Margin = new Padding(0, 2, 0, 0)
+            };
 
             var btnCopy = new Label
             {
                 AutoSize = false,
                 Width = 22,
                 Height = 22,
-                Text = "\uE8C8",
+                Text = "\uE8C8", // Copy
                 Font = new Font("Segoe MDL2 Assets", 10f),
                 ForeColor = Color.FromArgb(90, 110, 130),
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -167,14 +184,28 @@ namespace TeoAccesorios.Desktop
             };
             btnCopy.Click += (s, e) => { try { Clipboard.SetText(value ?? ""); } catch { } };
 
-            var top = new TableLayoutPanel { Dock = DockStyle.Top, Height = 22, ColumnCount = 2 };
-            top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            top.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            top.Controls.Add(title, 0, 0);
-            top.Controls.Add(btnCopy, 1, 0);
+            var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 22, ColumnCount = 3 };
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));       
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));       
+            header.Controls.Add(icon, 0, 0);
+            header.Controls.Add(titleLbl, 1, 0);
+            header.Controls.Add(btnCopy, 2, 0);
+
+            var txt = new Label
+            {
+                AutoSize = false,
+                Dock = DockStyle.Top,
+                Height = 24,
+                Text = value ?? "-",
+                Font = new Font("Segoe UI", 10f),
+                ForeColor = Color.FromArgb(24, 28, 32),
+                AutoEllipsis = true
+            };
+            var tip = new ToolTip(); txt.MouseEnter += (s, e) => tip.SetToolTip(txt, value ?? "-");
 
             card.Controls.Add(txt);
-            card.Controls.Add(top);
+            card.Controls.Add(header);
             card.Height = 64;
             return card;
         }

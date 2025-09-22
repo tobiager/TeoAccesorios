@@ -68,7 +68,7 @@ namespace TeoAccesorios.Desktop
 
             cboFiltroCat.SelectedIndexChanged += (s, e) => { if (_modo == Modo.Subcategorias) LoadData(); };
 
-            // ---- Permisos de vendedor: fuerza modo Subcategorías y oculta acciones ----
+            //  Permisos de vendedor: fuerza modo Subcategorías y oculta acciones 
             if (!esAdmin)
             {
                 // Forzar modo Subcategorías, sin poder volver a Categorías

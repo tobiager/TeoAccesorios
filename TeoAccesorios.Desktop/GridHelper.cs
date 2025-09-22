@@ -22,9 +22,9 @@ namespace TeoAccesorios.Desktop
             g.MultiSelect = false;
             g.BackgroundColor = Color.White;
 
-            // Fuente global más grande
-            g.DefaultCellStyle.Font = new Font("Segoe UI", 11); // celdas
-            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11, FontStyle.Bold); // encabezados
+            // Fuente global 
+            g.DefaultCellStyle.Font = new Font("Segoe UI", 11); 
+            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11, FontStyle.Bold); 
 
             // Encabezados
             g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(37, 99, 235);
@@ -39,11 +39,11 @@ namespace TeoAccesorios.Desktop
             g.DefaultCellStyle.SelectionForeColor = Color.White;
             g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
 
-            // Altura de filas (para que no se vea apretado con letra 11pt)
+            // Altura de filas 
             g.RowTemplate.Height = 32;
             g.ColumnHeadersHeight = 36;
 
-            // --- Sin selección por defecto ---
+            
             g.DataBindingComplete += (_, __) =>
             {
                 try { g.CurrentCell = null; } catch { }

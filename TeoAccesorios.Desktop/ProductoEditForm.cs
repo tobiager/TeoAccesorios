@@ -13,7 +13,7 @@ namespace TeoAccesorios.Desktop
         private readonly NumericUpDown numStock = new() { Minimum = 0, Maximum = 100000 };
         private readonly NumericUpDown numMin = new() { Minimum = 0, Maximum = 100000, Value = 5 };
         private readonly ComboBox cboCat = new() { DropDownStyle = ComboBoxStyle.DropDownList };
-        private readonly ComboBox cboSubcat = new() { DropDownStyle = ComboBoxStyle.DropDownList };   // << NUEVO
+        private readonly ComboBox cboSubcat = new() { DropDownStyle = ComboBoxStyle.DropDownList };   
         private readonly Button btnGuardar = new() { Text = "Guardar", Dock = DockStyle.Bottom, Height = 36 };
         private readonly Button btnCancelar = new() { Text = "Cancelar", Dock = DockStyle.Bottom, Height = 32 };
         private readonly ErrorProvider ep = new();
@@ -25,7 +25,7 @@ namespace TeoAccesorios.Desktop
             model = p ?? new Producto();
 
             Text = "Producto";
-            Width = 560; Height = 440;                                   // un poco más alto para el combo nuevo
+            Width = 560; Height = 440;                                   
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false;
@@ -40,7 +40,7 @@ namespace TeoAccesorios.Desktop
             var grid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(12) };
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            for (int i = 0; i < 7; i++) grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));   // +1 fila
+            for (int i = 0; i < 7; i++) grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));   
 
             grid.Controls.Add(new Label { Text = "Nombre *" }, 0, 0); grid.Controls.Add(txtNombre, 1, 0);
             grid.Controls.Add(new Label { Text = "Descripción" }, 0, 1); grid.Controls.Add(txtDesc, 1, 1);
@@ -48,7 +48,7 @@ namespace TeoAccesorios.Desktop
             grid.Controls.Add(new Label { Text = "Stock *" }, 0, 3); grid.Controls.Add(numStock, 1, 3);
             grid.Controls.Add(new Label { Text = "Stock mínimo *" }, 0, 4); grid.Controls.Add(numMin, 1, 4);
             grid.Controls.Add(new Label { Text = "Categoría *" }, 0, 5); grid.Controls.Add(cboCat, 1, 5);
-            grid.Controls.Add(new Label { Text = "Subcategoría" }, 0, 6); grid.Controls.Add(cboSubcat, 1, 6);   // << NUEVO
+            grid.Controls.Add(new Label { Text = "Subcategoría" }, 0, 6); grid.Controls.Add(cboSubcat, 1, 6);   
 
             Controls.Add(btnCancelar);
             Controls.Add(btnGuardar);
@@ -79,7 +79,7 @@ namespace TeoAccesorios.Desktop
             // Cuando cambia la categoría, recargo subcategorías válidas
             cboCat.SelectedIndexChanged += (_, __) =>
             {
-                CargarSubcategorias();                         // << NUEVO
+                CargarSubcategorias();                         
                 btnGuardar.Enabled = ValidarTodo();
             };
 
@@ -91,15 +91,15 @@ namespace TeoAccesorios.Desktop
 
                 model.Nombre = txtNombre.Text.Trim();
                 model.Descripcion = string.IsNullOrWhiteSpace(txtDesc.Text) ? null : txtDesc.Text.Trim();
-                model.Precio = numPrecio.Value;          // >= 0
-                model.Stock = (int)numStock.Value;       // >= 0
-                model.StockMinimo = (int)numMin.Value;         // >= 0
+                model.Precio = numPrecio.Value;          
+                model.Stock = (int)numStock.Value;       
+                model.StockMinimo = (int)numMin.Value;         
 
                 var selCat = cboCat.SelectedItem!.ToString()!;
                 model.CategoriaId = int.Parse(selCat.Split('-')[0].Trim());
                 model.CategoriaNombre = selCat.Split('-', 2)[1].Trim();
 
-                // Subcategoría (0 => NULL)
+                // Subcategoría 
                 var selSub = cboSubcat.SelectedItem?.ToString();
                 if (!string.IsNullOrEmpty(selSub))
                 {
@@ -113,7 +113,7 @@ namespace TeoAccesorios.Desktop
             };
 
             // Carga inicial de subcategorías (depende de categoría preseleccionada)
-            CargarSubcategorias(init: true);                    // << NUEVO
+            CargarSubcategorias(init: true);                    
 
             btnGuardar.Enabled = ValidarTodo();
         }
@@ -165,7 +165,7 @@ namespace TeoAccesorios.Desktop
             ok &= FormValidator.RequireNumber(numStock, ep, "Stock ≥ 0 (0 permitido)", 0);
             ok &= FormValidator.RequireNumber(numMin, ep, "Stock mínimo ≥ 0", 0);
             ok &= FormValidator.RequireCombo(cboCat, ep, "Seleccioná una categoría");
-            // Subcategoría es opcional (el trigger igual está protegido al filtrar por categoría)
+            // Subcategoría es opcional 
             return ok;
         }
     }

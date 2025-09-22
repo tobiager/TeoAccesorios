@@ -41,7 +41,7 @@ namespace TeoAccesorios.Desktop
                 BorderStyle = BorderStyle.FixedSingle
             };
 
-            // ===== Grid principal dentro del card =====
+            //  Grid principal dentro del card 
             var grid = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -51,7 +51,7 @@ namespace TeoAccesorios.Desktop
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F)); // izquierda: textos+inputs
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // derecha: logo
 
-            // ==== Panel izquierdo: título + subtítulo + campos ====
+            //  Panel izquierdo: título + subtítulo + campos 
             var leftPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -104,7 +104,7 @@ namespace TeoAccesorios.Desktop
             leftPanel.Controls.Add(subtitle);
             leftPanel.Controls.Add(formGrid);
 
-            // ==== Panel derecho: logo ====
+            //  Panel derecho: logo 
             var picLogo = new PictureBox
             {
                 Image = global::TeoAccesorios.Desktop.Properties.Resources.logo,

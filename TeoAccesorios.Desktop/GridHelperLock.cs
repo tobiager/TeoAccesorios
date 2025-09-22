@@ -6,7 +6,7 @@ namespace TeoAccesorios.Desktop
     {
         public static void SoloLectura(DataGridView g)
         {
-            g.ReadOnly = true;                                  // nada editable
+            g.ReadOnly = true;                                  
             g.EditMode = DataGridViewEditMode.EditProgrammatically;
 
             g.AllowUserToAddRows = false;
@@ -20,10 +20,10 @@ namespace TeoAccesorios.Desktop
             g.RowHeadersVisible = false;
 
             foreach (DataGridViewColumn c in g.Columns)
-                c.ReadOnly = true; // refuerzo (incluye checkbox)
+                c.ReadOnly = true; 
         }
 
-        // Llamalo 1 sola vez por grilla (p. ej., en el constructor del form)
+        // Llama una sola vez por grilla 
         public static void WireDataBindingLock(DataGridView g)
         {
             // Cuando se vuelve a bindear, re-aplica solo-lectura

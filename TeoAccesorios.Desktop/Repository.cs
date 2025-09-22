@@ -7,8 +7,8 @@ using TeoAccesorios.Desktop.Models;
 
 namespace TeoAccesorios.Desktop
 {
-    // ====== DTOs para la vista inferior (stats) ======
-    // (Si preferís, movelos a su propio archivo bajo TeoAccesorios.Desktop.Models)
+    //  DTOs para la vista inferior (stats) 
+  
     namespace Models
     {
         public class CategoriaStat
@@ -586,7 +586,7 @@ namespace TeoAccesorios.Desktop
 
                     cmdDet.ExecuteNonQuery();
 
-                    // Descuento atómico de stock (evita negativos si agregás CHECK (Stock >= 0) en BD)
+                    // Descuento atómico de stock 
                     var cmdStock = new SqlCommand(@"
                         UPDATE dbo.Productos
                            SET Stock = Stock - @c

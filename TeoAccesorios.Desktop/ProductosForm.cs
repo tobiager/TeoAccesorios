@@ -21,7 +21,7 @@ namespace TeoAccesorios.Desktop
         //  Selector de columnas 
         private readonly Button btnColumnas = new Button { Text = "⚙ Columnas ▾" };
         private readonly ContextMenuStrip cmsColumnas = new ContextMenuStrip();
-        private bool _buildingMenu = false;   // evita reentradas al sincronizar checks
+        private bool _buildingMenu = false;  
 
         //  Persistencia de preferencias 
         private readonly string prefsPath = Path.Combine(

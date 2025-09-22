@@ -3,8 +3,6 @@
     public class Subcategoria
     {
         public int Id { get; set; }
-
-        // 👉 esta faltaba según el error
         public string Nombre { get; set; } = "";
 
         public string? Descripcion { get; set; }
