@@ -354,10 +354,10 @@ namespace TeoAccesorios.Desktop
         public static int InsertarProducto(Producto p)
         {
             const string sql = @"
-                INSERT INTO dbo.Productos
-                    (Nombre, Descripcion, Precio, Stock, StockMinimo, CategoriaId, SubcategoriaId, Activo)
-                OUTPUT INSERTED.Id
-                VALUES (@nom, @desc, @precio, @stock, @min, @cat, @sub, 1);";
+        INSERT INTO dbo.Productos
+            (Nombre, Descripcion, Precio, Stock, StockMinimo, CategoriaId, SubcategoriaId, Activo)
+        VALUES (@nom, @desc, @precio, @stock, @min, @cat, @sub, 1);
+        SELECT CAST(SCOPE_IDENTITY() AS int);";  
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
@@ -376,6 +376,7 @@ namespace TeoAccesorios.Desktop
             cn.Open();
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
+
 
         public static void ActualizarProducto(Producto p)
         {
