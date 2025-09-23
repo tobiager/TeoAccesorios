@@ -10,23 +10,26 @@ namespace TeoAccesorios.Desktop
 {
     public class ProductosForm : Form
     {
-        //  Grilla + filtros 
-        private readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
-        private readonly TextBox txtBuscar = new TextBox { PlaceholderText = "Buscar por nombre...", Width = 220 };
-        private readonly ComboBox cboCategoria = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
-        private readonly ComboBox cboSubcategoria = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
-        private readonly CheckBox chkInactivos = new CheckBox { Text = "Ver inactivos" };
-        private readonly BindingSource bs = new BindingSource();
+        // ====== UI: grilla + filtros ======
+        private readonly DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
+        private readonly TextBox txtBuscar = new() { PlaceholderText = "Buscar por nombre...", Width = 220 };
+        private readonly ComboBox cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
+        private readonly ComboBox cboSubcategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
+        private readonly CheckBox chkInactivos = new() { Text = "Ver inactivos" };
+        private readonly BindingSource bs = new();
 
-        //  Selector de columnas 
-        private readonly Button btnColumnas = new Button { Text = "⚙ Columnas ▾" };
-        private readonly ContextMenuStrip cmsColumnas = new ContextMenuStrip();
-        private bool _buildingMenu = false;  
+        // ====== Selector de columnas ======
+        private readonly Button btnColumnas = new() { Text = "⚙ Columnas ▾" };
+        private readonly ContextMenuStrip cmsColumnas = new();
+        private bool _buildingMenu = false;
 
-        //  Persistencia de preferencias 
-        private readonly string prefsPath = Path.Combine(
+        // ====== Persistencia por USUARIO + VISTA ======
+        private const string VIEW_KEY = "Productos"; // clave lógica de esta pantalla
+        private string PrefsPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "TeoAccesorios", "grid_productos_cols.json");
+            "TeoAccesorios",
+            $"grid_{VIEW_KEY}_{Sanitize(GetUserKey())}.json"
+        );
 
         public ProductosForm()
         {
@@ -43,8 +46,6 @@ namespace TeoAccesorios.Desktop
             top.Controls.Add(new Label { Text = "Subcategoría", AutoSize = true, Padding = new Padding(8, 8, 4, 0) });
             top.Controls.Add(cboSubcategoria);
             top.Controls.Add(chkInactivos);
-            var btnFiltrar = new Button { Text = "Filtrar" };
-            top.Controls.Add(btnFiltrar);
 
             // Botón de columnas (context menu)
             btnColumnas.Click += (s, e) =>
@@ -120,34 +121,32 @@ namespace TeoAccesorios.Desktop
             }
             else
             {
-                grid.ReadOnly = true; 
+                grid.ReadOnly = true;
             }
 
             // Layout
             Controls.Add(grid);
             Controls.Add(top);
 
-            // Estilo grilla
+            // Estética y locks (si tenés estos helpers en tu proyecto)
             GridHelper.Estilizar(grid);
             GridHelperLock.SoloLectura(grid);
             GridHelperLock.WireDataBindingLock(grid);
 
             // Filtros
-            btnFiltrar.Click += (s, e) => LoadData();
             chkInactivos.CheckedChanged += (s, e) => LoadData();
             txtBuscar.TextChanged += (s, e) => LoadData();
             cboCategoria.SelectedIndexChanged += (s, e) => { CargarSubcategorias(); LoadData(); };
             cboSubcategoria.SelectedIndexChanged += (s, e) => LoadData();
 
-            
+            // Aplicar prefs cuando la grilla termina de enlazar datos
             grid.DataBindingComplete += (s, e) =>
             {
-                AplicarPreferenciasGuardadas(); 
-              
-                ConstruirMenuColumnas();
+                AplicarPreferenciasGuardadas();   // por usuario + vista
+                ConstruirMenuColumnas();          // sincroniza checks
             };
 
-            // Cargar combos
+            // Cargar combos y datos
             cboCategoria.Items.Clear();
             cboCategoria.Items.Add(new ComboItem { Text = "Todas las categorías", Value = null });
             foreach (var c in Repository.ListarCategorias())
@@ -157,11 +156,11 @@ namespace TeoAccesorios.Desktop
             CargarSubcategorias();
             LoadData();
 
-            // Guardar prefs al cerrar
+            // Guardar prefs al cerrar (por si quedó algo sin persistir)
             FormClosing += (s, e) => GuardarPreferencias();
         }
 
-        //  Subcargas 
+        // ====== Subcargas ======
         private void CargarSubcategorias()
         {
             cboSubcategoria.Items.Clear();
@@ -193,21 +192,21 @@ namespace TeoAccesorios.Desktop
             grid.DataSource = bs;
         }
 
-        //  Selector de columnas
+        // ====== Columnas: menú + presets ======
         private void ConstruirMenuColumnas()
         {
             _buildingMenu = true;
             cmsColumnas.Items.Clear();
 
-            // Presets
             var miRapida = new ToolStripMenuItem("Vista rápida") { Tag = "preset" };
             var miPredeterminada = new ToolStripMenuItem("Usar predeterminada") { Tag = "preset" };
             var miMostrarTodo = new ToolStripMenuItem("Mostrar todo") { Tag = "preset" };
             var miOcultarTodo = new ToolStripMenuItem("Ocultar todo") { Tag = "preset" };
-            miRapida.Click += (s, e) => AplicarVistaRapida();
-            miPredeterminada.Click += (s, e) => AplicarVistaPredeterminada();
-            miMostrarTodo.Click += (s, e) => SetAllColumnsVisible(true);
-            miOcultarTodo.Click += (s, e) => SetAllColumnsVisible(false);
+
+            miRapida.Click += (s, e) => { AplicarVistaRapida(); GuardarPreferencias(); };
+            miPredeterminada.Click += (s, e) => { AplicarVistaPredeterminada(); GuardarPreferencias(); };
+            miMostrarTodo.Click += (s, e) => { SetAllColumnsVisible(true); GuardarPreferencias(); };
+            miOcultarTodo.Click += (s, e) => { SetAllColumnsVisible(false); GuardarPreferencias(); };
 
             cmsColumnas.Items.Add(miRapida);
             cmsColumnas.Items.Add(miPredeterminada);
@@ -234,6 +233,7 @@ namespace TeoAccesorios.Desktop
                     var tag = (ColTag)it.Tag!;
                     var column = grid.Columns[tag.ColumnName];
                     if (column != null) column.Visible = it.Checked;
+                    GuardarPreferencias(); // persistir al vuelo
                 };
                 cmsColumnas.Items.Add(item);
             }
@@ -246,15 +246,13 @@ namespace TeoAccesorios.Desktop
             foreach (DataGridViewColumn col in grid.Columns)
                 col.Visible = visible;
 
-            // Sincronizo menú si está abierto
+            // sincronizo checks si el menú está abierto
             foreach (ToolStripItem tsi in cmsColumnas.Items)
-            {
                 if (tsi is ToolStripMenuItem mi && mi.Tag is ColTag)
                     mi.Checked = visible;
-            }
         }
 
-        // Preset operativa diaria
+        // Preset de operación diaria
         private void AplicarVistaRapida()
         {
             var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -264,7 +262,7 @@ namespace TeoAccesorios.Desktop
             AplicarSetVisibles(visibles);
         }
 
-        //  Predeterminada 
+        // Fallback si no hay prefs guardadas
         private void AplicarVistaPredeterminada()
         {
             var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -277,29 +275,27 @@ namespace TeoAccesorios.Desktop
         private void AplicarSetVisibles(HashSet<string> visibles)
         {
             foreach (DataGridViewColumn col in grid.Columns)
-                col.Visible = visibles.Contains(col.Name);
+                if (!string.IsNullOrEmpty(col.Name))
+                    col.Visible = visibles.Contains(col.Name);
 
-            // Reflejo en el menú si está abierto
+            // reflejo en menú (si está abierto)
             foreach (ToolStripItem tsi in cmsColumnas.Items)
-            {
                 if (tsi is ToolStripMenuItem mi && mi.Tag is ColTag ct)
                     mi.Checked = visibles.Contains(ct.ColumnName);
-            }
         }
 
-      
+        // ====== Preferencias (leer/guardar) ======
         private void AplicarPreferenciasGuardadas()
         {
             try
             {
-                if (!File.Exists(prefsPath))
+                if (!File.Exists(PrefsPath))
                 {
-                    // Primera vez → aplicar predeterminada
                     AplicarVistaPredeterminada();
                     return;
                 }
 
-                var json = File.ReadAllText(prefsPath);
+                var json = File.ReadAllText(PrefsPath);
                 var pref = JsonSerializer.Deserialize<GridPrefs>(json);
 
                 if (pref?.VisibleColumns == null || pref.VisibleColumns.Count == 0)
@@ -310,11 +306,11 @@ namespace TeoAccesorios.Desktop
 
                 var set = new HashSet<string>(pref.VisibleColumns, StringComparer.OrdinalIgnoreCase);
                 foreach (DataGridViewColumn col in grid.Columns)
-                    col.Visible = set.Contains(col.Name);
+                    if (!string.IsNullOrEmpty(col.Name))
+                        col.Visible = set.Contains(col.Name);
             }
             catch
             {
-                // Ante error, uso predeterminada
                 AplicarVistaPredeterminada();
             }
         }
@@ -323,16 +319,18 @@ namespace TeoAccesorios.Desktop
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(prefsPath)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(PrefsPath)!);
+
                 var visibles = grid.Columns
                     .Cast<DataGridViewColumn>()
                     .Where(c => c.Visible && !string.IsNullOrEmpty(c.Name))
                     .Select(c => c.Name)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 var pref = new GridPrefs { VisibleColumns = visibles };
                 var json = JsonSerializer.Serialize(pref, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(prefsPath, json);
+                File.WriteAllText(PrefsPath, json);
             }
             catch
             {
@@ -340,7 +338,33 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-        //  Helpers 
+        // ====== Helpers ======
+        private static string GetUserKey()
+        {
+            // Si el usuario viniera nulo/vacío, caigo al del sistema
+            var user = !string.IsNullOrWhiteSpace(Sesion.Usuario)
+                ? Sesion.Usuario
+                : Environment.UserName;
+
+            // Rol es enum no-nullable
+            var rol = Sesion.Rol.ToString();
+
+            return $"{user}|{rol}";
+        }
+
+        private static string? Safe(Func<string?> getter)
+        {
+            try { return getter(); } catch { return null; }
+        }
+
+        // Para generar un nombre de archivo válido
+        private static string Sanitize(string s)
+        {
+            foreach (var ch in Path.GetInvalidFileNameChars())
+                s = s.Replace(ch, '_');
+            return s;
+        }
+
         private class ComboItem
         {
             public string Text { get; set; } = "";

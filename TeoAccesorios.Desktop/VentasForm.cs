@@ -39,10 +39,13 @@ namespace TeoAccesorios.Desktop
         private readonly ContextMenuStrip cmsColumnas = new();
         private bool _buildingMenu = false;
 
-        // Persistencia de columnas visibles
-        private readonly string prefsPath = Path.Combine(
+        // ===== Preferencias por USUARIO + VISTA =====
+        private const string VIEW_KEY = "Ventas";
+        private string PrefsPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "TeoAccesorios", "grid_ventas_cols.json");
+            "TeoAccesorios",
+            $"grid_{VIEW_KEY}_{Sanitize(GetUserKey())}.json"
+        );
 
         private List<Models.Venta> _ventasSource = new();
         private List<Models.Venta> _ventasFiltradas = new();
@@ -71,13 +74,13 @@ namespace TeoAccesorios.Desktop
             filtros.Controls.Add(new Label { Text = "Buscar:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) });
             filtros.Controls.Add(txtBuscar);
             filtros.Controls.Add(btnLimpiar);
-            filtros.Controls.Add(btnColumnas); // ⚙ aquí
+            filtros.Controls.Add(btnColumnas); 
 
             Controls.Add(grid);
             Controls.Add(filtros);
             Controls.Add(actions);
 
-            // Estilo grilla
+            // Estilo grilla (si tenés estos helpers)
             GridHelper.Estilizar(grid);
             GridHelperLock.SoloLectura(grid);
             GridHelperLock.WireDataBindingLock(grid);
@@ -135,7 +138,6 @@ namespace TeoAccesorios.Desktop
                 txtBuscar.Clear();
             };
 
-           
             grid.CellDoubleClick += (_, e) =>
             {
                 if (e.RowIndex < 0) return;
@@ -145,7 +147,6 @@ namespace TeoAccesorios.Desktop
                 f.ShowDialog(this);
             };
 
-            
             grid.DataBindingComplete += (_, __) =>
             {
                 if (!_colsConfigured)
@@ -153,26 +154,23 @@ namespace TeoAccesorios.Desktop
                     ConfigureColumns();
                     _colsConfigured = true;
                 }
-
-                AplicarPreferenciasGuardadas(); 
-                ConstruirMenuColumnas();        
+                AplicarPreferenciasGuardadas();
+                ConstruirMenuColumnas();
             };
 
-            // Click en la ruedita
             btnColumnas.Click += (s, e) =>
             {
                 ConstruirMenuColumnas();
                 cmsColumnas.Show(btnColumnas, new System.Drawing.Point(0, btnColumnas.Height));
             };
 
-            // Guardar preferencias al cerrar
             FormClosing += (s, e) => GuardarPreferencias();
 
             LoadCombos();
             LoadData();
         }
 
-        //  Datos y filtros 
+        // ===== Datos y filtros =====
         private void LoadCombos()
         {
             var vendedores = Repository.ListarUsuarios()
@@ -267,7 +265,7 @@ namespace TeoAccesorios.Desktop
             }).ToList();
         }
 
-        // Cols y ruedita
+        // ===== Cols y ruedita =====
         private void ConfigureColumns()
         {
             DataGridViewColumn FindCol(string key) =>
@@ -298,10 +296,10 @@ namespace TeoAccesorios.Desktop
             var miMostrarTodo = new ToolStripMenuItem("Mostrar todo") { Tag = "preset" };
             var miOcultarTodo = new ToolStripMenuItem("Ocultar todo") { Tag = "preset" };
 
-            miRapida.Click += (s, e) => AplicarVistaRapida();
-            miPredet.Click += (s, e) => AplicarVistaPredeterminada();
-            miMostrarTodo.Click += (s, e) => SetAllColumnsVisible(true);
-            miOcultarTodo.Click += (s, e) => SetAllColumnsVisible(false);
+            miRapida.Click += (s, e) => { AplicarVistaRapida(); GuardarPreferencias(); };
+            miPredet.Click += (s, e) => { AplicarVistaPredeterminada(); GuardarPreferencias(); };
+            miMostrarTodo.Click += (s, e) => { SetAllColumnsVisible(true); GuardarPreferencias(); };
+            miOcultarTodo.Click += (s, e) => { SetAllColumnsVisible(false); GuardarPreferencias(); };
 
             cmsColumnas.Items.Add(miRapida);
             cmsColumnas.Items.Add(miPredet);
@@ -309,7 +307,7 @@ namespace TeoAccesorios.Desktop
             cmsColumnas.Items.Add(miOcultarTodo);
             cmsColumnas.Items.Add(new ToolStripSeparator());
 
-           
+            // Lista de columnas con check
             foreach (DataGridViewColumn col in grid.Columns.Cast<DataGridViewColumn>().OrderBy(c => c.DisplayIndex))
             {
                 if (string.IsNullOrEmpty(col.Name)) continue;
@@ -328,6 +326,7 @@ namespace TeoAccesorios.Desktop
                     var it = (ToolStripMenuItem)s;
                     var column = grid.Columns[(string)it.Tag];
                     if (column != null) column.Visible = it.Checked;
+                    GuardarPreferencias();
                 };
 
                 cmsColumnas.Items.Add(item);
@@ -346,7 +345,7 @@ namespace TeoAccesorios.Desktop
                     mi.Checked = visible;
         }
 
-        // Vista rápida 
+        // Preset rápida
         private void AplicarVistaRapida()
         {
             var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -354,11 +353,11 @@ namespace TeoAccesorios.Desktop
             AplicarSetVisibles(visibles);
         }
 
-        // Predeterminada (si no hay preferencias guardadas)
+        // Predeterminada (fallback)
         private void AplicarVistaPredeterminada()
         {
             var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {  "Fecha", "Vendedor", "Canal", "ClienteNombre", "DireccionEnvio", "Total" };
+            { "Fecha", "Vendedor", "Canal", "ClienteNombre", "DireccionEnvio", "Total" };
             AplicarSetVisibles(visibles);
         }
 
@@ -372,18 +371,18 @@ namespace TeoAccesorios.Desktop
                     mi.Checked = visibles.Contains(name);
         }
 
-        //  Persistencia de columnas visibles 
+        // ===== Persistencia columnas visibles =====
         private void AplicarPreferenciasGuardadas()
         {
             try
             {
-                if (!File.Exists(prefsPath))
+                if (!File.Exists(PrefsPath))
                 {
                     AplicarVistaPredeterminada();
                     return;
                 }
 
-                var json = File.ReadAllText(prefsPath);
+                var json = File.ReadAllText(PrefsPath);
                 var pref = JsonSerializer.Deserialize<GridPrefs>(json);
                 if (pref?.VisibleColumns == null || pref.VisibleColumns.Count == 0)
                 {
@@ -405,16 +404,17 @@ namespace TeoAccesorios.Desktop
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(prefsPath)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(PrefsPath)!);
                 var visibles = grid.Columns
                     .Cast<DataGridViewColumn>()
                     .Where(c => c.Visible && !string.IsNullOrEmpty(c.Name))
                     .Select(c => c.Name)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 var pref = new GridPrefs { VisibleColumns = visibles };
                 var json = JsonSerializer.Serialize(pref, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(prefsPath, json);
+                File.WriteAllText(PrefsPath, json);
             }
             catch { /* ignorar */ }
         }
@@ -424,7 +424,7 @@ namespace TeoAccesorios.Desktop
             public List<string> VisibleColumns { get; set; } = new();
         }
 
-        //  Ventas helpers 
+        // ===== Ventas helpers =====
         private bool TryGetSelectedVenta(out Models.Venta venta)
         {
             venta = null!;
@@ -460,6 +460,21 @@ namespace TeoAccesorios.Desktop
             catch { /* fallback */ }
 
             return Repository.Clientes?.FirstOrDefault(c => c.Id == clienteId);
+        }
+
+        // ===== Helpers generales =====
+        private static string GetUserKey()
+        {
+            var user = !string.IsNullOrWhiteSpace(Sesion.Usuario) ? Sesion.Usuario : Environment.UserName;
+            var rol = Sesion.Rol.ToString(); // enum no-nullable
+            return $"{user}|{rol}";
+        }
+
+        private static string Sanitize(string s)
+        {
+            foreach (var ch in Path.GetInvalidFileNameChars())
+                s = s.Replace(ch, '_');
+            return s;
         }
     }
 }
