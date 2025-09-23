@@ -21,14 +21,15 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 2. [Arquitectura y tecnologías](#arquitectura-y-tecnologías)
 3. [Estructura del repositorio](#estructura-del-repositorio)
 4. [Base de datos](#base-de-datos)
-5. [Requisitos](#requisitos)
-6. [Configuración y ejecución](#configuración-y-ejecución)
-7. [Flujo de uso](#flujo-de-uso)
-8. [Roles de usuario](#roles-de-usuario)
-9. [Módulos disponibles](#módulos-disponibles)
-10. [Exportación de reportes](#exportación-de-reportes)
-11. [Capturas](#capturas)
-12. [Autores](#autores)
+5. [Roadmap](#roadmap)
+6. [Requisitos](#requisitos)
+7. [Configuración y ejecución](#configuración-y-ejecución)
+8. [Flujo de uso](#flujo-de-uso)
+9. [Roles de usuario](#roles-de-usuario)
+10. [Módulos disponibles](#módulos-disponibles)
+11. [Exportación de reportes](#exportación-de-reportes)
+12. [Capturas](#capturas)
+13. [Autores](#autores)
 
 ---
 
@@ -87,6 +88,34 @@ La cadena de conexión por defecto se define en `Db.cs` y puede ajustarse según
 public static readonly string ConnectionString =
     "Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;";
 ```
+
+---
+
+## Roadmap
+
+Estas son las próximas mejoras planificadas para **TeoAccesorios**:
+
+- [ ] **Base de datos de localidades y provincias**
+  - Cargar tabla con localidades y provincias
+  - Permitir cambiar localidad/provincia en la venta
+
+- [ ] **Reportes y métricas**
+  - Agregar gráficos o métricas en el módulo de reportes
+
+- [ ] **Gestión de ventas anuladas/inactivas**
+  - Quitar columna de “inactivos/anuladas” de la vista principal
+  - Crear un formulario independiente para listar anuladas/inactivas
+
+- [ ] **Seguridad de contraseñas**
+  - Hashear contraseñas de usuarios
+  - Permitir que el **admin** restablezca contraseñas a un valor default
+  - Permitir que cada empleado cambie su propia contraseña
+
+- [ ] **Nueva venta**
+  - Mejorar la forma de búsqueda de **clientes**
+  - Mejorar la forma de búsqueda de **productos**
+
+---
 
 ## Requisitos
 
