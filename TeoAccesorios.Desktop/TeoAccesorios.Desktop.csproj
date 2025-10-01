@@ -9,7 +9,7 @@
     <ApplicationIcon></ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="logo.png" />
+    <None Remove="Recursos\logo.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
@@ -17,12 +17,12 @@
     <PackageReference Include="QuestPDF" Version="2025.7.1" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="logo.png">
+    <Resource Include="Recursos\logo.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="DashboardResources.Designer.cs">
+    <Compile Update="Recursos\DashboardResources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>DashboardResources.resx</DependentUpon>
@@ -34,7 +34,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Update="DashboardResources.resx">
+    <EmbeddedResource Update="Recursos\DashboardResources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>DashboardResources.Designer.cs</LastGenOutput>
       <CustomToolNamespace>TeoAccesorios.Desktop.Resources</CustomToolNamespace>

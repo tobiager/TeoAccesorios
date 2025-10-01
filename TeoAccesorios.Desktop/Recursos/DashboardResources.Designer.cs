@@ -39,7 +39,7 @@ namespace TeoAccesorios.Desktop.Resources {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("TeoAccesorios.Desktop.DashboardResources", typeof(DashboardResources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("TeoAccesorios.Desktop.Recursos.DashboardResources", typeof(DashboardResources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

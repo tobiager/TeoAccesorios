@@ -53,16 +53,73 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 ## Estructura del repositorio
 
 ```text
-.
-├─ TeoAccesorios.Desktop/        Código fuente de la aplicación WinForms
-│  ├─ Models/                    Clases de dominio (Cliente, Producto, etc.)
-│  ├─ Repository.cs              Acceso a datos basado en Db.Query/Exec
-│  ├─ Db.cs                      Helper de conexión y ejecución SQL
-│  ├─ *.cs/.resx                 Formularios (Login, Dashboard, Ventas, etc.)
-│  └─ utilidades                 (GridHelper, FormValidator, …)
-├─ DataBase/TeoAccesorios.sql    Script de creación + datos de ejemplo
-├─ assets/                       Capturas usadas en la documentación
-└─ TeoAccesorios-Desktop.sln     Solución de Visual Studio
+TeoAccesorios.Desktop/
+├── Datos/
+│   ├── Db.cs
+│   └── Repository.cs
+├── Dominio/
+│   ├── Categoria.cs
+│   ├── Cliente.cs
+│   ├── DetalleVenta.cs
+│   ├── Producto.cs
+│   ├── Subcategoria.cs
+│   ├── Usuario.cs
+│   └── Venta.cs
+├── Infra/
+│   ├── Auth/
+│   │   └── Auth.cs
+│   ├── Grid/
+│   │   ├── GridHelper.cs
+│   │   └── GridHelperLock.cs
+│   └── Validation/
+│       └── FormValidator.cs
+├── Properties/
+│   ├── Resources.Designer.cs
+│   └── Resources.resx
+├── Recursos/
+│   ├── DashboardResources.Designer.cs
+│   ├── DashboardResources.resx
+│   └── logo.png
+└── UI/
+    ├── Categorias/
+    │   ├── CategoriaEditForm.cs
+    │   ├── CategoriaEditForm.resx
+    │   └── CategoriasForm.cs
+    ├── Clientes/
+    │   ├── ClienteEditForm.cs
+    │   ├── ClientesForm.cs
+    │   └── ClientesForm.resx
+    ├── Common/
+    │   ├── DashboardForm.cs
+    │   ├── KPIsView.cs
+    │   ├── KPIsView.resx
+    │   ├── LoginForm.cs
+    │   ├── LoginForm.resx
+    │   ├── MainForm.cs
+    │   ├── Program.cs
+    │   ├── ReportesForm.cs
+    │   └── ReportesForm.resx
+    ├── Productos/
+    │   ├── ProductoEditForm.cs
+    │   ├── ProductoEditForm.resx
+    │   ├── ProductosForm.cs
+    │   └── ProductosForm.resx
+    ├── Subcategorias/
+    │   ├── SubcategoriaEditForm.cs
+    │   └── SubcategoriaForm.cs
+    ├── Usuarios/
+    │   ├── UsuarioEditForm.cs
+    │   ├── UsuarioEditForm.resx
+    │   ├── UsuariosForm.cs
+    │   └── UsuariosForm.resx
+    └── Ventas/
+        ├── NuevaVentaForm.cs
+        ├── NuevaVentaForm.resx
+        ├── VentaDetalleForm.cs
+        ├── VentaDetalleForm.resx
+        ├── VentasForm.cs
+        └── VentasForm.resx
+
 ```
 
 ## Base de datos
