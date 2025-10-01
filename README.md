@@ -54,72 +54,19 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 
 ```text
 TeoAccesorios.Desktop/
-├── Datos/
-│   ├── Db.cs
-│   └── Repository.cs
-├── Dominio/
-│   ├── Categoria.cs
-│   ├── Cliente.cs
-│   ├── DetalleVenta.cs
-│   ├── Producto.cs
-│   ├── Subcategoria.cs
-│   ├── Usuario.cs
-│   └── Venta.cs
-├── Infra/
-│   ├── Auth/
-│   │   └── Auth.cs
-│   ├── Grid/
-│   │   ├── GridHelper.cs
-│   │   └── GridHelperLock.cs
-│   └── Validation/
-│       └── FormValidator.cs
-├── Properties/
-│   ├── Resources.Designer.cs
-│   └── Resources.resx
-├── Recursos/
-│   ├── DashboardResources.Designer.cs
-│   ├── DashboardResources.resx
-│   └── logo.png
-└── UI/
+├── Datos/              # Acceso a BD (Db, Repository)
+├── Dominio/            # Modelos de negocio (Cliente, Producto, Venta, etc.)
+├── Infra/              # Infraestructura (Auth, GridHelper, Validaciones)
+├── Properties/         # Recursos autogenerados
+├── Recursos/           # Archivos de recursos (resx, imágenes)
+└── UI/                 # Formularios WinForms
     ├── Categorias/
-    │   ├── CategoriaEditForm.cs
-    │   ├── CategoriaEditForm.resx
-    │   └── CategoriasForm.cs
     ├── Clientes/
-    │   ├── ClienteEditForm.cs
-    │   ├── ClientesForm.cs
-    │   └── ClientesForm.resx
-    ├── Common/
-    │   ├── DashboardForm.cs
-    │   ├── KPIsView.cs
-    │   ├── KPIsView.resx
-    │   ├── LoginForm.cs
-    │   ├── LoginForm.resx
-    │   ├── MainForm.cs
-    │   ├── Program.cs
-    │   ├── ReportesForm.cs
-    │   └── ReportesForm.resx
+    ├── Common/         # Dashboard, Login, Main, Reportes
     ├── Productos/
-    │   ├── ProductoEditForm.cs
-    │   ├── ProductoEditForm.resx
-    │   ├── ProductosForm.cs
-    │   └── ProductosForm.resx
     ├── Subcategorias/
-    │   ├── SubcategoriaEditForm.cs
-    │   └── SubcategoriaForm.cs
     ├── Usuarios/
-    │   ├── UsuarioEditForm.cs
-    │   ├── UsuarioEditForm.resx
-    │   ├── UsuariosForm.cs
-    │   └── UsuariosForm.resx
     └── Ventas/
-        ├── NuevaVentaForm.cs
-        ├── NuevaVentaForm.resx
-        ├── VentaDetalleForm.cs
-        ├── VentaDetalleForm.resx
-        ├── VentasForm.cs
-        └── VentasForm.resx
-
 ```
 
 ## Base de datos
