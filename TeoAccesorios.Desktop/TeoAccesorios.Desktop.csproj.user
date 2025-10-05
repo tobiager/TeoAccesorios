@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup />
+  <ItemGroup>
+    <Compile Update="UI\Categorias\CategoriaEditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Categorias\CategoriasForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Clientes\ClienteEditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Clientes\ClientesForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Common\DashboardForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Common\KPIsView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="UI\Common\LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Common\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Common\ReportesForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Productos\ProductoEditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Productos\ProductosForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Reportes\frmReportesVentas.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Subcategorias\SubcategoriaEditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Subcategorias\SubcategoriaForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Usuarios\UsuarioEditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Usuarios\UsuariosForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Ventas\NuevaVentaForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Ventas\VentaDetalleForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="UI\Ventas\VentasForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>
