@@ -32,6 +32,30 @@ namespace TeoAccesorios.Desktop
             public int StockTotal { get; set; }
             public int BajoMinimo { get; set; }
         }
+
+        /**
+         * Modelo para obtener las ventas según su categoría
+         */
+        public class CategoriaVenta
+        {
+           
+            public string Categoria { get; set; } = string.Empty;
+            public decimal TotalVentas { get; set; }
+            public int CantidadVentas { get; set; }
+            public int CantidadProductos { get; set; }
+        }
+
+        //Modelo para obtener las ventas según su subcategoria.
+        public class SubcategoriaVenta
+        {
+           
+            public string Subcategoria { get; set; } = string.Empty;
+            public string Categoria { get; set; } = string.Empty;
+            public decimal TotalVentas { get; set; }
+            public int CantidadVentas { get; set; }
+            public int CantidadProductos { get; set; }
+            
+        }
     }
 
     public static class Repository
@@ -717,5 +741,111 @@ namespace TeoAccesorios.Desktop
                 throw;
             }
         }
+
+        // ===== INICIO CONSULTAS PARA LAS GRÁFICAS Y REPORTES =====
+        /*
+         * Permite obtener las ventas según su categoria, agrupando el total 
+         * de las ventas por cada categoria vendida.
+         */
+        public static List<CategoriaVenta> ListarVentasPorCategoria(bool incluirAnuladas = false)
+        {
+            //la sentencia sql para obtener las categorias.
+            var dt = Db.Query(@"
+                     SELECT  
+                     c.Nombre AS Categoria,
+                     SUM(dv.Cantidad * dv.PrecioUnitario) AS TotalVentas,
+                     COUNT(dv.Id) AS CantidadVentas,
+                     COUNT(DISTINCT dv.ProductoId) AS CantidadProductos
+                    FROM dbo.DetalleVenta dv
+                    INNER JOIN dbo.Ventas v ON v.Id = dv.VentaId
+                    INNER JOIN dbo.Productos p ON p.Id = dv.ProductoId
+                    INNER JOIN dbo.Categorias c ON c.Id = p.CategoriaId
+                    WHERE (@all = 1 OR ISNULL(v.Anulada,0) = 0)
+                    GROUP BY c.Id, c.Nombre
+                    ORDER BY TotalVentas DESC;",
+                new SqlParameter("@all", incluirAnuladas ? 1 : 0));
+
+            //Transformo los resultados en una lista de objetos CategoriaVenta
+            var categorias = dt.AsEnumerable().Select(r => new CategoriaVenta
+            {
+               
+                Categoria = r.Field<string?>("Categoria") ?? "Sin Categoría",
+                TotalVentas = r.Field<decimal>("TotalVentas"),
+                CantidadVentas = r.Field<int>("CantidadVentas"),
+                CantidadProductos = r.Field<int>("CantidadProductos")
+            }).ToList();
+
+            return categorias;
+        }
+
+        public static List<CategoriaVenta> ListarVentasPorCategoriaConFechas(DateTime fechaInicio, DateTime fechaFin, bool incluirAnuladas = false)
+        {
+            var dt = Db.Query(@"
+        SELECT 
+            c.Nombre AS Categoria,
+            SUM(dv.Cantidad * dv.PrecioUnitario) AS TotalVentas,
+            COUNT(dv.Id) AS CantidadVentas,
+            COUNT(DISTINCT dv.ProductoId) AS CantidadProductos
+        FROM dbo.DetalleVenta dv
+        INNER JOIN dbo.Ventas v ON v.Id = dv.VentaId
+        INNER JOIN dbo.Productos p ON p.Id = dv.ProductoId
+        INNER JOIN dbo.Categorias c ON c.Id = p.CategoriaId
+        WHERE (@all = 1 OR ISNULL(v.Anulada,0) = 0)
+        AND v.Fecha >= @fechaInicio 
+        AND v.Fecha <= @fechaFin
+        GROUP BY c.Id, c.Nombre, c.Descripcion
+        ORDER BY TotalVentas DESC;",
+                new SqlParameter("@all", incluirAnuladas ? 1 : 0),
+                new SqlParameter("@fechaInicio", fechaInicio),
+                new SqlParameter("@fechaFin", fechaFin));
+
+            var categorias = dt.AsEnumerable().Select(r => new CategoriaVenta
+            {
+              
+                Categoria = r.Field<string?>("Categoria") ?? "Sin Categoría",
+               
+                TotalVentas = r.Field<decimal>("TotalVentas"),
+                CantidadVentas = r.Field<int>("CantidadVentas"),
+                CantidadProductos = r.Field<int>("CantidadProductos")
+                // Productos se omite en esta versión
+            }).ToList();
+
+            return categorias;
+        }
+        public static List<SubcategoriaVenta> ListarVentasPorSubcategoriaCompleto(bool incluirAnuladas = false)
+        {
+            var dt = Db.Query(@"
+                        SELECT 
+                        sc.Nombre AS Subcategoria,
+                        c.Nombre AS Categoria,
+                        SUM(dv.Cantidad * dv.PrecioUnitario) AS TotalVentas,
+                        COUNT(dv.Id) AS CantidadVentas,
+                        COUNT(DISTINCT dv.ProductoId) AS CantidadProductos
+                        FROM dbo.DetalleVenta dv
+                        INNER JOIN dbo.Ventas v ON v.Id = dv.VentaId
+                        INNER JOIN dbo.Productos p ON p.Id = dv.ProductoId
+                        INNER JOIN dbo.Subcategorias sc ON sc.Id = p.SubcategoriaId
+                        INNER JOIN dbo.Categorias c ON c.Id = sc.CategoriaId
+                        WHERE (@all = 1 OR ISNULL(v.Anulada,0) = 0)
+                        GROUP BY sc.Nombre, c.Nombre
+                        ORDER BY TotalVentas DESC;",
+                new SqlParameter("@all", incluirAnuladas ? 1 : 0));
+
+            var subcategorias = dt.AsEnumerable().Select(r => new SubcategoriaVenta
+            {
+                Subcategoria = r.Field<string?>("Subcategoria") ?? "Sin Subcategoría",
+                Categoria = r.Field<string?>("Categoria") ?? "Sin Categoría",
+                TotalVentas = r.Field<decimal>("TotalVentas"),
+                CantidadVentas = r.Field<int>("CantidadVentas"),
+                CantidadProductos = r.Field<int>("CantidadProductos")
+            }).ToList();
+
+            return subcategorias;
+        }
+
+     // ===== FIN CONSULTAS PARA LAS GRÁFICAS Y REPORTES =====
+
+
+
     }
 }

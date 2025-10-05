@@ -9,11 +9,22 @@
     <ApplicationIcon></ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Recursos\HighCharts\highcharts-more.src.js" />
+    <None Remove="Recursos\HighCharts\highcharts.js" />
     <None Remove="Recursos\logo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Recursos\HighCharts\highcharts-more.src.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Recursos\HighCharts\highcharts.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3485.44" />
     <PackageReference Include="QuestPDF" Version="2025.7.1" />
   </ItemGroup>
   <ItemGroup>

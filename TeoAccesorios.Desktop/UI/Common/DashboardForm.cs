@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows.Forms;
 using WinFormsTimer = System.Windows.Forms.Timer;
 using Microsoft.Data.SqlClient;
+using TeoAccesorios.Desktop.UI.Reportes;
 
 namespace TeoAccesorios.Desktop
 {
@@ -75,6 +76,7 @@ namespace TeoAccesorios.Desktop
             var btnCerrarSesion = Btn("Cerrar sesión");
             var btnInicio = Btn("Inicio (Dashboard)");
             var btnReportes = Btn("Reportes");
+            var btnGraficas = Btn("Graficas");
             var btnEmpleados = Btn("Empleados");
             var btnClientes = Btn("Clientes");
             var btnCategorias = Btn("Categorías");
@@ -98,6 +100,7 @@ namespace TeoAccesorios.Desktop
 
             btnInicio.Click += (_, __) => Nav(btnInicio, ShowKpis);
             btnReportes.Click += (_, __) => Nav(btnReportes, () => ShowInContent(new ReportesForm()));
+            btnGraficas.Click += (_, __) => Nav(btnGraficas, () => ShowInContent(new frmReportesVentas()));
             btnEmpleados.Click += (_, __) => Nav(btnEmpleados, () => ShowInContent(new UsuariosForm()));
             btnClientes.Click += (_, __) => Nav(btnClientes, () => ShowInContent(new ClientesForm()));
             btnCategorias.Click += (_, __) => Nav(btnCategorias, () => ShowInContent(new CategoriasForm()));
@@ -112,7 +115,12 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(btnProductos);
             side.Controls.Add(btnCategorias);
             side.Controls.Add(btnClientes);
-            if (Sesion.Rol == RolUsuario.Admin) side.Controls.Add(btnEmpleados);
+            if (Sesion.Rol == RolUsuario.Admin)
+            {
+                side.Controls.Add(btnEmpleados);
+                side.Controls.Add(btnGraficas);
+
+            }
             side.Controls.Add(btnReportes);
             side.Controls.Add(btnInicio);
             if (btnBackup != null) side.Controls.Add(btnBackup);
