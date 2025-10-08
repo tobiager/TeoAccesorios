@@ -106,7 +106,7 @@ Estas son las próximas mejoras planificadas para **TeoAccesorios**:
 - [ ] **Reportes y métricas**
   - Agregar gráficos o métricas en el módulo de reportes
 
-- [ ] **Gestión de ventas anuladas/inactivas**
+- [x] **Gestión de ventas anuladas/inactivas**
   - Quitar columna de “inactivos/anuladas” de la vista principal
   - Crear un formulario independiente para listar anuladas/inactivas
 
