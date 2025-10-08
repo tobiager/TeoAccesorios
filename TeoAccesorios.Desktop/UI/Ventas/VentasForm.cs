@@ -19,7 +19,6 @@ namespace TeoAccesorios.Desktop
             MultiSelect = false
         };
 
-        private readonly CheckBox chkAnuladas = new() { Text = "Ver anuladas", AutoSize = true };
         private readonly CheckBox chkRango = new() { Text = "Rango fechas", AutoSize = true };
         private readonly DateTimePicker dpDesde = new() { Width = 130, Value = DateTime.Today.AddDays(-7) };
         private readonly DateTimePicker dpHasta = new() { Width = 130, Value = DateTime.Today };
@@ -33,6 +32,7 @@ namespace TeoAccesorios.Desktop
         private readonly Button btnAnular = new() { Text = "Anular" };
         private readonly Button btnRestaurar = new() { Text = "Restaurar" };
         private readonly Button btnLimpiar = new() { Text = "Limpiar filtros" };
+        private readonly Button btnVerAnuladas = new() { Text = "Ver anuladas" };
 
         // ⚙ Selector de columnas
         private readonly Button btnColumnas = new() { Text = "⚙", Width = 32, Height = 26, Padding = new Padding(0) };
@@ -59,7 +59,7 @@ namespace TeoAccesorios.Desktop
             StartPosition = FormStartPosition.CenterParent;
 
             var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, Padding = new Padding(8) };
-            actions.Controls.AddRange(new Control[] { btnAnular, btnRestaurar, chkAnuladas, btnNueva });
+            actions.Controls.AddRange(new Control[] { btnAnular, btnRestaurar, btnVerAnuladas, btnNueva });
 
             var filtros = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(8) };
             filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(0, 8, 0, 0) });
@@ -82,8 +82,7 @@ namespace TeoAccesorios.Desktop
 
             // Estilo grilla (si tenés estos helpers)
             GridHelper.Estilizar(grid);
-            GridHelperLock.SoloLectura(grid);
-            GridHelperLock.WireDataBindingLock(grid);
+            GridHelperLock.Apply(grid);
 
             // Acciones
             btnNueva.Click += (_, __) =>
@@ -120,7 +119,15 @@ namespace TeoAccesorios.Desktop
                 LoadData();
             };
 
-            chkAnuladas.CheckedChanged += (_, __) => LoadData();
+            btnVerAnuladas.Click += (_, __) =>
+            {
+                using (var f = new VentasAnuladasForm())
+                {
+                    f.ShowDialog(this);
+                }
+                LoadData();
+            };
+
             chkRango.CheckedChanged += (_, __) => ApplyFilters();
             dpDesde.ValueChanged += (_, __) => ApplyFilters();
             dpHasta.ValueChanged += (_, __) => ApplyFilters();
@@ -201,7 +208,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-            _ventasSource = Repository.ListarVentas(chkAnuladas.Checked) ?? new List<Models.Venta>();
+            _ventasSource = Repository.ListarVentas(false) ?? new List<Models.Venta>();
 
             if (Sesion.Rol == RolUsuario.Vendedor)
             {
@@ -260,8 +267,7 @@ namespace TeoAccesorios.Desktop
                 v.ClienteId,
                 ClienteNombre = v.ClienteNombre,
                 DireccionEnvio = v.DireccionEnvio,
-                v.Anulada,
-                Total = v.Total.ToString("N0")
+                Total = v.Total
             }).ToList();
         }
 
@@ -348,8 +354,7 @@ namespace TeoAccesorios.Desktop
         // Preset rápida
         private void AplicarVistaRapida()
         {
-            var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            { "Id", "Fecha", "ClienteNombre", "Total", "Anulada" };
+            var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Id", "Fecha", "ClienteNombre", "Vendedor", "Total" };
             AplicarSetVisibles(visibles);
         }
 

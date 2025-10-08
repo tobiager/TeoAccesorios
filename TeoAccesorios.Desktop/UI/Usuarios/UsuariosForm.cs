@@ -39,26 +39,25 @@ namespace TeoAccesorios.Desktop
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8) };
             var btnNuevo = new Button { Text = "Nuevo" };
             var btnEditar = new Button { Text = "Editar" };
-            top.Controls.AddRange(new Control[] { btnNuevo, btnEditar });
+            var btnVerInactivos = new Button { Text = "Ver inactivos" };
+
+            top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnVerInactivos });
 
             Controls.Add(grid);
             Controls.Add(top);
             grid.DataSource = bs;
-            GridHelper.Estilizar(grid);
-            GridHelperLock.SoloLectura(grid);
-            GridHelperLock.WireDataBindingLock(grid);
+            GridHelper.Estilizar(grid); // Aplicar estilo
+            GridHelperLock.Apply(grid);
 
-
-            
-            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
-
-           
-            grid.DefaultCellStyle.Font = new Font("Segoe UI", 11F);
-
-           
-            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-
+            // Ocultar columna Activo después de cargar datos
+            grid.DataBindingComplete += (s, e) =>
+            {
+                var colActivo = grid.Columns["Activo"];
+                if (colActivo != null)
+                {
+                    colActivo.Visible = false;
+                }
+            };
 
             // === NUEVO - Agregar a tabla real dbo.Usuarios
             btnNuevo.Click += (s, e) =>
@@ -85,6 +84,15 @@ namespace TeoAccesorios.Desktop
                         }
                         LoadData();
                     }
+                }
+            };
+
+            btnVerInactivos.Click += (_, __) =>
+            {
+                using (var f = new UsuariosInactivosForm())
+                {
+                    f.ShowDialog(this);
+                    LoadData();
                 }
             };
 
@@ -137,25 +145,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-           
-            var dt = Db.Query(@"
-                SELECT  id_usuario     AS Id,
-                        nombreUsuario  AS NombreUsuario,
-                        correo         AS Correo,
-                        contrasenia    AS Contrasenia,
-                        rol            AS Rol,
-                        activo         AS Activo
-                FROM dbo.usuario", Array.Empty<SqlParameter>());
-
-            bs.DataSource = dt.AsEnumerable().Select(r => new Usuario
-            {
-                Id = r.Field<int>("Id"),
-                NombreUsuario = r.Field<string>("NombreUsuario") ?? "",
-                Correo = r.Field<string>("Correo") ?? "",
-                Contrasenia = r.Field<string>("Contrasenia") ?? "",
-                Rol = r.Field<string>("Rol") ?? "",
-                Activo = r.Field<bool>("Activo")
-            }).ToList();
+            bs.DataSource = Repository.ListarUsuarios().Where(u => u.Activo).ToList();
         }
 
         private void TrySelectRowById(int id)

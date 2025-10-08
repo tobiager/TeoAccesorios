@@ -14,12 +14,11 @@ namespace TeoAccesorios.Desktop
         private readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
         private readonly BindingSource bs = new BindingSource();
 
-        private readonly CheckBox chkInactivas = new CheckBox { Text = "Ver inactivas", AutoSize = true };
         private readonly Button btnNuevo;
         private readonly Button btnEditar;
         private readonly Button btnEliminar;
-        private readonly Button btnRestaurar;
         private readonly Button btnSwitch;
+        private readonly Button btnVerInactivas;
 
         private readonly Label lblCat = new Label { Text = "Categoría:", AutoSize = true, Padding = new Padding(0, 10, 6, 0), Visible = false };
         private readonly ComboBox cboFiltroCat = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Visible = false };
@@ -38,16 +37,18 @@ namespace TeoAccesorios.Desktop
             btnNuevo = CrearBoton("Nuevo");
             btnEditar = CrearBoton("Editar");
             btnEliminar = CrearBoton("Eliminar");
-            btnRestaurar = CrearBoton("Restaurar");
             btnSwitch = CrearBoton("Subcategorías");
+            btnVerInactivas = CrearBoton("Ver inactivas");
 
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6), WrapContents = false };
-            top.Controls.Add(chkInactivas);
+            // Orden: acciones, switch, ver inactivas, y recién después el filtro
             top.Controls.Add(btnNuevo);
             top.Controls.Add(btnEditar);
             top.Controls.Add(btnEliminar);
-            top.Controls.Add(btnRestaurar);
             top.Controls.Add(btnSwitch);
+            top.Controls.Add(btnVerInactivas);
+            lblCat.Margin = new Padding(12, 8, 6, 0);
+            cboFiltroCat.Margin = new Padding(0, 6, 0, 0);
             top.Controls.Add(lblCat);
             top.Controls.Add(cboFiltroCat);
 
@@ -55,28 +56,48 @@ namespace TeoAccesorios.Desktop
             Controls.Add(top);
 
             GridHelper.Estilizar(grid);
-            GridHelperLock.SoloLectura(grid);
+            GridHelperLock.Apply(grid);
             grid.DataSource = bs;
 
-            chkInactivas.CheckedChanged += (s, e) => LoadData();
+            grid.DataBindingComplete += (s, e) =>
+            {
+                var colActivo = grid.Columns["Activo"];
+                if (colActivo != null) colActivo.Visible = false;
+            };
+
             btnSwitch.Click += (s, e) => SwitchMode();
 
             btnNuevo.Click += (s, e) => { if (esAdmin) OnNuevo(); };
             btnEditar.Click += (s, e) => { if (esAdmin) OnEditar(); };
             btnEliminar.Click += (s, e) => { if (esAdmin) OnEliminar(); };
-            btnRestaurar.Click += (s, e) => { if (esAdmin) OnRestaurar(); };
+
+            // ⬇️ Ahora abre el form correcto según el modo actual
+            btnVerInactivas.Click += (s, e) =>
+            {
+                if (_modo == Modo.Categorias)
+                {
+                    using var f = new CategoriasInactivasForm();
+                    f.ShowDialog(this);
+                }
+                else
+                {
+                    // Si tu SubcategoriasInactivasForm acepta filtro, pásalo; si no, quitá el parámetro
+                    int? catId = (cboFiltroCat.SelectedItem as ComboItem)?.Value;
+                    using var f = new SubcategoriasInactivasForm(/*catId*/);
+                    f.ShowDialog(this);
+                }
+                LoadData();
+            };
 
             cboFiltroCat.SelectedIndexChanged += (s, e) => { if (_modo == Modo.Subcategorias) LoadData(); };
 
             //  Permisos de vendedor: fuerza modo Subcategorías y oculta acciones 
             if (!esAdmin)
             {
-                // Forzar modo Subcategorías, sin poder volver a Categorías
                 _modo = Modo.Subcategorias;
                 btnSwitch.Visible = false;
 
-                // Ocultar acciones (solo vista)
-                btnNuevo.Visible = btnEditar.Visible = btnEliminar.Visible = btnRestaurar.Visible = false;
+                btnNuevo.Visible = btnEditar.Visible = btnEliminar.Visible = btnVerInactivas.Visible = false;
             }
 
             SetMode(_modo);
@@ -94,16 +115,13 @@ namespace TeoAccesorios.Desktop
 
         private void SwitchMode()
         {
-            // Solo admin puede alternar entre modos
             if (!esAdmin) return;
-
             var nuevo = _modo == Modo.Categorias ? Modo.Subcategorias : Modo.Categorias;
             SetMode(nuevo);
         }
 
         private void SetMode(Modo m)
         {
-            // Vendedor no puede entrar a Categorías
             if (!esAdmin && m == Modo.Categorias)
                 m = Modo.Subcategorias;
 
@@ -115,6 +133,7 @@ namespace TeoAccesorios.Desktop
                 btnSwitch.Text = "Subcategorías";
                 lblCat.Visible = false;
                 cboFiltroCat.Visible = false;
+                btnVerInactivas.Visible = true;   
             }
             else
             {
@@ -122,6 +141,7 @@ namespace TeoAccesorios.Desktop
                 btnSwitch.Text = "Categorías";
                 lblCat.Visible = true;
                 cboFiltroCat.Visible = true;
+                btnVerInactivas.Visible = true;   
 
                 if (cboFiltroCat.Items.Count == 0)
                 {
@@ -140,7 +160,7 @@ namespace TeoAccesorios.Desktop
         {
             if (_modo == Modo.Categorias)
             {
-                var data = Repository.ListarCategorias(chkInactivas.Checked)
+                var data = Repository.ListarCategorias(false)
                                      .OrderBy(c => c.Nombre)
                                      .ToList();
                 bs.DataSource = data;
@@ -149,7 +169,7 @@ namespace TeoAccesorios.Desktop
             else
             {
                 int? catId = (cboFiltroCat.SelectedItem as ComboItem)?.Value;
-                var data = Repository.ListarSubcategorias(catId, chkInactivas.Checked)
+                var data = Repository.ListarSubcategorias(catId, false)
                                      .OrderBy(s => s.CategoriaNombre)
                                      .ThenBy(s => s.Nombre)
                                      .ToList();
@@ -268,26 +288,6 @@ namespace TeoAccesorios.Desktop
                             MessageBoxIcon.Warning);
                         return;
                     }
-                    LoadData();
-                }
-            }
-        }
-
-        private void OnRestaurar()
-        {
-            if (_modo == Modo.Categorias)
-            {
-                if (grid.CurrentRow?.DataBoundItem is Categoria sel && !sel.Activo)
-                {
-                    Repository.SetCategoriaActiva(sel.Id, true);
-                    LoadData();
-                }
-            }
-            else
-            {
-                if (grid.CurrentRow?.DataBoundItem is Subcategoria sel && !sel.Activo)
-                {
-                    Repository.SetSubcategoriaActiva(sel.Id, true);
                     LoadData();
                 }
             }

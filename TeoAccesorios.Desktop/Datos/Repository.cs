@@ -129,6 +129,19 @@ namespace TeoAccesorios.Desktop
                 new SqlParameter("@id", id));
         }
 
+        public static void SetClienteActivo(int id, bool activo)
+        {
+            Db.Exec("UPDATE dbo.Clientes SET Activo=@a WHERE Id=@id",
+                new SqlParameter("@a", activo ? 1 : 0),
+                new SqlParameter("@id", id));
+        }
+
+        // Wrapper de compatibilidad
+        public static void RestaurarCliente(int id)
+        {
+            SetClienteActivo(id, true);
+        }
+
         // ========= USUARIOS =========
         public static List<Usuario> ListarUsuarios()
         {
@@ -149,6 +162,13 @@ namespace TeoAccesorios.Desktop
                 Rol = r.Field<string?>("Rol") ?? "",
                 Activo = r.Field<bool>("Activo")
             }).ToList();
+        }
+
+        public static void SetUsuarioActivo(int id, bool activo)
+        {
+            Db.Exec("UPDATE dbo.Usuarios SET Activo=@a WHERE Id=@id",
+                new SqlParameter("@a", activo ? 1 : 0),
+                new SqlParameter("@id", id));
         }
 
         // ========= CATEGORÍAS =========
@@ -417,6 +437,19 @@ namespace TeoAccesorios.Desktop
         {
             Db.Exec("UPDATE dbo.Productos SET Activo=0 WHERE Id=@id",
                 new SqlParameter("@id", id));
+        }
+
+        public static void SetProductoActivo(int id, bool activo)
+        {
+            Db.Exec("UPDATE dbo.Productos SET Activo=@a WHERE Id=@id",
+                new SqlParameter("@a", activo ? 1 : 0),
+                new SqlParameter("@id", id));
+        }
+
+        // Wrapper de compatibilidad
+        public static void RestaurarProducto(int id)
+        {
+            SetProductoActivo(id, true);
         }
 
         // ========= STATS =========

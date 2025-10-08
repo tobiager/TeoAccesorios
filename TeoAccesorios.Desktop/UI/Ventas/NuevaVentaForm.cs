@@ -32,10 +32,7 @@ namespace TeoAccesorios.Desktop
             AllowUserToDeleteRows = false,
             AllowUserToResizeRows = false,
             ReadOnly = true,                     
-            EditMode = DataGridViewEditMode.EditProgrammatically, 
-            RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = false,
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
             EnableHeadersVisualStyles = false,
             BorderStyle = BorderStyle.None,
@@ -65,8 +62,6 @@ namespace TeoAccesorios.Desktop
         private List<Producto> _productos = new();
         private readonly CultureInfo _culture = new("es-AR");
 
-       
-        private static readonly Color BRAND_BLUE = Color.FromArgb(37, 99, 235); 
 
         public NuevaVentaForm()
         {
@@ -116,7 +111,7 @@ namespace TeoAccesorios.Desktop
             Controls.Add(fila1);
 
             // Estilo de DataGridView accesible
-            EstilizarGrilla(gridDetalles);
+            GridHelper.Estilizar(gridDetalles);
 
             // Columnas
             gridDetalles.Columns.Clear();
@@ -296,35 +291,6 @@ namespace TeoAccesorios.Desktop
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
-        }
-
-        //  Estilizado accesible de la grilla 
-        private void EstilizarGrilla(DataGridView g)
-        {
-           
-            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 12.5F, FontStyle.Bold);
-            g.DefaultCellStyle.Font = new Font("Segoe UI", 11.5F, FontStyle.Regular);
-            g.RowTemplate.Height = 38;
-            g.ColumnHeadersHeight = 44;
-
-            
-            g.ColumnHeadersDefaultCellStyle.BackColor = BRAND_BLUE;
-            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-
-            
-            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 247, 250);
-            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(29, 78, 216); 
-            g.DefaultCellStyle.SelectionForeColor = Color.White;
-
-            
-            g.ReadOnly = true;
-            g.EditMode = DataGridViewEditMode.EditProgrammatically;
-            foreach (DataGridViewColumn c in g.Columns) c.ReadOnly = true;
-
-            
-            typeof(DataGridView).InvokeMember("DoubleBuffered",
-                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty,
-                null, g, new object[] { true });
         }
 
         //  Datos en grilla + totales 

@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using TeoAccesorios.Desktop.Models;
@@ -9,73 +10,109 @@ namespace TeoAccesorios.Desktop
     {
         private readonly DataGridView grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
         private readonly BindingSource bs = new BindingSource();
+
+        // Filtro por categorÃ­a
+        private readonly Label lblCat = new Label { Text = "CategorÃ­a:", AutoSize = true, Padding = new Padding(0, 10, 6, 0) };
         private readonly ComboBox cboFiltroCat = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
-        private readonly CheckBox chkInactivas = new CheckBox { Text = "Ver inactivas" };
+
+        // Botones (mismo set que CategoriasForm)
+        private readonly Button btnNuevo;
+        private readonly Button btnEditar;
+        private readonly Button btnEliminar;
+        private readonly Button btnVerInactivas;
 
         private readonly int? _categoriaInicial;
+        private readonly bool esAdmin;
 
         public SubcategoriasForm() : this(null) { }
 
         public SubcategoriasForm(int? categoriaId)
         {
-            bool esAdmin = Sesion.Rol == RolUsuario.Admin;
-
+            esAdmin = Sesion.Rol == RolUsuario.Admin;
             _categoriaInicial = categoriaId;
 
-            Text = "Subcategorías";
+            Text = "SubcategorÃ­as";
             Width = 900;
             Height = 600;
             StartPosition = FormStartPosition.CenterParent;
 
-            var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 44, Padding = new Padding(6) };
-            top.Controls.Add(new Label { Text = "Categoría:", AutoSize = true, Padding = new Padding(0, 10, 6, 0) });
-            top.Controls.Add(cboFiltroCat);
-            top.Controls.Add(chkInactivas);
+            // Botones con el mismo estilo que CategoriasForm
+            btnNuevo = CrearBoton("Nuevo");
+            btnEditar = CrearBoton("Editar");
+            btnEliminar = CrearBoton("Eliminar");
+            btnVerInactivas = CrearBoton("Ver inactivas");
 
-            var btnNuevo = new Button { Text = "Nuevo" };
-            var btnEditar = new Button { Text = "Editar" };
-            var btnEliminar = new Button { Text = "Eliminar" };
-            var btnRestaurar = new Button { Text = "Restaurar" };
-            top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnRestaurar });
+            var top = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 40,
+                Padding = new Padding(6),
+                WrapContents = false,     // una sola lÃ­nea, no rompas el layout
+                FlowDirection = FlowDirection.LeftToRight,
+                AutoSize = false
+            };
+
+            // Orden idÃ©ntico al de CategoriasForm: botones primero y luego filtro
+            top.Controls.Add(btnNuevo);
+            top.Controls.Add(btnEditar);
+            top.Controls.Add(btnEliminar);
+            top.Controls.Add(btnVerInactivas);
+
+            // Un pequeÃ±o margen para que el combo no tape el botÃ³n de "Ver inactivas"
+            lblCat.Margin = new Padding(12, 8, 6, 0);
+            cboFiltroCat.Margin = new Padding(0, 6, 0, 0);
+            top.Controls.Add(lblCat);
+            top.Controls.Add(cboFiltroCat);
 
             Controls.Add(grid);
             Controls.Add(top);
 
             GridHelper.Estilizar(grid);
-            GridHelperLock.SoloLectura(grid);
+            GridHelperLock.Apply(grid);
             grid.DataSource = bs;
 
+            grid.DataBindingComplete += (s, e) =>
+            {
+                var colActivo = grid.Columns["Activo"];
+                if (colActivo != null) colActivo.Visible = false;
+            };
+
+            // Cargar categorÃ­as para el filtro
             CargarCategoriasEnCombo();
             if (_categoriaInicial.HasValue)
                 SeleccionarCategoriaEnCombo(_categoriaInicial.Value);
 
-            chkInactivas.CheckedChanged += (s, e) => LoadSubcategorias();
+            // Eventos
             cboFiltroCat.SelectedIndexChanged += (s, e) => LoadSubcategorias();
 
-            // ---- Permisos: si NO es admin, oculta acciones (solo vista) ----
+            btnVerInactivas.Click += (s, e) =>
+            {
+                using var f = new SubcategoriasInactivasForm();
+                f.ShowDialog(this);
+                LoadSubcategorias();
+            };
+
             if (!esAdmin)
             {
-                btnNuevo.Visible = btnEditar.Visible = btnEliminar.Visible = btnRestaurar.Visible = false;
-                // por las dudas, no dejes que el doble click abra edición
-                grid.CellDoubleClick += (_, __) => { /* sin acción para vendedor */ };
+                // Solo vista para vendedor
+                btnNuevo.Visible = btnEditar.Visible = btnEliminar.Visible = btnVerInactivas.Visible = false;
+                grid.CellDoubleClick += (_, __) => { /* sin acciÃ³n */ };
             }
             else
             {
-                // Acciones habilitadas solo para Admin
+                // Acciones admin
                 btnNuevo.Click += (s, e) =>
                 {
                     int? catId = (cboFiltroCat.SelectedItem as ComboItem)?.Value;
-
                     var primeraCat = Repository.ListarCategorias(true).OrderBy(x => x.Nombre).FirstOrDefault();
                     if (!catId.HasValue && primeraCat is null)
                     {
-                        MessageBox.Show("No hay categorías disponibles. Creá una categoría primero.", "Atención",
+                        MessageBox.Show("No hay categorÃ­as disponibles. CreÃ¡ una categorÃ­a primero.", "AtenciÃ³n",
                             MessageBoxButtons.OK, MessageBoxIcon.Information);
                         return;
                     }
 
                     int catParaNueva = catId ?? primeraCat!.Id;
-
                     var sub = new Subcategoria { Activo = true, CategoriaId = catParaNueva };
                     using var f = new SubcategoriaEditForm(sub);
                     if (f.ShowDialog(this) == DialogResult.OK)
@@ -113,22 +150,13 @@ namespace TeoAccesorios.Desktop
                         if (!Repository.TryDesactivarSubcategoria(sel.Id, out int cant))
                         {
                             MessageBox.Show(
-                                $"No se puede desactivar la subcategoría \"{sel.Nombre}\" porque tiene {cant} producto(s) asignado(s).\n\n" +
-                                "Primero reasigná o quitá esos productos.",
-                                "Acción no permitida",
+                                $"No se puede desactivar la subcategorÃ­a \"{sel.Nombre}\" porque tiene {cant} producto(s) asignado(s).\n\n" +
+                                "Primero reasignÃ¡ o quitÃ¡ esos productos.",
+                                "AcciÃ³n no permitida",
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Warning);
                             return;
                         }
-                        LoadSubcategorias();
-                    }
-                };
-
-                btnRestaurar.Click += (s, e) =>
-                {
-                    if (grid.CurrentRow?.DataBoundItem is Subcategoria sel && !sel.Activo)
-                    {
-                        Repository.SetSubcategoriaActiva(sel.Id, true);
                         LoadSubcategorias();
                     }
                 };
@@ -138,6 +166,16 @@ namespace TeoAccesorios.Desktop
 
             LoadSubcategorias();
         }
+
+        private Button CrearBoton(string texto) => new Button
+        {
+            Text = texto,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(3, 1, 3, 1),
+            Margin = new Padding(2),
+            MinimumSize = new Size(0, 24)
+        };
 
         private void CargarCategoriasEnCombo()
         {
@@ -163,7 +201,7 @@ namespace TeoAccesorios.Desktop
         private void LoadSubcategorias()
         {
             int? catId = (cboFiltroCat.SelectedItem as ComboItem)?.Value;
-            var data = Repository.ListarSubcategorias(catId, chkInactivas.Checked)
+            var data = Repository.ListarSubcategorias(catId, false)
                                  .OrderBy(s => s.CategoriaNombre)
                                  .ThenBy(s => s.Nombre)
                                  .ToList();

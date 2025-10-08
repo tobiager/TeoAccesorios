@@ -84,12 +84,9 @@ namespace TeoAccesorios.Desktop
             ThemeGrid(ultGrid);
             ThemeGrid(stockGrid);
 
-            GridHelperLock.SoloLectura(topGrid);
-            GridHelperLock.WireDataBindingLock(topGrid);
-            GridHelperLock.SoloLectura(ultGrid);
-            GridHelperLock.WireDataBindingLock(ultGrid);
-            GridHelperLock.SoloLectura(stockGrid);
-            GridHelperLock.WireDataBindingLock(stockGrid);
+            GridHelperLock.Apply(topGrid);
+            GridHelperLock.Apply(ultGrid);
+            GridHelperLock.Apply(stockGrid);
             LoadFromDb();
         }
 

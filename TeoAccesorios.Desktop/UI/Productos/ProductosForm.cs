@@ -15,7 +15,6 @@ namespace TeoAccesorios.Desktop
         private readonly TextBox txtBuscar = new() { PlaceholderText = "Buscar por nombre...", Width = 220 };
         private readonly ComboBox cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
         private readonly ComboBox cboSubcategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
-        private readonly CheckBox chkInactivos = new() { Text = "Ver inactivos" };
         private readonly BindingSource bs = new();
 
         // ====== Selector de columnas ======
@@ -45,7 +44,6 @@ namespace TeoAccesorios.Desktop
             top.Controls.Add(cboCategoria);
             top.Controls.Add(new Label { Text = "Subcategoría", AutoSize = true, Padding = new Padding(8, 8, 4, 0) });
             top.Controls.Add(cboSubcategoria);
-            top.Controls.Add(chkInactivos);
 
             // Botón de columnas (context menu)
             btnColumnas.Click += (s, e) =>
@@ -61,8 +59,17 @@ namespace TeoAccesorios.Desktop
                 var btnNuevo = new Button { Text = "Nuevo" };
                 var btnEditar = new Button { Text = "Editar" };
                 var btnEliminar = new Button { Text = "Eliminar" };
-                var btnRestaurar = new Button { Text = "Restaurar" };
-                top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnRestaurar });
+                var btnVerInactivos = new Button { Text = "Ver inactivos" };
+                top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnVerInactivos });
+
+                btnVerInactivos.Click += (s, e) =>
+                {
+                    using (var f = new ProductosInactivosForm())
+                    {
+                        f.ShowDialog(this);
+                    }
+                    LoadData();
+                };
 
                 btnNuevo.Click += (s, e) =>
                 {
@@ -109,15 +116,7 @@ namespace TeoAccesorios.Desktop
                     }
                 };
 
-                btnRestaurar.Click += (s, e) =>
-                {
-                    if (grid.CurrentRow?.DataBoundItem is Producto sel)
-                    {
-                        sel.Activo = true;
-                        Repository.ActualizarProducto(sel);
-                        LoadData();
-                    }
-                };
+               
             }
             else
             {
@@ -130,11 +129,9 @@ namespace TeoAccesorios.Desktop
 
             // Estética y locks (si tenés estos helpers en tu proyecto)
             GridHelper.Estilizar(grid);
-            GridHelperLock.SoloLectura(grid);
-            GridHelperLock.WireDataBindingLock(grid);
+            GridHelperLock.Apply(grid);
 
             // Filtros
-            chkInactivos.CheckedChanged += (s, e) => LoadData();
             txtBuscar.TextChanged += (s, e) => LoadData();
             cboCategoria.SelectedIndexChanged += (s, e) => { CargarSubcategorias(); LoadData(); };
             cboSubcategoria.SelectedIndexChanged += (s, e) => LoadData();
@@ -176,7 +173,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-            var data = Repository.ListarProductos(chkInactivos.Checked).AsEnumerable();
+            var data = Repository.ListarProductos(false).AsEnumerable();
 
             var q = txtBuscar.Text?.Trim() ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(q))
@@ -190,6 +187,17 @@ namespace TeoAccesorios.Desktop
 
             bs.DataSource = data.ToList();
             grid.DataSource = bs;
+
+            // Eliminar la columna "Activo" si existe, sin importar cómo se generó.
+            var colActivo = grid.Columns
+                .Cast<DataGridViewColumn>()
+                .FirstOrDefault(c =>
+                    string.Equals(c.HeaderText, "Activo", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(c.Name, "Activo", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(c.DataPropertyName, "Activo", StringComparison.OrdinalIgnoreCase));
+
+            if (colActivo != null)
+                grid.Columns.Remove(colActivo);
         }
 
         // ====== Columnas: menú + presets ======
@@ -218,6 +226,10 @@ namespace TeoAccesorios.Desktop
             foreach (DataGridViewColumn col in grid.Columns.Cast<DataGridViewColumn>().OrderBy(c => c.DisplayIndex))
             {
                 if (string.IsNullOrEmpty(col.Name)) continue;
+
+                // Excluir explícitamente la columna "Activo" del menú de la ruedita.
+                if (string.Equals(col.Name, "Activo", StringComparison.OrdinalIgnoreCase)) continue;
+
                 var display = string.IsNullOrWhiteSpace(col.HeaderText) ? col.Name : col.HeaderText;
 
                 var item = new ToolStripMenuItem(display)
@@ -255,20 +267,14 @@ namespace TeoAccesorios.Desktop
         // Preset de operación diaria
         private void AplicarVistaRapida()
         {
-            var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "Nombre", "Precio", "Stock", "Activo", "CategoriaNombre"
-            };
+            var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Nombre", "Precio", "Stock", "CategoriaNombre", "SubcategoriaNombre" };
             AplicarSetVisibles(visibles);
         }
 
         // Fallback si no hay prefs guardadas
         private void AplicarVistaPredeterminada()
         {
-            var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "Nombre", "Precio", "Stock", "CategoriaNombre"
-            };
+            var visibles = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Nombre", "Precio", "Stock", "CategoriaNombre", "SubcategoriaNombre" };
             AplicarSetVisibles(visibles);
         }
 

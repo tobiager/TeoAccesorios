@@ -7,7 +7,6 @@ namespace TeoAccesorios.Desktop
 {
     public class ClientesForm : Form
     {
-        private readonly CheckBox chkInactivos = new CheckBox { Text = "Ver inactivos" };
         private readonly BindingSource bs = new BindingSource();
         private readonly DataGridView grid = new DataGridView
         {
@@ -30,6 +29,7 @@ namespace TeoAccesorios.Desktop
             var btnEditar = new Button { Text = "Editar" };
             var btnEliminar = new Button { Text = "Eliminar" };
             var btnRestaurar = new Button { Text = "Restaurar" };
+            var btnVerInactivos = new Button { Text = "Ver inactivos" };
 
             // === Handlers ===
             btnNuevo.Click += (s, e) =>
@@ -95,7 +95,7 @@ namespace TeoAccesorios.Desktop
                 var sel = GetSeleccionado();
                 if (sel == null) return;
 
-                if (MessageBox.Show(this, "¿Inactivar al cliente \"" + sel.Nombre + "\"?",
+                if (MessageBox.Show(this, "ï¿½Inactivar al cliente \"" + sel.Nombre + "\"?",
                         "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
 
                 try
@@ -110,40 +110,34 @@ namespace TeoAccesorios.Desktop
                 }
             };
 
-            btnRestaurar.Click += (s, e) =>
+            
+
+            btnVerInactivos.Click += (s, e) =>
             {
-                var sel = GetSeleccionado();
-                if (sel == null) return;
-
-                try
+                using (var f = new ClientesInactivosForm())
                 {
-                    sel.Activo = true;
-                    Repository.ActualizarCliente(sel); // set Activo=1
-                    LoadData();
-                    SeleccionarPorId(sel.Id);
+                    f.ShowDialog(this);
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, "No se pudo restaurar el cliente.\n" + ex.Message,
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                LoadData();
             };
-
-            chkInactivos.CheckedChanged += (s, e) => LoadData();
 
             // UI
             top.Controls.Add(btnNuevo);
             top.Controls.Add(btnEditar);
             top.Controls.Add(btnEliminar);
-            top.Controls.Add(btnRestaurar);
-            top.Controls.Add(chkInactivos);
+            top.Controls.Add(btnVerInactivos);
 
             Controls.Add(grid);
             Controls.Add(top);
             GridHelper.Estilizar(grid);
-            GridHelperLock.SoloLectura(grid);
-            GridHelperLock.WireDataBindingLock(grid);
+            GridHelperLock.Apply(grid);
             LoadData();
+
+            grid.DataBindingComplete += (s, e) =>
+            {
+                var colActivo = grid.Columns["Activo"];
+                if (colActivo != null) colActivo.Visible = false;
+            };
         }
 
         private Cliente GetSeleccionado()
@@ -167,7 +161,7 @@ namespace TeoAccesorios.Desktop
 
         private void LoadData()
         {
-            var list = Repository.ListarClientes(chkInactivos.Checked);
+            var list = Repository.ListarClientes(false);
             bs.DataSource = list;
             grid.DataSource = bs;
         }
