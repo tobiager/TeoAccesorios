@@ -30,7 +30,6 @@ namespace TeoAccesorios.Desktop
 
         private readonly Button btnNueva = new() { Text = "Nueva" };
         private readonly Button btnAnular = new() { Text = "Anular" };
-        private readonly Button btnRestaurar = new() { Text = "Restaurar" };
         private readonly Button btnLimpiar = new() { Text = "Limpiar filtros" };
         private readonly Button btnVerAnuladas = new() { Text = "Ver anuladas" };
 
@@ -59,7 +58,7 @@ namespace TeoAccesorios.Desktop
             StartPosition = FormStartPosition.CenterParent;
 
             var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, Padding = new Padding(8) };
-            actions.Controls.AddRange(new Control[] { btnAnular, btnRestaurar, btnVerAnuladas, btnNueva });
+            actions.Controls.AddRange(new Control[] { btnAnular, btnVerAnuladas, btnNueva });
 
             var filtros = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(8) };
             filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(0, 8, 0, 0) });
@@ -102,20 +101,6 @@ namespace TeoAccesorios.Desktop
                     return;
                 }
                 Repository.SetVentaAnulada(v.Id, true);
-                LoadData();
-            };
-
-            btnRestaurar.Click += (_, __) =>
-            {
-                if (!TryGetSelectedVenta(out var v)) return;
-                if (Sesion.Rol == RolUsuario.Vendedor &&
-                    (!string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase)
-                     || v.FechaVenta.Date != DateTime.Today))
-                {
-                    MessageBox.Show("Sólo podés restaurar ventas tuyas del día.", "Permiso");
-                    return;
-                }
-                Repository.SetVentaAnulada(v.Id, false);
                 LoadData();
             };
 

@@ -12,11 +12,10 @@ namespace TeoAccesorios.Desktop.UI.Provincias
 {
     public class ProvinciasLocalidadesForm : Form
     {
-        private readonly SplitContainer _splitContainer = new() { Dock = DockStyle.Fill, SplitterDistance = 350 };
-        private readonly DataGridView _dgvProvincias = new() { Dock = DockStyle.Fill, AutoGenerateColumns = true };
-        private readonly DataGridView _dgvLocalidades = new() { Dock = DockStyle.Fill, AutoGenerateColumns = true };
+        private readonly SplitContainer _splitContainer;
+        private readonly DataGridView _dgvProvincias = new() { Dock = DockStyle.Fill, AutoGenerateColumns = false };
+        private readonly DataGridView _dgvLocalidades = new() { Dock = DockStyle.Fill, AutoGenerateColumns = false };
         private readonly Label _lblLocalidadesTitle = new() { Text = "Localidades", Font = new Font("Segoe UI", 12, FontStyle.Bold), AutoSize = true, Padding = new Padding(5) };
-        private readonly CheckBox _chkVerInactivas = new() { Text = "Ver inactivas", AutoSize = true, Padding = new Padding(8, 6, 0, 0) };
 
         public ProvinciasLocalidadesForm()
         {
@@ -25,58 +24,48 @@ namespace TeoAccesorios.Desktop.UI.Provincias
             Height = 600;
             StartPosition = FormStartPosition.CenterParent;
 
-            // ----- Panel Izquierdo: Provincias
-            var pnlProvincias = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-            pnlProvincias.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            pnlProvincias.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            pnlProvincias.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            // Layout principal con SplitContainer
+            _splitContainer = new SplitContainer { Dock = DockStyle.Fill, IsSplitterFixed = false };
+            Controls.Add(_splitContainer);
 
-            pnlProvincias.Controls.Add(
-                new Label { Text = "Provincias", Font = new Font("Segoe UI", 12, FontStyle.Bold), AutoSize = true, Padding = new Padding(5) }, 0, 0);
+            // Panel Izquierdo (Provincias)
+            var leftPanel = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(8), RowCount = 2, ColumnCount = 1 };
+            leftPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            leftPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            leftPanel.Controls.Add(new Label { Text = "Provincias", AutoSize = true, Font = new Font("Segoe UI", 12, FontStyle.Bold) }, 0, 0);
+            leftPanel.Controls.Add(_dgvProvincias, 0, 1);
+            _splitContainer.Panel1.Controls.Add(leftPanel);
 
-            var pnlBotonesProv = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(5), AutoSize = true };
-            // Los botones de acción para Provincias se han eliminado según el requisito.
-            // El panel se mantiene por si se añaden acciones de solo lectura en el futuro (ej. "Exportar").
-            
-            pnlProvincias.Controls.Add(pnlBotonesProv, 0, 1);
-            pnlProvincias.Controls.Add(_dgvProvincias, 0, 2);
-            _splitContainer.Panel1.Controls.Add(pnlProvincias);
+            // Panel Derecho (Localidades)
+            var rightPanel = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(8), RowCount = 3, ColumnCount = 1 };
+            rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // título
+            rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // botones
+            rightPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // grid
 
-            // ----- Panel Derecho: Localidades
-            var pnlLocalidades = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-            pnlLocalidades.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            pnlLocalidades.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            pnlLocalidades.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-            pnlLocalidades.Controls.Add(_lblLocalidadesTitle, 0, 0);
-
-            var pnlBotonesLoc = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(5), AutoSize = true };
+            var barraLoc = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
             var btnAgregarLoc = new Button { Text = "Agregar Localidad", AutoSize = true };
             var btnEditarLoc = new Button { Text = "Editar Localidad", AutoSize = true };
             var btnToggleActivoLoc = new Button { Text = "Activar/Inactivar", AutoSize = true };
-            pnlBotonesLoc.Controls.AddRange(new Control[] { btnAgregarLoc, btnEditarLoc, btnToggleActivoLoc });
+            var btnVerInactivas = new Button { Text = "Ver inactivas", AutoSize = true };
+            barraLoc.Controls.AddRange(new Control[] { btnAgregarLoc, btnEditarLoc, btnToggleActivoLoc, btnVerInactivas });
 
-            pnlLocalidades.Controls.Add(pnlBotonesLoc, 0, 1);
-            pnlLocalidades.Controls.Add(_dgvLocalidades, 0, 2);
-            _splitContainer.Panel2.Controls.Add(pnlLocalidades);
-
-            // Controles principales
-            var topPanel = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
-            topPanel.Controls.Add(_chkVerInactivas);
-            Controls.Add(topPanel);
-            Controls.Add(_splitContainer);
-            _splitContainer.BringToFront();
+            rightPanel.Controls.Add(_lblLocalidadesTitle, 0, 0);
+            rightPanel.Controls.Add(barraLoc, 0, 1);
+            rightPanel.Controls.Add(_dgvLocalidades, 0, 2);
+            _splitContainer.Panel2.Controls.Add(rightPanel);
 
             // Estética unificada
             SetupGrid(_dgvProvincias);
             SetupGrid(_dgvLocalidades);
+            SetupProvinciasColumns();
+            SetupLocalidadesColumns();
 
             // Los ajustes de columnas se aplican al terminar el binding
             _dgvProvincias.DataBindingComplete += (_, __) => TweakProvinciasColumns();
             _dgvLocalidades.DataBindingComplete += (_, __) => TweakLocalidadesColumns();
 
             // ----- Eventos Provincias (solo selección)
-            _dgvProvincias.SelectionChanged += (s, e) => CargarLocalidades();
+            _dgvProvincias.SelectionChanged += (s, e) => OnProvinciaSelectionChanged();
 
             // ----- Eventos Localidades
             btnAgregarLoc.Click += (s, e) =>
@@ -93,48 +82,53 @@ namespace TeoAccesorios.Desktop.UI.Provincias
             };
             btnEditarLoc.Click += (s, e) => EditarLocalidadSeleccionada();
             btnToggleActivoLoc.Click += (s, e) => ToggleActivoLocalidad();
-
-            // Recarga general
-            _chkVerInactivas.CheckedChanged += (s, e) => CargarDatos();
+            btnVerInactivas.Click += (s, e) =>
+            {
+                if (_dgvProvincias.CurrentRow?.DataBoundItem is not Models.ProvinciaStats prov) return;
+                using var f = new LocalidadesInactivasForm(prov.Id, prov.Nombre);
+                if (f.ShowDialog(this) == DialogResult.OK)
+                {
+                    OnProvinciaSelectionChanged(); // Refrescar localidades activas
+                }
+            };
 
             _dgvProvincias.CellFormatting += Grid_CellFormatting;
             _dgvLocalidades.CellFormatting += Grid_CellFormatting;
 
             CargarDatos();
+
+            HandleCreated += (_, __) => BeginInvoke((Action)(() => InitSplit()));
+            Resize += (_, __) => InitSplit();
         }
 
         // ----------------- Carga de datos -----------------
         private void CargarDatos()
         {
             CargarProvincias();
-            CargarLocalidades();
         }
 
         private void CargarProvincias()
         {
             int? currentId = _dgvProvincias.CurrentRow?.DataBoundItem is Models.ProvinciaStats p ? p.Id : (int?)null;
 
-            var data = Repository.ListarProvinciasConStats(_chkVerInactivas.Checked)
+            // El listado de provincias siempre muestra todas (activas e inactivas)
+            var data = Repository.ListarProvinciasConStats(true)
                        ?? new System.Collections.Generic.List<Models.ProvinciaStats>();
-            
-            // Definir columnas explícitamente para controlar el orden y la visibilidad
-            _dgvProvincias.AutoGenerateColumns = false;
-            if (_dgvProvincias.Columns.Count == 0)
-            {
-                SetupProvinciasColumns();
-            }
             _dgvProvincias.DataSource = data;
 
             // si había fila seleccionada, intenta restaurarla
             if (currentId.HasValue) SeleccionarPorId(_dgvProvincias, currentId.Value);
         }
 
-        private void CargarLocalidades()
+        private void OnProvinciaSelectionChanged()
         {
-            if (_dgvProvincias.CurrentRow?.DataBoundItem is Models.ProvinciaStats provStat)
+            var provStat = _dgvProvincias.CurrentRow?.DataBoundItem as Models.ProvinciaStats;
+
+            if (provStat != null)
             {
                 _lblLocalidadesTitle.Text = $"Localidades — {provStat.Nombre}";
-                var data = Repository.ListarLocalidadesConStats(provStat.Id, _chkVerInactivas.Checked)
+                // La grilla principal de localidades solo muestra las activas
+                var data = Repository.ListarLocalidadesConStats(provStat.Id, false)
                            ?? new System.Collections.Generic.List<Models.LocalidadStats>();
                 _dgvLocalidades.DataSource = data;
             }
@@ -177,7 +171,7 @@ namespace TeoAccesorios.Desktop.UI.Provincias
                 }
                 Repository.SetLocalidadActiva(loc.Id, false);
             }
-            CargarLocalidades();
+            OnProvinciaSelectionChanged(); // Recargar para reflejar el cambio
         }
 
         // ----------------- Estilo & columnas -----------------
@@ -196,10 +190,19 @@ namespace TeoAccesorios.Desktop.UI.Provincias
         private void SetupProvinciasColumns()
         {
             _dgvProvincias.Columns.Clear();
-            _dgvProvincias.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Id", HeaderText = "Id", Name = "Id", Width = 80 });
+            _dgvProvincias.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Id", HeaderText = "Id", Name = "Id", Width = 60 });
             _dgvProvincias.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Nombre", HeaderText = "Nombre", Name = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-            _dgvProvincias.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CantClientes", HeaderText = "Clientes", Name = "CantClientes", Width = 90 });
-            _dgvProvincias.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CantVentas", HeaderText = "Ventas", Name = "CantVentas", Width = 90 });
+            _dgvProvincias.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CantClientes", HeaderText = "Clientes", Name = "CantClientes", Width = 80 });
+            _dgvProvincias.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CantVentas", HeaderText = "Ventas", Name = "CantVentas", Width = 80 });
+        }
+
+        private void SetupLocalidadesColumns()
+        {
+            _dgvLocalidades.Columns.Clear();
+            _dgvLocalidades.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Id", HeaderText = "Id", Name = "Id", Width = 60 });
+            _dgvLocalidades.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Nombre", HeaderText = "Nombre", Name = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+            _dgvLocalidades.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CantClientes", HeaderText = "Clientes", Name = "CantClientes", Width = 90 });
+            _dgvLocalidades.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CantVentas", HeaderText = "Ventas", Name = "CantVentas", Width = 90 });
         }
 
         // Se llama en DataBindingComplete para evitar NRE en setters de columnas
@@ -214,8 +217,9 @@ namespace TeoAccesorios.Desktop.UI.Provincias
 
         private void TweakLocalidadesColumns()
         {
-            SetColumnWidth(_dgvLocalidades, "Id", 80);
-            SetColumnWidth(_dgvLocalidades, "Activo", 100);
+            var colActivo = FindColumn(_dgvLocalidades, "Activo");
+            if (colActivo != null) colActivo.Visible = false;
+
             SetFriendlyHeader(_dgvLocalidades, "CantClientes", "Clientes", "Cantidad de clientes únicos en esta localidad.");
             SetFriendlyHeader(_dgvLocalidades, "CantVentas", "Ventas", "Cantidad de ventas enviadas a esta localidad.");
         }
@@ -311,6 +315,39 @@ namespace TeoAccesorios.Desktop.UI.Provincias
                     return;
                 }
             }
+        }
+
+        private void InitSplit()
+        {
+            if (_splitContainer == null || !_splitContainer.IsHandleCreated) return;
+
+            int w = _splitContainer.ClientSize.Width;
+            if (w <= 0) return;
+
+            int splitter = _splitContainer.SplitterWidth;
+            int p1Min = 220;            // deseado panel izquierdo
+            int p2MinDesired = 420;     // deseado panel derecho
+
+            // Asegurar que entren los dos paneles + splitter
+            int minRequired = p1Min + p2MinDesired + splitter;
+            int p2Min = p2MinDesired;
+
+            if (w < minRequired)
+            {
+                // Reducir el mínimo del panel derecho para que no explote
+                p2Min = Math.Max(120, w - p1Min - splitter);
+            }
+
+            _splitContainer.Panel1MinSize = p1Min;
+            _splitContainer.Panel2MinSize = Math.Max(0, p2Min);
+
+            // Calcular distancia deseada con ratio y "clamp"
+            int desired = (int)Math.Round(w * 0.62);
+            int min = _splitContainer.Panel1MinSize;
+            int max = w - _splitContainer.Panel2MinSize - splitter;
+            int safe = Math.Max(min, Math.Min(desired, Math.Max(min, max)));
+
+            if (safe >= 0 && safe < w) _splitContainer.SplitterDistance = safe;
         }
     }
 }

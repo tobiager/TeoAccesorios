@@ -200,9 +200,11 @@ namespace TeoAccesorios.Desktop
             // --- Lógica de Dirección ---
             cboCliente.SelectedIndexChanged += (s, e) => OnClienteChanged();
             chkCambiarDireccion.CheckedChanged += (_, __) => ActualizarVisibilidadDireccion();
-            
+
             // Disparar el primer cambio para cargar datos del cliente inicial
             OnClienteChanged();
+            // Configurar los manejadores de eventos para los botones de acción
+            SetupActionHandlers();
         }
 
         private void OnClienteChanged()
@@ -290,11 +292,8 @@ namespace TeoAccesorios.Desktop
             // La lógica de guardado ya lee el valor final.
         }
 
-        private void GuardarVenta()
+        private void SetupActionHandlers()
         {
-            RefrescarGrid();
-
-            //  Acciones 
             btnAgregar.Click += (s, e) =>
             {
                 if (cboProducto.SelectedItem is not Producto p) return;
@@ -348,7 +347,11 @@ namespace TeoAccesorios.Desktop
 
             btnGuardar.Click += (s, e) => // Este es el manejador de click del botón Guardar
             {
-                if (_ventaActual.Detalles.Count == 0) { MessageBox.Show("Agregá al menos un producto.", "Aviso"); return; }
+                if (_ventaActual.Detalles.Count == 0)
+                {
+                    MessageBox.Show("Debe agregar al menos un producto a la venta.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
                 if (cboCliente.SelectedItem is not Cliente cli) { MessageBox.Show("Seleccioná un cliente.", "Aviso"); return; }
 
                 foreach (var linea in _ventaActual.Detalles)
@@ -372,7 +375,11 @@ namespace TeoAccesorios.Desktop
 
                 if (chkCambiarDireccion.Checked)
                 {
-                    if (cboLocalidadVenta.SelectedValue == null || (int)cboLocalidadVenta.SelectedValue <= 0) { MessageBox.Show("Seleccioná una provincia y localidad para el envío.", "Aviso"); return; }
+                    if (string.IsNullOrWhiteSpace(txtDireccionEnvio.Text) || cboProvinciaVenta.SelectedValue == null || cboLocalidadVenta.SelectedValue == null)
+                    {
+                        MessageBox.Show("Si usa otra dirección, debe completar la Dirección, Provincia y Localidad de envío.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
                     _ventaActual.LocalidadId = (int)cboLocalidadVenta.SelectedValue;
                     _ventaActual.DireccionEnvio = txtDireccionEnvio.Text.Trim();
                 }
@@ -380,12 +387,15 @@ namespace TeoAccesorios.Desktop
                 {
                     _ventaActual.LocalidadId = _clienteLocalidadId;
                     _ventaActual.DireccionEnvio = txtDireccionEnvio.Text.Trim(); // Usar el texto por si lo editó sin marcar el check
+                    if (string.IsNullOrWhiteSpace(_ventaActual.DireccionEnvio) || !_ventaActual.LocalidadId.HasValue)
+                    {
+                        MessageBox.Show("El cliente no tiene una dirección completa (dirección, localidad, provincia). Por favor, actualice los datos del cliente o seleccione 'Usar otra dirección de envío'.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
                 }
                 
                 try
                 {
-                    // if (_ventaActual.LocalidadId == null) { MessageBox.Show("La dirección de envío no tiene una localidad válida.", "Aviso"); return; }
-
                     var id = Repository.InsertarVenta(_ventaActual);
                     MessageBox.Show($"Venta guardada (Id {id}).", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     DialogResult = DialogResult.OK;
@@ -404,6 +414,11 @@ namespace TeoAccesorios.Desktop
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
+        }
+
+        private void GuardarVenta()
+        {
+            // Este método ahora está vacío. La lógica se movió a SetupActionHandlers.
         }
 
         //  Datos en grilla + totales 

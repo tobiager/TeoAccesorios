@@ -99,7 +99,7 @@ public static readonly string ConnectionString =
 
 Estas son las próximas mejoras planificadas para **TeoAccesorios**:
 
-- [ ] **Base de datos de localidades y provincias**
+- [x] **Base de datos de localidades y provincias**
   - Cargar tabla con localidades y provincias
   - Permitir cambiar localidad/provincia en la venta
 
