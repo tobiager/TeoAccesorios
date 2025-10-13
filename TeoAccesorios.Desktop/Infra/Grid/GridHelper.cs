@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -8,10 +9,7 @@ namespace TeoAccesorios.Desktop
     public static class GridHelper
     {
      
-
-        
         /// Aplica un estilo visual consistente y legible a la grilla.
-       
         public static void Estilizar(DataGridView g)
         {
             if (g == null) return;
@@ -47,9 +45,87 @@ namespace TeoAccesorios.Desktop
                 "DoubleBuffered",
                 BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty,
                 null, g, new object[] { true });
+
+            // Centraliza el bloqueo de edición y tamaño
+            SoloLectura(g, bloquearTamano: true);
         }
 
-        
+        /// <summary>
+        /// Configura la grilla en modo solo lectura, deshabilita la edición, el redimensionamiento
+        /// y blinda la grilla contra intentos de modificación por parte del usuario.
+        /// </summary>
+        /// <param name="g">La DataGridView a bloquear.</param>
+        /// <param name="bloquearTamano">Si es true, también deshabilita el redimensionamiento de columnas y filas.</param>
+        public static void SoloLectura(DataGridView g, bool bloquearTamano = true)
+        {
+            if (g == null) return;
+
+            // Propiedades base de solo lectura
+            g.ReadOnly = true;
+            g.EditMode = DataGridViewEditMode.EditProgrammatically;
+            g.AllowUserToAddRows = false;
+            g.AllowUserToDeleteRows = false;
+            g.AllowUserToOrderColumns = false;
+
+            // Selección de fila completa
+            g.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            g.MultiSelect = false;
+
+            // Bloqueo de tamaño (opcional)
+            if (bloquearTamano)
+            {
+                g.AllowUserToResizeColumns = false;
+                g.AllowUserToResizeRows = false;
+                g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+                g.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+            }
+
+            // Aplicar a columnas existentes
+            foreach (DataGridViewColumn c in g.Columns)
+            {
+                c.ReadOnly = true;
+                if (bloquearTamano)
+                {
+                    c.Resizable = DataGridViewTriState.False;
+                }
+            }
+
+            // Blindaje contra eventos de edición (evitando suscripciones múltiples)
+            g.CellBeginEdit -= CancelEditHandler;
+            g.CellBeginEdit += CancelEditHandler;
+
+            g.UserDeletingRow -= CancelDeleteHandler;
+            g.UserDeletingRow += CancelDeleteHandler;
+
+            g.KeyDown -= SuppressEditKeysHandler;
+            g.KeyDown += SuppressEditKeysHandler;
+
+            // Asegurar que las columnas agregadas dinámicamente también se bloqueen
+            g.ColumnAdded -= ColumnAddedHandler;
+            g.ColumnAdded += ColumnAddedHandler;
+        }
+
+        // Handlers para el blindaje (static para poder removerlos sin instancia)
+        private static void CancelEditHandler(object sender, DataGridViewCellCancelEventArgs e) => e.Cancel = true;
+        private static void CancelDeleteHandler(object sender, DataGridViewRowCancelEventArgs e) => e.Cancel = true;
+        private static void SuppressEditKeysHandler(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete || e.KeyCode == Keys.Back || e.KeyCode == Keys.F2)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+            }
+        }
+        private static void ColumnAddedHandler(object sender, DataGridViewColumnEventArgs e)
+        {
+            e.Column.ReadOnly = true;
+            // Asumimos que si se bloquea, se bloquea todo. El flag `bloquearTamano` se evalúa en el `sender`.
+            if (sender is DataGridView dgv && !dgv.AllowUserToResizeColumns)
+            {
+                e.Column.Resizable = DataGridViewTriState.False;
+            }
+        }
+
         /// Ajusta columnas específicas para que ocupen más espacio.
         
         public static void WideColumns(DataGridView grid, params string[] columnNames)
@@ -63,11 +139,7 @@ namespace TeoAccesorios.Desktop
             }
         }
 
-       
-
-       
         /// Agrega una columna de texto estándar a la grilla.
-        /// Mantiene el estilo global aplicado por Estilizar, no cambia estética.
      
         public static DataGridViewTextBoxColumn AddText(
             DataGridView grid,
@@ -85,7 +157,10 @@ namespace TeoAccesorios.Desktop
                 ReadOnly = true
             };
 
-            if (width.HasValue) col.Width = width.Value;
+            if (width.HasValue)
+            {
+                col.Width = width.Value;
+            }
             if (fill) col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             if (!string.IsNullOrWhiteSpace(format)) col.DefaultCellStyle.Format = format;
             if (alignment.HasValue) col.DefaultCellStyle.Alignment = alignment.Value;
@@ -94,7 +169,6 @@ namespace TeoAccesorios.Desktop
             return col;
         }
 
-        
         /// Atajo: agrega columna de texto que llena espacio restante.
    
         public static DataGridViewTextBoxColumn AddTextFill(
@@ -106,7 +180,6 @@ namespace TeoAccesorios.Desktop
             return AddText(grid, header, dataProperty, width: null, fill: true, format: format);
         }
 
-    
         /// Columna numérica alineada a la derecha (int/decimal/moneda).
     
         public static DataGridViewTextBoxColumn AddNumber(

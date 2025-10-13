@@ -23,7 +23,6 @@ namespace TeoAccesorios.Desktop
             BackgroundColor = Color.White,
             BorderStyle = BorderStyle.FixedSingle,
             CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         };
 
         private readonly Venta _venta;
@@ -36,7 +35,7 @@ namespace TeoAccesorios.Desktop
 
             // Ventana
             Text = $"Venta #{venta.Id}";
-            Width = 840; Height = 620;
+            Width = 840; Height = 620; // Se ajustará en AplicarAnchoPreferido
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false;
@@ -99,6 +98,10 @@ namespace TeoAccesorios.Desktop
             });
 
             root.Controls.Add(pnlTotal, 0, 2);
+
+            // Ensancha el form y ajusta la grilla para que las columnas no se achiquen.
+            // Se llama en el Load para asegurar que el handle del form esté creado.
+            this.Load += (_, __) => AplicarAnchoPreferido();
         }
 
         // Header con tarjetas
@@ -405,6 +408,44 @@ namespace TeoAccesorios.Desktop
                     return parsed.ToString("dd/MM/yyyy HH:mm");
             }
             return null;
+        }
+
+        // ===== Ajustes de Ancho =====
+
+        private const int ExtraWidth = 160;
+
+        private void AplicarAnchoPreferido()
+        {
+            // 1. Ensanchar el diálogo
+            this.Width += ExtraWidth;
+            // No es necesario ajustar MinimumSize en este form ya que es de tamaño fijo.
+
+            // 2. Configurar la grilla para que no auto-ajuste las columnas y aproveche el espacio
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            // El grid ya tiene Dock = DockStyle.Fill, por lo que se expandirá automáticamente.
+            // No es necesario cambiar a Anchor.
+
+            // 3. Forzar ancho mínimo de columnas monetarias
+            SetColumnWidth("PrecioUnitario", 130);
+            SetColumnWidth("Subtotal", 120);
+
+            // 4. Asegurar que los anchos se reapliquen si el DataSource cambia
+            grid.DataBindingComplete -= OnGridDataBindingComplete; // Evitar suscripciones múltiples
+            grid.DataBindingComplete += OnGridDataBindingComplete;
+        }
+
+        private void OnGridDataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            SetColumnWidth("PrecioUnitario", 130);
+            SetColumnWidth("Subtotal", 120);
+        }
+
+        private void SetColumnWidth(string columnName, int width)
+        {
+            var col = grid.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.DataPropertyName == columnName);
+            if (col == null) return;
+            col.MinimumWidth = width;
+            col.Width = Math.Max(col.Width, width);
         }
     }
 }
