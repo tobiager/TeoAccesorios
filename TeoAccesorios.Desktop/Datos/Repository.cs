@@ -32,6 +32,24 @@ namespace TeoAccesorios.Desktop
             public int StockTotal { get; set; }
             public int BajoMinimo { get; set; }
         }
+
+        public sealed class ProvinciaStats
+        {
+            public int Id { get; set; }
+            public string Nombre { get; set; } = "";
+            public bool? Activo { get; set; }
+            public int CantClientes { get; set; }
+            public int CantVentas { get; set; }
+        }
+
+        public sealed class LocalidadStats
+        {
+            public int Id { get; set; }
+            public string Nombre { get; set; } = "";
+            public bool? Activo { get; set; }
+            public int CantClientes { get; set; }
+            public int CantVentas { get; set; }
+        }
     }
 
     public static class Repository
@@ -41,22 +59,23 @@ namespace TeoAccesorios.Desktop
         public static List<Cliente> Clientes => ListarClientes(incluirInactivos: false);
         public static List<Usuario> Usuarios => ListarUsuarios();
 
-        // ========= CLIENTES =========
+        // ============================ CLIENTES ============================
         public static List<Cliente> ListarClientes(bool incluirInactivos = false)
         {
             var dt = Db.Query(@"
                 SELECT  c.Id,
                         LTRIM(RTRIM(c.Nombre)) AS Nombre,
-                        c.Email,
-                        c.Telefono,
-                        c.Direccion,
-                        c.Localidad,
-                        c.Provincia,
+                        c.Email, c.Telefono, c.Direccion,
+                        c.LocalidadId, 
+                        l.Nombre AS LocalidadNombre,
+                        p.Nombre AS ProvinciaNombre,
                         c.Activo
                 FROM dbo.Clientes c
-                WHERE (@all = 1 OR c.Activo = 1)
-                ORDER BY c.Nombre;",
-                new SqlParameter("@all", incluirInactivos ? 1 : 0));
+                LEFT JOIN dbo.Localidades l ON l.Id = c.LocalidadId
+                LEFT JOIN dbo.Provincias p ON p.Id = l.ProvinciaId
+                WHERE (@incluirInactivos = 1 OR c.Activo = 1)
+                ORDER BY c.Nombre;", // El parámetro aquí es específico de Clientes, no lo cambiamos.
+                new SqlParameter("@incluirInactivos", incluirInactivos ? 1 : 0));
 
             return dt.AsEnumerable().Select(r => new Cliente
             {
@@ -65,8 +84,9 @@ namespace TeoAccesorios.Desktop
                 Email = r.Field<string?>("Email") ?? "",
                 Telefono = r.Field<string?>("Telefono") ?? "",
                 Direccion = r.Field<string?>("Direccion") ?? "",
-                Localidad = r.Field<string?>("Localidad") ?? "",
-                Provincia = r.Field<string?>("Provincia") ?? "",
+                LocalidadId = r.Field<int?>("LocalidadId"),
+                LocalidadNombre = r.Field<string?>("LocalidadNombre") ?? "",
+                ProvinciaNombre = r.Field<string?>("ProvinciaNombre") ?? "",
                 Activo = r.Field<bool>("Activo")
             }).ToList();
         }
@@ -74,10 +94,9 @@ namespace TeoAccesorios.Desktop
         public static int InsertarCliente(Cliente c)
         {
             const string sql = @"
-                INSERT INTO dbo.Clientes
-                    (Nombre, Email, Telefono, Direccion, Localidad, Provincia, Activo)
+                INSERT INTO dbo.Clientes (Nombre, Email, Telefono, Direccion, LocalidadId, Activo)
                 OUTPUT INSERTED.Id
-                VALUES (@nom, @mail, @tel, @dir, @loc, @prov, 1);";
+                VALUES (@nom, @mail, @tel, @dir, @locId, 1);";
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(sql, cn);
@@ -86,8 +105,7 @@ namespace TeoAccesorios.Desktop
             cmd.Parameters.Add("@mail", SqlDbType.NVarChar, 200).Value = (object?)c.Email ?? DBNull.Value;
             cmd.Parameters.Add("@tel", SqlDbType.NVarChar, 50).Value = (object?)c.Telefono ?? DBNull.Value;
             cmd.Parameters.Add("@dir", SqlDbType.NVarChar, 200).Value = (object?)c.Direccion ?? DBNull.Value;
-            cmd.Parameters.Add("@loc", SqlDbType.NVarChar, 100).Value = (object?)c.Localidad ?? DBNull.Value;
-            cmd.Parameters.Add("@prov", SqlDbType.NVarChar, 100).Value = (object?)c.Provincia ?? DBNull.Value;
+            cmd.Parameters.Add("@locId", SqlDbType.Int).Value = (object?)c.LocalidadId ?? DBNull.Value;
 
             cn.Open();
             return Convert.ToInt32(cmd.ExecuteScalar());
@@ -97,12 +115,8 @@ namespace TeoAccesorios.Desktop
         {
             const string sql = @"
                 UPDATE dbo.Clientes
-                   SET Nombre=@nom,
-                       Email=@mail,
-                       Telefono=@tel,
-                       Direccion=@dir,
-                       Localidad=@loc,
-                       Provincia=@prov,
+                   SET Nombre=@nom, Email=@mail, Telefono=@tel,
+                       Direccion=@dir, LocalidadId=@locId,
                        Activo=@act
                  WHERE Id=@id;";
 
@@ -114,8 +128,7 @@ namespace TeoAccesorios.Desktop
             cmd.Parameters.Add("@mail", SqlDbType.NVarChar, 200).Value = (object?)c.Email ?? DBNull.Value;
             cmd.Parameters.Add("@tel", SqlDbType.NVarChar, 50).Value = (object?)c.Telefono ?? DBNull.Value;
             cmd.Parameters.Add("@dir", SqlDbType.NVarChar, 200).Value = (object?)c.Direccion ?? DBNull.Value;
-            cmd.Parameters.Add("@loc", SqlDbType.NVarChar, 100).Value = (object?)c.Localidad ?? DBNull.Value;
-            cmd.Parameters.Add("@prov", SqlDbType.NVarChar, 100).Value = (object?)c.Provincia ?? DBNull.Value;
+            cmd.Parameters.Add("@locId", SqlDbType.Int).Value = (object?)c.LocalidadId ?? DBNull.Value;
             cmd.Parameters.Add("@act", SqlDbType.Bit).Value = c.Activo;
 
             cn.Open();
@@ -142,7 +155,7 @@ namespace TeoAccesorios.Desktop
             SetClienteActivo(id, true);
         }
 
-        // ========= USUARIOS =========
+        // ============================ USUARIOS ============================
         public static List<Usuario> ListarUsuarios()
         {
             var dt = Db.Query(@"
@@ -171,7 +184,7 @@ namespace TeoAccesorios.Desktop
                 new SqlParameter("@id", id));
         }
 
-        // ========= CATEGORÍAS =========
+        // ============================ CATEGORÍAS ============================
         public static List<Categoria> ListarCategorias(bool incluirInactivas = true)
         {
             var dt = Db.Query(@"
@@ -234,8 +247,8 @@ namespace TeoAccesorios.Desktop
                 new SqlParameter("@id", id));
         }
 
-        // ========= SUBCATEGORÍAS =========
-        public static List<Subcategoria> ListarSubcategorias(int? categoriaId = null, bool incluirInactivas = true)
+        // ============================ SUBCATEGORÍAS ============================
+        public static List<Subcategoria> ListarSubcategorias(int? categoriaId = null, bool incluirInactivas = false)
         {
             var dt = Db.Query(@"
             SELECT  s.Id, s.Nombre, s.Descripcion, s.CategoriaId, s.Activo,
@@ -244,7 +257,7 @@ namespace TeoAccesorios.Desktop
             JOIN dbo.Categorias c ON c.Id = s.CategoriaId
             WHERE (@cat IS NULL OR s.CategoriaId = @cat)
               AND (@all = 1 OR s.Activo = 1)
-            ORDER BY c.Nombre, s.Nombre;",
+            ORDER BY c.Nombre, s.Nombre;", // El parámetro aquí es específico de Subcategorías.
                 new SqlParameter("@cat", (object?)categoriaId ?? DBNull.Value),
                 new SqlParameter("@all", incluirInactivas ? 1 : 0));
 
@@ -305,7 +318,7 @@ namespace TeoAccesorios.Desktop
                 new SqlParameter("@id", id));
         }
 
-        // ===== VALIDACIÓN PARA BLOQUEAR LA BAJA (soft delete seguro) =====
+        // ============================ VALIDACIONES BAJA ============================
         public static int ContarProductosPorCategoria(int categoriaId)
         {
             var dt = Db.Query(@"
@@ -342,7 +355,7 @@ namespace TeoAccesorios.Desktop
             return true;
         }
 
-        // ========= PRODUCTOS =========
+        // ============================ PRODUCTOS ============================
         public static List<Producto> ListarProductos(bool incluirInactivos = false)
         {
             var dt = Db.Query(@"
@@ -452,7 +465,185 @@ namespace TeoAccesorios.Desktop
             SetProductoActivo(id, true);
         }
 
-        // ========= STATS =========
+        // ============================ PROVINCIAS ============================
+        public static List<Provincia> ListarProvincias(bool incluirInactivas = false)
+        {
+            var dt = Db.Query(@"
+                SELECT Id, Nombre, ISNULL(Activo, 1) AS Activo
+                FROM dbo.Provincias
+                WHERE (@incluirInactivas = 1 OR Activo = 1)
+                ORDER BY Nombre;",
+                new SqlParameter("@incluirInactivas", incluirInactivas));
+
+            return dt.AsEnumerable().Select(r => new Provincia
+            {
+                Id = r.Field<int>("Id"),
+                Nombre = r.Field<string>("Nombre")!,
+                Activo = r.Field<bool?>("Activo") ?? true
+            }).ToList();
+        }
+
+        public static Provincia? ObtenerProvincia(int id)
+        {
+            return ListarProvincias(true).FirstOrDefault(p => p.Id == id);
+        }
+
+        public static int CrearProvincia(Provincia p)
+        {
+            const string sql = "INSERT INTO dbo.Provincias (Nombre, Activo) OUTPUT INSERTED.Id VALUES (@nom, @act);";
+            using var cn = new SqlConnection(Db.ConnectionString);
+            using var cmd = new SqlCommand(sql, cn);
+            cmd.Parameters.AddWithValue("@nom", p.Nombre);
+            cmd.Parameters.AddWithValue("@act", p.Activo ?? true);
+            cn.Open();
+            return (int)cmd.ExecuteScalar();
+        }
+
+        public static void ActualizarProvincia(Provincia p)
+        {
+            const string sql = "UPDATE dbo.Provincias SET Nombre=@nom, Activo=@act WHERE Id=@id;";
+            Db.Exec(sql, 
+                new SqlParameter("@nom", p.Nombre), 
+                new SqlParameter("@act", p.Activo ?? true), 
+                new SqlParameter("@id", p.Id));
+        }
+
+        public static void SetProvinciaActiva(int id, bool activa)
+        {
+            Db.Exec("UPDATE dbo.Provincias SET Activo=@a WHERE Id=@id",
+                new SqlParameter("@a", activa), 
+                new SqlParameter("@id", id));
+        }
+
+        public static int ContarLocalidadesPorProvincia(int provinciaId)
+        {
+            var dt = Db.Query("SELECT COUNT(*) AS Cnt FROM dbo.Localidades WHERE ProvinciaId = @id", new SqlParameter("@id", provinciaId));
+            return dt.AsEnumerable().Select(r => r.Field<int>("Cnt")).FirstOrDefault();
+        }
+
+        // ============================ LOCALIDADES ============================
+        public static List<Localidad> ListarLocalidades(int? provinciaId = null, bool incluirInactivas = false)
+        {
+            var dt = Db.Query(@"
+                SELECT l.Id, l.Nombre, l.ProvinciaId, 
+                       p.Nombre AS ProvinciaNombre, 
+                       ISNULL(l.Activo, 1) AS Activo
+                FROM dbo.Localidades l
+                JOIN dbo.Provincias p ON p.Id = l.ProvinciaId
+                WHERE (@provId IS NULL OR l.ProvinciaId = @provId) 
+                  AND (@incluirInactivas = 1 OR l.Activo = 1)
+                ORDER BY p.Nombre, l.Nombre;",
+                new SqlParameter("@provId", (object?)provinciaId ?? DBNull.Value),
+                new SqlParameter("@incluirInactivas", incluirInactivas));
+
+            return dt.AsEnumerable().Select(r => new Localidad
+            {
+                Id = r.Field<int>("Id"),
+                Nombre = r.Field<string>("Nombre")!,
+                ProvinciaId = r.Field<int>("ProvinciaId"),
+                ProvinciaNombre = r.Field<string>("ProvinciaNombre")!,
+                Activo = r.Field<bool?>("Activo") ?? true
+            }).ToList();
+        }
+
+        public static Localidad? ObtenerLocalidad(int id)
+        {
+            return ListarLocalidades(null, true).FirstOrDefault(l => l.Id == id);
+        }
+
+        public static void SetLocalidadActiva(int id, bool activa)
+        {
+            Db.Exec("UPDATE dbo.Localidades SET Activo=@a WHERE Id=@id",
+                new SqlParameter("@a", activa), new SqlParameter("@id", id));
+        }
+
+        public static int ContarClientesPorLocalidad(int localidadId)
+        {
+            var dt = Db.Query("SELECT COUNT(*) AS Cnt FROM dbo.Clientes WHERE LocalidadId = @id", new SqlParameter("@id", localidadId));
+            return dt.AsEnumerable().Select(r => r.Field<int>("Cnt")).FirstOrDefault();
+        }
+
+        public static int CrearLocalidad(Localidad l)
+        {
+            const string sql = "INSERT INTO dbo.Localidades (Nombre, ProvinciaId, Activo) OUTPUT INSERTED.Id VALUES (@nom, @pId, @act);";
+            using var cn = new SqlConnection(Db.ConnectionString);
+            using var cmd = new SqlCommand(sql, cn);
+            cmd.Parameters.AddWithValue("@nom", l.Nombre);
+            cmd.Parameters.AddWithValue("@pId", l.ProvinciaId);
+            cmd.Parameters.AddWithValue("@act", l.Activo ?? true);
+            cn.Open();
+            return (int)cmd.ExecuteScalar();
+        }
+
+        public static void ActualizarLocalidad(Localidad l)
+        {
+            const string sql = "UPDATE dbo.Localidades SET Nombre=@nom, ProvinciaId=@pId, Activo=@act WHERE Id=@id;";
+            Db.Exec(sql, new SqlParameter("@nom", l.Nombre), new SqlParameter("@pId", l.ProvinciaId),
+                new SqlParameter("@act", l.Activo ?? true), new SqlParameter("@id", l.Id));
+        }
+
+        /// <summary>
+        /// Provincias con stats (filtra por activas si incluirInactivas=false)
+        /// </summary>
+        public static List<Models.ProvinciaStats> ListarProvinciasConStats(bool incluirInactivas = false)
+        {
+            var dt = Db.Query(@"
+                SELECT  p.Id,
+                        p.Nombre,
+                        ISNULL(p.Activo,1) AS Activo,
+                        -- Clientes por provincia
+                        (SELECT COUNT(DISTINCT c.Id) FROM dbo.Clientes c JOIN dbo.Localidades l ON c.LocalidadId = l.Id WHERE l.ProvinciaId = p.Id) AS CantClientes,
+                        -- Ventas por provincia (toma Venta.LocalidadIdVenta si no es null; si es null usa la del Cliente)
+                        (SELECT COUNT(DISTINCT v.Id)
+                         FROM dbo.Ventas v
+                         JOIN dbo.Clientes cli ON cli.Id = v.ClienteId
+                         JOIN dbo.Localidades l_v ON l_v.Id = COALESCE(v.LocalidadIdVenta, cli.LocalidadId)
+                         WHERE l_v.ProvinciaId = p.Id) AS CantVentas
+                FROM dbo.Provincias p
+                WHERE (@incluirInactivas = 1 OR ISNULL(p.Activo,1) = 1)
+                ORDER BY p.Nombre;",
+                new SqlParameter("@incluirInactivas", incluirInactivas ? 1 : 0));
+
+            return dt.AsEnumerable().Select(r => new Models.ProvinciaStats {
+                Id = r.Field<int>("Id"),
+                Nombre = r.Field<string>("Nombre"),
+                Activo = r.Field<bool?>("Activo"),
+                CantClientes = r.Field<int>("CantClientes"),
+                CantVentas = r.Field<int>("CantVentas")
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Localidades con stats, opcionalmente filtradas por provincia
+        /// </summary>
+        public static List<Models.LocalidadStats> ListarLocalidadesConStats(int? provinciaId = null, bool incluirInactivas = false)
+        {
+            var dt = Db.Query(@"
+                SELECT  l.Id,
+                        l.Nombre,
+                        ISNULL(l.Activo,1) AS Activo,
+                        (SELECT COUNT(DISTINCT c.Id) FROM dbo.Clientes c WHERE c.LocalidadId = l.Id) AS CantClientes,
+                        (SELECT COUNT(DISTINCT v.Id)
+                         FROM dbo.Ventas v
+                         JOIN dbo.Clientes cli ON cli.Id = v.ClienteId
+                         WHERE COALESCE(v.LocalidadIdVenta, cli.LocalidadId) = l.Id) AS CantVentas
+                FROM dbo.Localidades l
+                WHERE (@provId IS NULL OR l.ProvinciaId = @provId)
+                  AND (@incluirInactivas = 1 OR ISNULL(l.Activo,1) = 1)
+                ORDER BY l.Nombre;",
+                new SqlParameter("@provId", (object?)provinciaId ?? DBNull.Value),
+                new SqlParameter("@incluirInactivas", incluirInactivas ? 1 : 0));
+
+            return dt.AsEnumerable().Select(r => new Models.LocalidadStats {
+                Id = r.Field<int>("Id"),
+                Nombre = r.Field<string>("Nombre"),
+                Activo = r.Field<bool?>("Activo"),
+                CantClientes = r.Field<int>("CantClientes"),
+                CantVentas = r.Field<int>("CantVentas")
+            }).ToList();
+        }
+
+        // ============================ STATS ============================
         public static List<Models.CategoriaStat> GetCategoriaStats(bool incluirInactivos = true)
         {
             var dt = Db.Query(@"
@@ -517,19 +708,22 @@ namespace TeoAccesorios.Desktop
             return list;
         }
 
-        // ========= VENTAS =========
+        // ============================ VENTAS ============================
         public static List<Venta> ListarVentas(bool incluirAnuladas = false)
         {
             var dtCab = Db.Query(@"
                 SELECT  v.Id,
                         v.Fecha,
                         v.ClienteId,
-                        v.Vendedor,
-                        v.Canal,
-                        v.DireccionEnvio,
+                        v.Vendedor, 
+                        v.Canal, 
+                        v.DireccionVenta AS DireccionEnvio,
+                        v.LocalidadIdVenta AS LocalidadId,
                         CAST(ISNULL(v.Anulada, 0) AS bit) AS Anulada,
                         c.Nombre AS ClienteNombre
                 FROM dbo.Ventas v
+                -- El LEFT JOIN a Clientes es para obtener el nombre.
+                -- La dirección/localidad se toma directamente de la venta.
                 LEFT JOIN dbo.Clientes c ON c.Id = v.ClienteId
                 WHERE (@all = 1 OR ISNULL(v.Anulada,0) = 0)
                 ORDER BY v.Fecha DESC;",
@@ -544,6 +738,7 @@ namespace TeoAccesorios.Desktop
                 Vendedor = r.Field<string?>("Vendedor") ?? "",
                 Canal = r.Field<string?>("Canal") ?? "",
                 DireccionEnvio = r.Field<string?>("DireccionEnvio") ?? "",
+                LocalidadId = r.Field<int?>("LocalidadId"),
                 Anulada = r.Field<bool>("Anulada"),
                 Detalles = new List<DetalleVenta>(),
                 Total = 0m
@@ -592,14 +787,15 @@ namespace TeoAccesorios.Desktop
             try
             {
                 var cmdCab = new SqlCommand(@"
-                    INSERT INTO dbo.Ventas (Fecha, Vendedor, Canal, ClienteId, DireccionEnvio, Anulada)
+                    INSERT INTO dbo.Ventas (Fecha, Vendedor, Canal, ClienteId, DireccionVenta, LocalidadIdVenta, Anulada)
                     OUTPUT INSERTED.Id
-                    VALUES (@fecha, @vend, @canal, @cli, @dir, 0);", cn, tx);
+                    VALUES (@fecha, @vend, @canal, @cli, @dir, @locIdVenta, 0);", cn, tx);
 
                 cmdCab.Parameters.Add("@fecha", SqlDbType.DateTime2).Value = v.FechaVenta;
                 cmdCab.Parameters.Add("@vend", SqlDbType.NVarChar, 100).Value = v.Vendedor ?? "";
                 cmdCab.Parameters.Add("@canal", SqlDbType.NVarChar, 50).Value = v.Canal ?? "";
                 cmdCab.Parameters.Add("@cli", SqlDbType.Int).Value = v.ClienteId;
+                cmdCab.Parameters.Add("@locIdVenta", SqlDbType.Int).Value = (object?)v.LocalidadId ?? DBNull.Value;
                 cmdCab.Parameters.Add("@dir", SqlDbType.NVarChar, 200).Value = (object?)v.DireccionEnvio ?? DBNull.Value;
 
                 var idVenta = Convert.ToInt32(cmdCab.ExecuteScalar());

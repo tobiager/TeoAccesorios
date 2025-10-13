@@ -1,7 +1,9 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using TeoAccesorios.Desktop.Models;
+using TeoAccesorios.Desktop.UI.Common;
 
 namespace TeoAccesorios.Desktop
 {
@@ -11,8 +13,8 @@ namespace TeoAccesorios.Desktop
         private readonly TextBox txtEmail = new();
         private readonly TextBox txtTel = new();
         private readonly TextBox txtDir = new();
-        private readonly TextBox txtLoc = new();
-        private readonly TextBox txtProv = new();
+        private readonly ComboBox cmbProv = new();
+        private readonly ComboBox cmbLoc = new();
         private readonly CheckBox chkActivo = new() { Text = "Activo" };
         private readonly Button btnGuardar = new() { Text = "Guardar", Width = 100, Height = 30 };
         private readonly Button btnCancel = new() { Text = "Cancelar", Width = 100, Height = 30 };
@@ -35,12 +37,12 @@ namespace TeoAccesorios.Desktop
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             for (int i = 0; i < 7; i++) grid.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 6 ? 46 : 36));
 
-            grid.Controls.Add(new Label { Text = "Nombre *", TextAlign = ContentAlignment.MiddleLeft }, 0, 0); grid.Controls.Add(txtNombre, 1, 0);
-            grid.Controls.Add(new Label { Text = "Email", TextAlign = ContentAlignment.MiddleLeft }, 0, 1); grid.Controls.Add(txtEmail, 1, 1);
-            grid.Controls.Add(new Label { Text = "Teléfono", TextAlign = ContentAlignment.MiddleLeft }, 0, 2); grid.Controls.Add(txtTel, 1, 2);
-            grid.Controls.Add(new Label { Text = "Dirección *", TextAlign = ContentAlignment.MiddleLeft }, 0, 3); grid.Controls.Add(txtDir, 1, 3);
-            grid.Controls.Add(new Label { Text = "Localidad *", TextAlign = ContentAlignment.MiddleLeft }, 0, 4); grid.Controls.Add(txtLoc, 1, 4);
-            grid.Controls.Add(new Label { Text = "Provincia *", TextAlign = ContentAlignment.MiddleLeft }, 0, 5); grid.Controls.Add(txtProv, 1, 5);
+            grid.Controls.Add(new Label { Text = "Nombre *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 0); grid.Controls.Add(txtNombre, 1, 0); txtNombre.Dock = DockStyle.Fill;
+            grid.Controls.Add(new Label { Text = "Email", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 1); grid.Controls.Add(txtEmail, 1, 1); txtEmail.Dock = DockStyle.Fill;
+            grid.Controls.Add(new Label { Text = "Teléfono", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 2); grid.Controls.Add(txtTel, 1, 2); txtTel.Dock = DockStyle.Fill;
+            grid.Controls.Add(new Label { Text = "Dirección *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 3); grid.Controls.Add(txtDir, 1, 3); txtDir.Dock = DockStyle.Fill;
+            grid.Controls.Add(new Label { Text = "Provincia *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 4); grid.Controls.Add(cmbProv, 1, 4); cmbProv.Dock = DockStyle.Fill;
+            grid.Controls.Add(new Label { Text = "Localidad *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 5); grid.Controls.Add(cmbLoc, 1, 5); cmbLoc.Dock = DockStyle.Fill;
 
             var panelButtons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft };
             panelButtons.Controls.Add(btnGuardar);
@@ -55,23 +57,14 @@ namespace TeoAccesorios.Desktop
             AcceptButton = btnGuardar;
             CancelButton = btnCancel;
 
-            // Prefill
-            txtNombre.Text = c?.Nombre ?? "";
-            txtEmail.Text = c?.Email ?? "";
-            txtTel.Text = c?.Telefono ?? "";
-            txtDir.Text = c?.Direccion ?? "";
-            txtLoc.Text = c?.Localidad ?? "";
-            txtProv.Text = c?.Provincia ?? "";
-            chkActivo.Checked = c?.Activo ?? true;
+            // Carga de datos
+            LoadProvinciasAndLocalidades();
 
             // Eventos
-            txtNombre.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
-            txtEmail.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
-            txtTel.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
-            txtDir.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
-            txtLoc.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
-            txtProv.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
+            cmbProv.SelectedValueChanged += CmbProv_SelectedValueChanged;
 
+            // Asignar validación a todos los controles relevantes
+            AssignValidationHandlers();
             btnGuardar.Click += (_, __) =>
             {
                 if (!Validar()) return;
@@ -80,8 +73,7 @@ namespace TeoAccesorios.Desktop
                 model.Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim();
                 model.Telefono = string.IsNullOrWhiteSpace(txtTel.Text) ? null : txtTel.Text.Trim();
                 model.Direccion = txtDir.Text.Trim();
-                model.Localidad = txtLoc.Text.Trim();
-                model.Provincia = txtProv.Text.Trim();
+                model.LocalidadId = (int?)cmbLoc.SelectedValue;
                 model.Activo = chkActivo.Checked;
 
                 DialogResult = DialogResult.OK;
@@ -93,16 +85,88 @@ namespace TeoAccesorios.Desktop
             btnGuardar.Enabled = Validar();
         }
 
+        private void LoadProvinciasAndLocalidades()
+        {
+            txtNombre.Text = model.Nombre;
+            txtEmail.Text = model.Email ?? "";
+            txtTel.Text = model.Telefono ?? "";
+            txtDir.Text = model.Direccion;
+            chkActivo.Checked = model.Activo;
+            
+            int? provIdToSelect = null;
+            int? locIdToSelect = model.LocalidadId;
+            
+            var provincias = Repository.ListarProvincias(false);
+            
+            if (model.LocalidadId.HasValue)
+            {
+                var loc = Repository.ObtenerLocalidad(model.LocalidadId.Value);
+                if (loc != null)
+                {
+                    provIdToSelect = loc.ProvinciaId;
+                    var prov = Repository.ObtenerProvincia(loc.ProvinciaId);
+                    // Si la provincia del cliente está inactiva, la añadimos temporalmente para que se muestre
+                    if (prov != null && prov.Activo == false && !provincias.Any(p => p.Id == prov.Id))
+                    {
+                        provincias.Add(prov);
+                        provincias = provincias.OrderBy(p => p.Nombre).ToList();
+                    }
+                }
+            }
+            
+            FormUtils.BindCombo(cmbProv, provincias, selectedValue: provIdToSelect);
+            
+            // Cargar localidades basadas en la provincia seleccionada (o la del modelo)
+            var localidades = Repository.ListarLocalidades(provIdToSelect, false);
+            if (locIdToSelect.HasValue)
+            {
+                var selectedLoc = Repository.ObtenerLocalidad(locIdToSelect.Value);
+                // Si la localidad del cliente está inactiva, la añadimos temporalmente
+                if (selectedLoc != null && selectedLoc.Activo == false && !localidades.Any(l => l.Id == selectedLoc.Id))
+                {
+                    localidades.Add(selectedLoc);
+                    localidades = localidades.OrderBy(l => l.Nombre).ToList();
+                }
+            }
+            
+            FormUtils.BindCombo(cmbLoc, localidades, selectedValue: locIdToSelect);
+        }
+
+        private void CmbProv_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (cmbProv.SelectedValue is int provId)
+            {
+                var localidades = Repository.ListarLocalidades(provId, false);
+                FormUtils.BindCombo(cmbLoc, localidades);
+            }
+            else
+            {
+                FormUtils.BindCombo<Localidad>(cmbLoc, null);
+            }
+            Validar();
+        }
+
         private bool Validar()
         {
             bool ok = true;
             ok &= FormValidator.Require(txtNombre, ep, "Nombre requerido", 2, 120);
             ok &= FormValidator.Require(txtDir, ep, "Dirección requerida", 3, 120);
-            ok &= FormValidator.Require(txtLoc, ep, "Localidad requerida", 2, 80);
-            ok &= FormValidator.Require(txtProv, ep, "Provincia requerida", 2, 80);
             ok &= FormValidator.OptionalEmail(txtEmail, ep, "Email inválido");
             ok &= FormValidator.OptionalPhone(txtTel, ep, "Teléfono inválido");
+            if (cmbProv.SelectedValue == null) { ep.SetError(cmbProv, "Provincia requerida"); ok = false; } else { ep.SetError(cmbProv, ""); }
+            if (cmbLoc.SelectedValue == null) { ep.SetError(cmbLoc, "Localidad requerida"); ok = false; } else { ep.SetError(cmbLoc, ""); }
             return ok;
+        }
+
+        private void AssignValidationHandlers()
+        {
+            txtNombre.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
+            txtEmail.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
+            txtTel.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
+            txtDir.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
+            // La validación de los combos se dispara cuando cambia la selección de provincia
+            // y al final de la carga inicial.
+            cmbLoc.SelectedValueChanged += (_, __) => btnGuardar.Enabled = Validar();
         }
     }
 }

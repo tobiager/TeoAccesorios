@@ -5,6 +5,9 @@ using System.Windows.Forms;
 using WinFormsTimer = System.Windows.Forms.Timer;
 using Microsoft.Data.SqlClient;
 
+// Alias seguro al namespace de tus forms de provincias
+using ProvsUI = TeoAccesorios.Desktop.UI.Provincias;
+
 namespace TeoAccesorios.Desktop
 {
     public class DashboardForm : Form
@@ -14,8 +17,8 @@ namespace TeoAccesorios.Desktop
         private Panel content;
 
         // Estado visual navegación
-        private Panel _indicador;          
-        private Button _btnActivo;         
+        private Panel _indicador;
+        private Button? _btnActivo;
         private readonly WinFormsTimer _anim = new WinFormsTimer { Interval = 10 };
         private int _targetTop, _targetHeight;
 
@@ -23,7 +26,6 @@ namespace TeoAccesorios.Desktop
         {
             Text = "TeoAccesorios — " + Sesion.Rol.ToString();
             Width = 1100; Height = 720; StartPosition = FormStartPosition.CenterScreen;
-
             StartPosition = FormStartPosition.CenterScreen;
             WindowState = FormWindowState.Maximized;
 
@@ -37,7 +39,6 @@ namespace TeoAccesorios.Desktop
             Label brand = new Label { Text = "TeoAccesorios", ForeColor = Color.White, Font = new Font("Segoe UI", 16, FontStyle.Bold), Dock = DockStyle.Top, Height = 36 };
             side.Controls.Add(brand);
 
-           
             _indicador = new Panel
             {
                 Width = 5,
@@ -50,7 +51,6 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(_indicador);
             _anim.Tick += (_, __) => AnimarIndicador();
 
-            
             Button Btn(string txt)
             {
                 var b = new Button
@@ -71,20 +71,22 @@ namespace TeoAccesorios.Desktop
                 return b;
             }
 
-           
             var btnCerrarSesion = Btn("Cerrar sesión");
             var btnInicio = Btn("Inicio (Dashboard)");
             var btnReportes = Btn("Reportes");
             var btnEmpleados = Btn("Empleados");
             var btnClientes = Btn("Clientes");
             var btnCategorias = Btn("Categorías");
+
+            // NUEVO: botón Provincias/Localidades
+            var btnProvinciasLocalidades = Btn("Provincias/Localidades");
+
             var btnProductos = Btn("Productos");
             var btnVerVentas = Btn("Ver Ventas");
             var btnNuevaVenta = Btn("Nueva Venta");
             Button? btnBackup = null;
             if (Sesion.Rol == RolUsuario.Admin) btnBackup = Btn("Backup BD");
 
-           
             void Nav(Button btn, Action action)
             {
                 ActivarBoton(btn);
@@ -101,15 +103,21 @@ namespace TeoAccesorios.Desktop
             btnEmpleados.Click += (_, __) => Nav(btnEmpleados, () => ShowInContent(new UsuariosForm()));
             btnClientes.Click += (_, __) => Nav(btnClientes, () => ShowInContent(new ClientesForm()));
             btnCategorias.Click += (_, __) => Nav(btnCategorias, () => ShowInContent(new CategoriasForm()));
+
+            // NUEVO: abre el administrador de provincias/localidades
+            btnProvinciasLocalidades.Click += (_, __) =>
+                Nav(btnProvinciasLocalidades, () => ShowInContent(new ProvsUI.ProvinciasLocalidadesForm()));
+
             btnProductos.Click += (_, __) => Nav(btnProductos, () => ShowInContent(new ProductosForm()));
             btnVerVentas.Click += (_, __) => Nav(btnVerVentas, () => ShowInContent(new VentasForm()));
             btnNuevaVenta.Click += (_, __) => Nav(btnNuevaVenta, () => ShowInContent(new NuevaVentaForm()));
             if (btnBackup != null) btnBackup.Click += (_, __) => DoBackup();
 
-            
+            // IMPORTANTE: el orden de Add con Dock=Top es inverso en pantalla (el último va más arriba).
             side.Controls.Add(btnNuevaVenta);
             side.Controls.Add(btnVerVentas);
             side.Controls.Add(btnProductos);
+            side.Controls.Add(btnProvinciasLocalidades); // <— queda entre Categorías y Productos
             side.Controls.Add(btnCategorias);
             side.Controls.Add(btnClientes);
             if (Sesion.Rol == RolUsuario.Admin) side.Controls.Add(btnEmpleados);
@@ -136,12 +144,10 @@ namespace TeoAccesorios.Desktop
             root.Controls.Add(content, 1, 1);
             Controls.Add(root);
 
-            
             ShowKpis();
             ActivarBoton(btnInicio, animar: false);
         }
 
-       
         private void ActivarBoton(Button btn, bool animar = true)
         {
             if (_btnActivo != null)

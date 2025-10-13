@@ -149,8 +149,7 @@ namespace TeoAccesorios.Desktop
             {
                 if (e.RowIndex < 0) return;
                 if (!TryGetVentaFromRow(grid.Rows[e.RowIndex], out var v)) return;
-                var cliente = FindClienteById(v.ClienteId);
-                using var f = new VentaDetalleForm(v, cliente);
+                using var f = new VentaDetalleForm(v, null);
                 f.ShowDialog(this);
             };
 
@@ -267,6 +266,7 @@ namespace TeoAccesorios.Desktop
                 v.ClienteId,
                 ClienteNombre = v.ClienteNombre,
                 DireccionEnvio = v.DireccionEnvio,
+                v.LocalidadId,
                 Total = v.Total
             }).ToList();
         }
@@ -287,6 +287,12 @@ namespace TeoAccesorios.Desktop
                 var cFecha = FindCol("Fecha"); if (cFecha != null) cFecha.Width = 140;
                 var cCli = FindCol("ClienteNombre"); if (cCli != null) cCli.HeaderText = "Cliente";
                 var cDir = FindCol("DireccionEnvio"); if (cDir != null) cDir.HeaderText = "Dirección envío";
+                
+                // Ocultar columnas de ID que no son para el usuario
+                var cClienteId = FindCol("ClienteId"); if (cClienteId != null) cClienteId.Visible = false;
+                var cLocalidadId = FindCol("LocalidadId"); if (cLocalidadId != null) cLocalidadId.Visible = false;
+                var cAnulada = FindCol("Anulada"); if (cAnulada != null) cAnulada.Visible = false;
+
             }
             catch { /* cosmético */ }
         }
@@ -453,18 +459,6 @@ namespace TeoAccesorios.Desktop
 
             venta = _ventasFiltradas.FirstOrDefault(v => v.Id == id)!;
             return venta != null;
-        }
-
-        private Cliente? FindClienteById(int clienteId)
-        {
-            try
-            {
-                var m = typeof(Repository).GetMethod("GetClienteById");
-                if (m != null) return (Cliente?)m.Invoke(null, new object[] { clienteId });
-            }
-            catch { /* fallback */ }
-
-            return Repository.Clientes?.FirstOrDefault(c => c.Id == clienteId);
         }
 
         // ===== Helpers generales =====

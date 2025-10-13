@@ -26,7 +26,6 @@ namespace TeoAccesorios.Desktop
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         };
 
-        
         private readonly Venta _venta;
         private readonly Cliente? _cliente;
 
@@ -58,9 +57,9 @@ namespace TeoAccesorios.Desktop
                 RowCount = 3,
                 Padding = new Padding(8)
             };
-            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));     
-            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); 
-            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));     
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // header
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // grid
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // footer
             Controls.Add(root);
 
             // Header
@@ -90,7 +89,14 @@ namespace TeoAccesorios.Desktop
                 Font = new Font("Segoe UI Semibold", 13f, FontStyle.Bold),
                 Text = $"Total  $ {totalCalc:N0}"
             });
-            pnlTotal.Controls.Add(new Label { Dock = DockStyle.Left, AutoSize = true, ForeColor = Color.Gray, Text = "Esc para cerrar", Padding = new Padding(0, 10, 0, 0) });
+            pnlTotal.Controls.Add(new Label
+            {
+                Dock = DockStyle.Left,
+                AutoSize = true,
+                ForeColor = Color.Gray,
+                Text = "Esc para cerrar",
+                Padding = new Padding(0, 10, 0, 0)
+            });
 
             root.Controls.Add(pnlTotal, 0, 2);
         }
@@ -99,11 +105,36 @@ namespace TeoAccesorios.Desktop
         private Control BuildHeader()
         {
             // Dirección desde Venta.* (soporta varios nombres)
-            var direccion = GetStringPath(_venta, "DireccionEnvio", "DirecciónEnvio", "Direccion", "Dirección");
+            var direccion = GetStringPath(_venta,
+                "DireccionEnvio", "DirecciónEnvio", "DireccionVenta", "Direccion", "Dirección");
 
-            // Localidad/Provincia: vienen del cliente que recibo
-            var localidad = _cliente?.Localidad ?? "";
-            var provincia = _cliente?.Provincia ?? "";
+            // Localidad / Provincia
+            int? localidadId = _venta.LocalidadId;
+            if (!localidadId.HasValue && _cliente?.LocalidadId != null)
+                localidadId = _cliente.LocalidadId;
+
+            string localidad = "-", provincia = "-";
+            if (localidadId.HasValue)
+            {
+                try
+                {
+                    var loc = Repository.ListarLocalidades(null, true)
+                                        .FirstOrDefault(l => l.Id == localidadId.Value);
+                    if (loc != null)
+                    {
+                        localidad = loc.Nombre;
+                        provincia = loc.ProvinciaNombre;
+                    }
+                }
+                catch { /* repository aún no listo: mantener "-" */ }
+            }
+
+            // Otros campos tolerantes
+            var fechaTxt = GetDateString(_venta, "Fecha", "FechaVenta", "FechaHora", "FechaAlta", "CreatedAt") ?? "-";
+            var clienteNom = GetString(_venta, "ClienteNombre", "Cliente", "NombreCliente")
+                             ?? _cliente?.Nombre ?? "-";
+            var vendedor = GetString(_venta, "Vendedor", "Usuario", "UsuarioNombre") ?? "-";
+            var canal = GetString(_venta, "Canal", "Medio") ?? "";
 
             var wrap = new TableLayoutPanel
             {
@@ -118,12 +149,27 @@ namespace TeoAccesorios.Desktop
             wrap.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34f));
 
             // Título + chips
-            var title = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = new Padding(0, 0, 0, 6) };
-            title.Controls.Add(new Label { AutoSize = true, Text = $"Venta #{_venta.Id}", Font = new Font("Segoe UI Semibold", 12f, FontStyle.Bold), ForeColor = Color.FromArgb(28, 37, 54), Padding = new Padding(0, 0, 6, 0) });
-            if (!string.IsNullOrWhiteSpace(_venta.Canal))
-                title.Controls.Add(Badge(_venta.Canal, Color.FromArgb(230, 243, 255), Color.FromArgb(26, 95, 180)));
+            var title = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Margin = new Padding(0, 0, 0, 6)
+            };
+            title.Controls.Add(new Label
+            {
+                AutoSize = true,
+                Text = $"Venta #{_venta.Id}",
+                Font = new Font("Segoe UI Semibold", 12f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(28, 37, 54),
+                Padding = new Padding(0, 0, 6, 0)
+            });
+            if (!string.IsNullOrWhiteSpace(canal))
+                title.Controls.Add(Badge(canal, Color.FromArgb(230, 243, 255), Color.FromArgb(26, 95, 180)));
 
-            var anuladaProp = _venta.GetType().GetProperty("Anulada", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+            var anuladaProp = _venta.GetType().GetProperty("Anulada",
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
             if (anuladaProp is not null && (anuladaProp.GetValue(_venta) as bool? ?? false))
                 title.Controls.Add(Badge("ANULADA", Color.FromArgb(255, 236, 236), Color.FromArgb(183, 28, 28)));
 
@@ -131,13 +177,13 @@ namespace TeoAccesorios.Desktop
             wrap.SetColumnSpan(title, 3);
 
             // Tarjetas 3×2
-            wrap.Controls.Add(InfoCard("Fecha", _venta.Fecha.ToString("dd/MM/yyyy HH:mm"), "\uE787"), 0, 1);                    
-            wrap.Controls.Add(InfoCard("Cliente", string.IsNullOrWhiteSpace(_venta.ClienteNombre) ? "-" : _venta.ClienteNombre, "\uE77B"), 1, 1);
-            wrap.Controls.Add(InfoCard("Dirección", string.IsNullOrWhiteSpace(direccion) ? "-" : direccion, "\uE707"), 2, 1);     
+            wrap.Controls.Add(InfoCard("Fecha", fechaTxt, "\uE787"), 0, 1);
+            wrap.Controls.Add(InfoCard("Cliente", string.IsNullOrWhiteSpace(clienteNom) ? "-" : clienteNom, "\uE77B"), 1, 1);
+            wrap.Controls.Add(InfoCard("Dirección", string.IsNullOrWhiteSpace(direccion) ? "-" : direccion, "\uE707"), 2, 1);
 
-            wrap.Controls.Add(InfoCard("Vendedor", string.IsNullOrWhiteSpace(_venta.Vendedor) ? "-" : _venta.Vendedor, "\uE7EF"), 0, 2); 
-            wrap.Controls.Add(InfoCard("Localidad", string.IsNullOrWhiteSpace(localidad) ? "-" : localidad, "\uE80F"), 1, 2);    
-            wrap.Controls.Add(InfoCard("Provincia", string.IsNullOrWhiteSpace(provincia) ? "-" : provincia, "\uE909"), 2, 2);     
+            wrap.Controls.Add(InfoCard("Vendedor", string.IsNullOrWhiteSpace(vendedor) ? "-" : vendedor, "\uE7EF"), 0, 2);
+            wrap.Controls.Add(InfoCard("Localidad", string.IsNullOrWhiteSpace(localidad) ? "-" : localidad, "\uE80F"), 1, 2);
+            wrap.Controls.Add(InfoCard("Provincia", string.IsNullOrWhiteSpace(provincia) ? "-" : provincia, "\uE909"), 2, 2);
 
             return wrap;
         }
@@ -185,9 +231,9 @@ namespace TeoAccesorios.Desktop
             btnCopy.Click += (s, e) => { try { Clipboard.SetText(value ?? ""); } catch { } };
 
             var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 22, ColumnCount = 3 };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));       
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));       
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             header.Controls.Add(icon, 0, 0);
             header.Controls.Add(titleLbl, 1, 0);
             header.Controls.Add(btnCopy, 2, 0);
@@ -235,7 +281,12 @@ namespace TeoAccesorios.Desktop
             string P(params string[] cands) => ResolveProp(itemType, cands);
 
             grid.Columns.Add(new DataGridViewTextBoxColumn
-            { DataPropertyName = P("ProductoNom", "ProductoNombre", "NombreProducto", "Producto", "Descripcion"), HeaderText = "Producto", FillWeight = 260, MinimumWidth = 160 });
+            {
+                DataPropertyName = P("ProductoNom", "ProductoNombre", "NombreProducto", "Producto", "Descripcion"),
+                HeaderText = "Producto",
+                FillWeight = 260,
+                MinimumWidth = 160
+            });
 
             grid.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -266,7 +317,8 @@ namespace TeoAccesorios.Desktop
             HideIfExists(P("ProductoId", "IdProducto"));
         }
 
-        // Helpers
+        // ===== Helpers =====
+
         private static string ResolveProp(Type t, params string[] candidates)
         {
             if (t == null || candidates == null || candidates.Length == 0) return candidates?.FirstOrDefault() ?? string.Empty;
@@ -299,7 +351,7 @@ namespace TeoAccesorios.Desktop
             return 0m;
         }
 
-        private static string GetString(object obj, params string[] props)
+        private static string? GetString(object obj, params string[] props)
         {
             if (obj == null) return null;
             var t = obj.GetType();
@@ -314,14 +366,14 @@ namespace TeoAccesorios.Desktop
             return null;
         }
 
-        // Permite leer propiedades anidadas por nombre (ej: "DireccionEnvio")
-        private static string GetStringPath(object root, params string[] paths)
+        // Lee propiedades anidadas por nombre (ej: "DireccionEnvio")
+        private static string? GetStringPath(object root, params string[] paths)
         {
             if (root == null || paths == null) return null;
             foreach (var path in paths)
             {
                 if (string.IsNullOrWhiteSpace(path)) continue;
-                object current = root;
+                object? current = root;
                 foreach (var part in path.Split('.'))
                 {
                     if (current == null) break;
@@ -330,6 +382,27 @@ namespace TeoAccesorios.Desktop
                     current = pi.GetValue(current);
                 }
                 if (current != null) { try { return Convert.ToString(current); } catch { } }
+            }
+            return null;
+        }
+
+        // Intenta obtener una fecha desde varios posibles nombres de propiedad
+        private static string? GetDateString(object obj, params string[] props)
+        {
+            if (obj == null) return null;
+            var t = obj.GetType();
+            foreach (var p in props)
+            {
+                var pi = t.GetProperty(p, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+                if (pi == null) continue;
+                var val = pi.GetValue(obj);
+                if (val == null) continue;
+
+                if (val is DateTime dt) return dt.ToString("dd/MM/yyyy HH:mm");
+                if (val is DateTimeOffset dto) return dto.LocalDateTime.ToString("dd/MM/yyyy HH:mm");
+                // si ya viene string
+                if (val is string s && DateTime.TryParse(s, out var parsed))
+                    return parsed.ToString("dd/MM/yyyy HH:mm");
             }
             return null;
         }

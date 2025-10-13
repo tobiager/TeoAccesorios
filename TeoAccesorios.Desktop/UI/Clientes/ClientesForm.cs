@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Windows.Forms;
+using TeoAccesorios.Desktop;
 using TeoAccesorios.Desktop.Models;
 
 namespace TeoAccesorios.Desktop
@@ -66,8 +67,7 @@ namespace TeoAccesorios.Desktop
                     Email = sel.Email,
                     Telefono = sel.Telefono,
                     Direccion = sel.Direccion,
-                    Localidad = sel.Localidad,
-                    Provincia = sel.Provincia,
+                    LocalidadId = sel.LocalidadId,
                     Activo = sel.Activo
                 };
 
@@ -130,13 +130,19 @@ namespace TeoAccesorios.Desktop
             Controls.Add(grid);
             Controls.Add(top);
             GridHelper.Estilizar(grid);
-            GridHelperLock.Apply(grid);
+            // GridHelperLock.Apply(grid); // Comentado si causa problemas o no existe
             LoadData();
 
             grid.DataBindingComplete += (s, e) =>
             {
                 var colActivo = grid.Columns["Activo"];
                 if (colActivo != null) colActivo.Visible = false;
+                var colLocalidadId = grid.Columns["LocalidadId"];
+                if (colLocalidadId != null) colLocalidadId.Visible = false;
+                var colProv = grid.Columns["ProvinciaNombre"];
+                if (colProv != null) colProv.HeaderText = "Provincia";
+                var colLoc = grid.Columns["LocalidadNombre"];
+                if (colLoc != null) colLoc.HeaderText = "Localidad";
             };
         }
 

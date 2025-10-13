@@ -4,7 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
-using TeoAccesorios.Desktop.Models;
+using TeoAccesorios.Desktop.UI.Common;
+using TeoAccesorios.Desktop.Models; // Ya existe
 using System.Drawing;
 using System.Reflection;
 
@@ -18,13 +19,19 @@ namespace TeoAccesorios.Desktop
         private readonly NumericUpDown numCant = new() { Minimum = 1, Maximum = 1000, Value = 1, Width = 90, TextAlign = HorizontalAlignment.Right };
         private readonly ComboBox cboCanal = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
         private readonly TextBox txtDireccionEnvio = new() { Width = 420, PlaceholderText = "Dirección de envío" };
-
+        
+        // Nuevos controles de dirección
+        private readonly CheckBox chkCambiarDireccion = new() { Text = "Usar otra dirección de envío", AutoSize = true };
+        private readonly ComboBox cboProvinciaVenta = new() { Width = 200, Visible = false };
+        private readonly ComboBox cboLocalidadVenta = new() { Width = 200, Visible = false };
+        private int? _clienteProvinciaId;
+        private int? _clienteLocalidadId;        
         private readonly Button btnAgregar = new() { Text = "Agregar", AutoSize = true };
         private readonly Button btnQuitar = new() { Text = "Quitar", AutoSize = true };
         private readonly Button btnGuardar = new() { Text = "Guardar", AutoSize = true };
 
         //  Grilla (solo lectura + legible) 
-        private readonly DataGridView gridDetalles = new()
+        private readonly DataGridView _gridDetalles = new()
         {
             Dock = DockStyle.Fill,
             AutoGenerateColumns = false,
@@ -57,11 +64,11 @@ namespace TeoAccesorios.Desktop
         };
 
         private readonly BindingSource bs = new();
-        private readonly List<DetalleVenta> carrito = new();
+        private readonly Venta _ventaActual = new();
         private List<Cliente> _clientes = new();
         private List<Producto> _productos = new();
         private readonly CultureInfo _culture = new("es-AR");
-
+        
 
         public NuevaVentaForm()
         {
@@ -75,12 +82,22 @@ namespace TeoAccesorios.Desktop
             var fila1 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(12, 10, 12, 6), WrapContents = false };
             fila1.Controls.AddRange(new Control[]
             {
-                Etiqueta("Cliente"), cboCliente,
-                Separador(16),
-                Etiqueta("Canal"), cboCanal,
-                Separador(16),
-                Etiqueta("Dirección envío"), txtDireccionEnvio
+                Etiqueta("Cliente"), cboCliente
             });
+
+            // --- Fila 1.5: Dirección
+            var fila1_5 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(12, 6, 12, 10), WrapContents = false };
+            fila1_5.Controls.AddRange(new Control[]
+            {
+                Etiqueta("Dirección"), txtDireccionEnvio,
+                Separador(16),
+                Etiqueta("Provincia"), cboProvinciaVenta,
+                Separador(16),
+                Etiqueta("Localidad"), cboLocalidadVenta,
+                Separador(16),
+                chkCambiarDireccion
+            });
+
 
             // --- Fila 2: producto / cantidad / acciones
             var fila2 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(12, 6, 12, 10), WrapContents = false };
@@ -89,7 +106,9 @@ namespace TeoAccesorios.Desktop
                 Etiqueta("Producto"), cboProducto,
                 Separador(16),
                 Etiqueta("Cant."), numCant,
-                Separador(18),
+                Separador(16),
+                Etiqueta("Canal"), cboCanal,
+                Separador(16),
                 btnAgregar, btnQuitar, btnGuardar
             });
 
@@ -105,17 +124,18 @@ namespace TeoAccesorios.Desktop
             pie.Controls.Add(Separador(24));
             pie.Controls.Add(lblItems);
 
-            Controls.Add(gridDetalles);
+            Controls.Add(_gridDetalles);
             Controls.Add(pie);
             Controls.Add(fila2);
+            Controls.Add(fila1_5);
             Controls.Add(fila1);
 
             // Estilo de DataGridView accesible
-            GridHelper.Estilizar(gridDetalles);
+            GridHelper.Estilizar(_gridDetalles);
 
             // Columnas
-            gridDetalles.Columns.Clear();
-            gridDetalles.Columns.Add(new DataGridViewTextBoxColumn
+            _gridDetalles.Columns.Clear();
+            _gridDetalles.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Producto",
                 HeaderText = "Producto",
@@ -128,7 +148,7 @@ namespace TeoAccesorios.Desktop
             {
                 Name = "Cant",
                 HeaderText = "Cant",
-                DataPropertyName = "Cant",
+                DataPropertyName = "Cantidad",
                 FillWeight = 12,
                 ReadOnly = true
             };
@@ -158,8 +178,8 @@ namespace TeoAccesorios.Desktop
             colSubtotal.DefaultCellStyle.FormatProvider = _culture;
             colSubtotal.DefaultCellStyle.Format = "C2";
 
-            gridDetalles.Columns.AddRange(colCant, colPrecio, colSubtotal);
-            gridDetalles.DataSource = bs;
+            _gridDetalles.Columns.AddRange(colCant, colPrecio, colSubtotal);
+            _gridDetalles.DataSource = bs;
 
             // Datos
             _clientes = Repository.ListarClientes(false);
@@ -177,12 +197,101 @@ namespace TeoAccesorios.Desktop
             cboCanal.Items.AddRange(new[] { "WhatsApp", "Instagram", "Facebook", "MercadoLibre", "Local", "Otro" });
             cboCanal.SelectedIndex = 0;
 
-            cboCliente.SelectedIndexChanged += (_, __) =>
-            {
-                if (cboCliente.SelectedItem is Cliente cli) txtDireccionEnvio.Text = cli.Direccion ?? "";
-            };
-            if (cboCliente.SelectedItem is Cliente cli0) txtDireccionEnvio.Text = cli0.Direccion ?? "";
+            // --- Lógica de Dirección ---
+            cboCliente.SelectedIndexChanged += (s, e) => OnClienteChanged();
+            chkCambiarDireccion.CheckedChanged += (_, __) => ActualizarVisibilidadDireccion();
+            
+            // Disparar el primer cambio para cargar datos del cliente inicial
+            OnClienteChanged();
+        }
 
+        private void OnClienteChanged()
+        {
+            if (cboCliente.SelectedItem is not Cliente cli) return;
+
+            txtDireccionEnvio.Text = cli.Direccion;
+            _clienteLocalidadId = cli.LocalidadId;
+            
+            // Determinar la provincia del cliente a partir de su localidad
+            if (_clienteLocalidadId.HasValue)
+            {
+                var loc = Repository.ObtenerLocalidad(_clienteLocalidadId.Value);
+                _clienteProvinciaId = loc?.ProvinciaId;
+            }
+            else
+            {
+                _clienteProvinciaId = null;
+            }
+
+            chkCambiarDireccion.Checked = false; // Siempre resetear a la dirección del cliente
+            ActualizarVisibilidadDireccion();
+        }
+
+        private void ActualizarVisibilidadDireccion()
+        {
+            bool cambiar = chkCambiarDireccion.Checked;
+            cboProvinciaVenta.Visible = cambiar;
+            cboLocalidadVenta.Visible = cambiar;
+            cboProvinciaVenta.Enabled = cambiar;
+            cboLocalidadVenta.Enabled = cambiar;
+            txtDireccionEnvio.ReadOnly = !cambiar;
+
+            // Desacoplar/Acoplar eventos para evitar bucles
+            cboProvinciaVenta.SelectedValueChanged -= CboProvinciaVenta_SelectedValueChanged;
+            cboLocalidadVenta.SelectedValueChanged -= CboLocalidadVenta_SelectedValueChanged;
+
+            if (cambiar)
+            {
+                // Modo "Otra dirección": Cargar provincias activas y dejar que el usuario elija
+                var provinciasActivas = Repository.ListarProvincias(false);
+                FormUtils.BindCombo(cboProvinciaVenta, provinciasActivas);
+                CboProvinciaVenta_SelectedValueChanged(null, EventArgs.Empty); // Cargar localidades de la primera provincia
+                
+                cboProvinciaVenta.SelectedValueChanged += CboProvinciaVenta_SelectedValueChanged;
+                cboLocalidadVenta.SelectedValueChanged += CboLocalidadVenta_SelectedValueChanged;
+            }
+            else
+            {
+                // Modo "Dirección del cliente": Cargar y seleccionar los datos del cliente (incluso si están inactivos)
+                var provincias = Repository.ListarProvincias(false);
+                if (_clienteProvinciaId.HasValue && !provincias.Any(p => p.Id == _clienteProvinciaId))
+                {
+                    var provInactiva = Repository.ObtenerProvincia(_clienteProvinciaId.Value);
+                    if (provInactiva != null) provincias.Add(provInactiva);
+                }
+                FormUtils.BindCombo(cboProvinciaVenta, provincias.OrderBy(p => p.Nombre).ToList(), selectedValue: _clienteProvinciaId);
+
+                var localidades = Repository.ListarLocalidades(_clienteProvinciaId, false);
+                if (_clienteLocalidadId.HasValue && !localidades.Any(l => l.Id == _clienteLocalidadId))
+                {
+                    var locInactiva = Repository.ObtenerLocalidad(_clienteLocalidadId.Value);
+                    if (locInactiva != null) localidades.Add(locInactiva);
+                }
+                FormUtils.BindCombo(cboLocalidadVenta, localidades.OrderBy(l => l.Nombre).ToList(), selectedValue: _clienteLocalidadId);
+            }
+        }
+
+        private void CboProvinciaVenta_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (cboProvinciaVenta.SelectedValue is int provId)
+            {
+                var localidades = Repository.ListarLocalidades(provId, false);
+                FormUtils.BindCombo(cboLocalidadVenta, localidades);
+            }
+            else
+            {
+                FormUtils.BindCombo<Localidad>(cboLocalidadVenta, null);
+            }
+        }
+
+        private void CboLocalidadVenta_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            // Este evento es principalmente para futuras validaciones si fueran necesarias.
+            // La lógica de guardado ya lee el valor final.
+        }
+
+        private void GuardarVenta()
+        {
             RefrescarGrid();
 
             //  Acciones 
@@ -192,7 +301,7 @@ namespace TeoAccesorios.Desktop
                 int cant = (int)numCant.Value;
                 if (cant <= 0) return;
 
-                int yaEnCarrito = carrito.Where(d => d.ProductoId == p.Id).Sum(d => d.Cantidad);
+                int yaEnCarrito = _ventaActual.Detalles.Where(d => d.ProductoId == p.Id).Sum(d => d.Cantidad);
                 int disponible = p.Stock - yaEnCarrito;
 
                 if (disponible <= 0 || cant > disponible)
@@ -202,11 +311,11 @@ namespace TeoAccesorios.Desktop
                         "Stock insuficiente", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
-
-                var linea = carrito.FirstOrDefault(d => d.ProductoId == p.Id);
+                
+                var linea = _ventaActual.Detalles.FirstOrDefault(d => d.ProductoId == p.Id);
                 if (linea == null)
                 {
-                    carrito.Add(new DetalleVenta
+                    _ventaActual.Detalles.Add(new DetalleVenta
                     {
                         ProductoId = p.Id,
                         ProductoNombre = p.Nombre,
@@ -219,33 +328,34 @@ namespace TeoAccesorios.Desktop
                     linea.Cantidad += cant;
                 }
 
-                if (carrito.Count == 1) cboCliente.Enabled = false;
+                if (_ventaActual.Detalles.Count == 1) cboCliente.Enabled = false;
                 RefrescarGrid();
             };
 
             btnQuitar.Click += (s, e) =>
             {
-                if (gridDetalles.CurrentRow?.DataBoundItem is DetalleView det)
+                if (_gridDetalles.CurrentRow?.DataBoundItem is DetalleView det)
                 {
-                    var toRemove = carrito.FirstOrDefault(x => x.ProductoNombre == det.Producto && x.PrecioUnitario == det.Precio);
+                    var toRemove = _ventaActual.Detalles.FirstOrDefault(x => x.ProductoId == det.ProductoId);
                     if (toRemove != null)
                     {
-                        carrito.Remove(toRemove);
-                        if (carrito.Count == 0) cboCliente.Enabled = true;
+                        _ventaActual.Detalles.Remove(toRemove);
                         RefrescarGrid();
+                        if (_ventaActual.Detalles.Count == 0) cboCliente.Enabled = true;
                     }
                 }
             };
 
-            btnGuardar.Click += (s, e) =>
+            btnGuardar.Click += (s, e) => // Este es el manejador de click del botón Guardar
             {
-                if (carrito.Count == 0) { MessageBox.Show("Agregá al menos un producto.", "Aviso"); return; }
+                if (_ventaActual.Detalles.Count == 0) { MessageBox.Show("Agregá al menos un producto.", "Aviso"); return; }
                 if (cboCliente.SelectedItem is not Cliente cli) { MessageBox.Show("Seleccioná un cliente.", "Aviso"); return; }
 
-                foreach (var linea in carrito)
+                foreach (var linea in _ventaActual.Detalles)
                 {
-                    var prod = _productos.First(p => p.Id == linea.ProductoId);
-                    int pedida = carrito.Where(d => d.ProductoId == prod.Id).Sum(d => d.Cantidad);
+                    var prod = _productos.FirstOrDefault(p => p.Id == linea.ProductoId);
+                    if (prod == null) continue; // Producto no encontrado, debería ser raro
+                    int pedida = _ventaActual.Detalles.Where(d => d.ProductoId == prod.Id).Sum(d => d.Cantidad);
                     if (pedida > prod.Stock)
                     {
                         MessageBox.Show($"No hay stock suficiente de \"{prod.Nombre}\".\nDisponibles: {prod.Stock} • Pedidos: {pedida}",
@@ -254,26 +364,29 @@ namespace TeoAccesorios.Desktop
                     }
                 }
 
-                var venta = new Venta
-                {
-                    FechaVenta = DateTime.Now,
-                    Vendedor = Sesion.Usuario,
-                    Canal = (string)cboCanal.SelectedItem!,
-                    ClienteId = cli.Id,
-                    ClienteNombre = cli.Nombre,
-                    DireccionEnvio = txtDireccionEnvio.Text?.Trim() ?? "",
-                    Detalles = carrito.Select(d => new DetalleVenta
-                    {
-                        ProductoId = d.ProductoId,
-                        ProductoNombre = d.ProductoNombre,
-                        Cantidad = d.Cantidad,
-                        PrecioUnitario = d.PrecioUnitario
-                    }).ToList()
-                };
+                _ventaActual.FechaVenta = DateTime.Now;
+                _ventaActual.Vendedor = Sesion.Usuario;
+                _ventaActual.Canal = (string)cboCanal.SelectedItem!;
+                _ventaActual.ClienteId = cli.Id;
+                _ventaActual.ClienteNombre = cli.Nombre;
 
+                if (chkCambiarDireccion.Checked)
+                {
+                    if (cboLocalidadVenta.SelectedValue == null || (int)cboLocalidadVenta.SelectedValue <= 0) { MessageBox.Show("Seleccioná una provincia y localidad para el envío.", "Aviso"); return; }
+                    _ventaActual.LocalidadId = (int)cboLocalidadVenta.SelectedValue;
+                    _ventaActual.DireccionEnvio = txtDireccionEnvio.Text.Trim();
+                }
+                else
+                {
+                    _ventaActual.LocalidadId = _clienteLocalidadId;
+                    _ventaActual.DireccionEnvio = txtDireccionEnvio.Text.Trim(); // Usar el texto por si lo editó sin marcar el check
+                }
+                
                 try
                 {
-                    var id = Repository.InsertarVenta(venta);
+                    // if (_ventaActual.LocalidadId == null) { MessageBox.Show("La dirección de envío no tiene una localidad válida.", "Aviso"); return; }
+
+                    var id = Repository.InsertarVenta(_ventaActual);
                     MessageBox.Show($"Venta guardada (Id {id}).", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     DialogResult = DialogResult.OK;
                     Close();
@@ -296,33 +409,34 @@ namespace TeoAccesorios.Desktop
         //  Datos en grilla + totales 
         private void RefrescarGrid()
         {
-            var view = carrito.Select(d => new DetalleView
+            var view = _ventaActual.Detalles.Select(d => new DetalleView
             {
+                ProductoId = d.ProductoId,
                 Producto = d.ProductoNombre,
-                Cant = d.Cantidad,
+                Cantidad = d.Cantidad,
                 Precio = d.PrecioUnitario,
-                Subtotal = d.Cantidad * d.PrecioUnitario
             }).ToList();
 
             bs.DataSource = view;
+            bs.ResetBindings(false);
 
             lblTotal.Text = $"Total: {view.Sum(v => v.Subtotal).ToString("C2", _culture)}";
-            lblItems.Text = $"Ítems: {view.Sum(v => v.Cant)}";
+            lblItems.Text = $"Ítems: {view.Sum(v => v.Cantidad)}";
         }
 
         // DTO para la grilla
-        private class DetalleView
+        public class DetalleView
         {
+            public int ProductoId { get; set; }
             public string Producto { get; set; } = "";
-            public int Cant { get; set; }
+            public int Cantidad { get; set; }
             public decimal Precio { get; set; }
-            public decimal Subtotal { get; set; }
-            public decimal PrecioUnitario => Precio; 
+            public decimal Subtotal => Math.Round(Precio * Cantidad, 2);
         }
 
         // ===== Helpers UI mínimos =====
         private static Label Etiqueta(string texto) =>
-            new() { Text = texto, AutoSize = true, Padding = new Padding(0, 10, 8, 0) };
+            new() { Text = texto, AutoSize = true, Padding = new Padding(0, 8, 0, 0), TextAlign = ContentAlignment.MiddleLeft };
 
         private static Control Separador(int width) => new Label { Width = width };
     }
