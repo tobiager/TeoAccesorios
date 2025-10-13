@@ -1,9 +1,12 @@
 using System;
 using System.Data;
 using System.Drawing;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
+
+using WFSortOrder = System.Windows.Forms.SortOrder;
 
 namespace TeoAccesorios.Desktop
 {
@@ -79,10 +82,16 @@ namespace TeoAccesorios.Desktop
             GridHelper.Estilizar(ultGrid);
             GridHelper.Estilizar(stockGrid);
 
-           
             ThemeGrid(topGrid);
             ThemeGrid(ultGrid);
             ThemeGrid(stockGrid);
+
+            // Aplicar ordenamiento con glifo blanco
+            // Se llama después de ThemeGrid para asegurar que los estilos base están aplicados.
+            // El ordenamiento se aplicará correctamente cuando se carguen los datos y las columnas.
+            WireWhiteSortGlyph(topGrid);
+            WireWhiteSortGlyph(ultGrid);
+            WireWhiteSortGlyph(stockGrid);
 
             GridHelperLock.Apply(topGrid);
             GridHelperLock.Apply(ultGrid);
@@ -181,6 +190,89 @@ namespace TeoAccesorios.Desktop
                 ORDER BY p.stock ASC;",
                 Array.Empty<SqlParameter>());
             stockGrid.DataSource = dtStock;
+        }
+
+        private void WireWhiteSortGlyph(DataGridView g)
+        {
+            if (g == null) return;
+
+            // usar nuestros estilos (texto ya es blanco)
+            g.EnableHeadersVisualStyles = false;
+
+            // forzar sort programático (así no sale el glyph por defecto)
+            g.ColumnAdded += (_, ev) => { if (ev.Column.SortMode != DataGridViewColumnSortMode.NotSortable) ev.Column.SortMode = DataGridViewColumnSortMode.Programmatic; };
+            foreach (DataGridViewColumn c in g.Columns)
+                if (c.SortMode != DataGridViewColumnSortMode.NotSortable)
+                    c.SortMode = DataGridViewColumnSortMode.Programmatic;
+
+            // click en header: aplicar orden y guardar estado en Tag
+            g.ColumnHeaderMouseClick += (_, e) =>
+            {
+                if (e.ColumnIndex < 0) return;
+                var col = g.Columns[e.ColumnIndex];
+
+                var current = col.HeaderCell.Tag is WFSortOrder t ? t : WFSortOrder.None;
+                var next = current == WFSortOrder.Ascending ? WFSortOrder.Descending : WFSortOrder.Ascending;
+
+                // ordenar (BindingSource si existe; si no, DataGridView.Sort)
+                if (g.DataSource is BindingSource bs)
+                {
+                    var prop = string.IsNullOrEmpty(col.DataPropertyName) ? col.Name : col.DataPropertyName;
+                    bs.Sort = $"{prop} {(next == WFSortOrder.Ascending ? "ASC" : "DESC")}";
+                }
+                else
+                {
+                    g.Sort(col, next == WFSortOrder.Ascending ? ListSortDirection.Ascending : ListSortDirection.Descending);
+                }
+
+                // resetear otros headers y setear este
+                foreach (DataGridViewColumn c in g.Columns) if (c != col) c.HeaderCell.Tag = WFSortOrder.None;
+                col.HeaderCell.Tag = next;
+
+                g.Invalidate(); // repintar headers
+            };
+
+            // pintar header + glyph blanco
+            g.CellPainting += (_, e) =>
+            {
+                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
+                {
+                    e.Paint(e.ClipBounds, DataGridViewPaintParts.All); // pintá todo (sin glyph por defecto porque SortMode es Programmatic)
+
+                    var col = g.Columns[e.ColumnIndex];
+                    var order = col.HeaderCell.Tag is WFSortOrder ord ? ord : WFSortOrder.None;
+                    if (order != WFSortOrder.None)
+                    {
+                        DrawWhiteSortTriangle(e.Graphics!, e.CellBounds, order);
+                    }
+
+                    e.Handled = true;
+                }
+            };
+        }
+
+        private static void DrawWhiteSortTriangle(Graphics g, Rectangle cell, WFSortOrder order)
+        {
+            // triángulo pequeño a la derecha del header
+            int w = 10, h = 6;
+            int paddingRight = 10;
+            int centerX = cell.Right - paddingRight - w / 2;
+            int centerY = cell.Top + cell.Height / 2;
+
+            Point[] pts = (order == WFSortOrder.Ascending)
+                ? new[] {
+                    new Point(centerX - w/2, centerY + h/2),
+                    new Point(centerX + w/2, centerY + h/2),
+                    new Point(centerX,       centerY - h/2),
+                }
+                : new[] {
+                    new Point(centerX - w/2, centerY - h/2),
+                    new Point(centerX + w/2, centerY - h/2),
+                    new Point(centerX,       centerY + h/2),
+                };
+
+            using (var brush = new SolidBrush(Color.White))
+                g.FillPolygon(brush, pts);
         }
     }
 }

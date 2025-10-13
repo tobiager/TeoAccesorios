@@ -225,6 +225,11 @@ La última iteración incorporó un **pipeline de exportación multi-formato** q
   <img src="assets/empleados.png" width="900"/>
 </p>
 
+### Gestión de Empleados (solo Admin)
+<p align="center">
+  <img src="assets/provincias-localidades.png" width="900"/>
+</p>
+
 ### Ventas
 <p align="center">
   <img src="assets/ver%20ventas.png" width="900"/>
