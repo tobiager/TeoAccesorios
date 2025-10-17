@@ -12,6 +12,7 @@
     <None Remove="Recursos\logo.png" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Chart.js" Version="3.7.1" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
     <PackageReference Include="QuestPDF" Version="2025.7.1" />

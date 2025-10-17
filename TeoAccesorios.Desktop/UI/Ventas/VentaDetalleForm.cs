@@ -4,6 +4,9 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using TeoAccesorios.Desktop.Models;
+using System.Drawing.Printing;
+using System.Collections;
+using System.IO; // agregado
 
 namespace TeoAccesorios.Desktop
 {
@@ -73,21 +76,44 @@ namespace TeoAccesorios.Desktop
             root.Controls.Add(grid, 0, 1);
 
             // Footer (total)
-            var pnlTotal = new Panel { Dock = DockStyle.Bottom, Height = 54, Padding = new Padding(12, 8, 12, 8), BackColor = Color.White };
+            var pnlTotal = new Panel { Dock = DockStyle.Bottom, Height = 64, Padding = new Padding(12, 8, 12, 8), BackColor = Color.White };
             pnlTotal.Controls.Add(new Label { Dock = DockStyle.Top, Height = 1, BackColor = Color.FromArgb(230, 230, 230) });
 
             var totalCalc = _venta.Total > 0
                 ? _venta.Total
                 : _venta.Detalles?.Sum(d => GetDecimal(d, "Subtotal", "SubTotal", "Importe", "TotalLinea")) ?? 0m;
 
-            pnlTotal.Controls.Add(new Label
+            // panel derecho que contiene boton imprimir y total
+            var rightPanel = new Panel { Dock = DockStyle.Right, Width = 380, BackColor = Color.White };
+
+            var totalLabel = new Label
             {
-                Dock = DockStyle.Right,
-                Width = 300,
+                Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleRight,
                 Font = new Font("Segoe UI Semibold", 13f, FontStyle.Bold),
                 Text = $"Total  $ {totalCalc:N0}"
-            });
+            };
+
+            var btnPrint = new Button
+            {
+                AutoSize = true,
+                Text = "Imprimir",
+                Dock = DockStyle.Right,
+                Padding = new Padding(8, 6, 8, 6),
+                BackColor = Color.FromArgb(32, 86, 179),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+            };
+            btnPrint.FlatAppearance.BorderSize = 0;
+            btnPrint.Click += (s, e) => { try { ImprimirFactura(); } catch { } };
+
+            // agregar controls al panel derecho (btn a la derecha del total)
+            rightPanel.Controls.Add(totalLabel);
+            rightPanel.Controls.Add(btnPrint);
+
+            pnlTotal.Controls.Add(rightPanel);
+
             pnlTotal.Controls.Add(new Label
             {
                 Dock = DockStyle.Left,
@@ -412,8 +438,282 @@ namespace TeoAccesorios.Desktop
 
         // ===== Ajustes de Ancho =====
 
-        private const int ExtraWidth = 160;
+        // Imprime una factura simple a partir de los datos de la venta
+        private void ImprimirFactura()
+        {
+            // Datos de la empresa / emprendimiento (ajustar según corresponda)
+            string companyName = "Teo Accesorios";
+            string companyAddress = "Av. Ejemplo 123, Ciudad";
+            string companyPhone = "Tel: (011) 1234-5678";
+            string companyEmail = "contacto@teoaccesorios.com";
+            string companyCuit = "CUIT: 20-12345678-9";
 
+            // Cargar logo desde recursos embebidos
+            Image? logo = null;
+            try
+            {
+                // Primero intentar desde Properties.Resources donde está logo.png
+                logo = Properties.Resources.logo;
+                
+                // Si no está disponible, usar el método anterior como respaldo
+                if (logo == null)
+                {
+                    var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
+                    if (File.Exists(logoPath)) logo = Image.FromFile(logoPath);
+                    else
+                    {
+                        var asm = Assembly.GetExecutingAssembly();
+                        var resName = asm.GetManifestResourceNames().FirstOrDefault(n => n.ToLower().Contains("logo"));
+                        if (resName != null)
+                        {
+                            using var s = asm.GetManifestResourceStream(resName);
+                            if (s != null) logo = Image.FromStream(s);
+                        }
+                    }
+                }
+            }
+            catch { /* no detener impresión si no se puede cargar logo */ }
+
+            var pd = new PrintDocument();
+            pd.DefaultPageSettings.Margins = new Margins(40, 40, 40, 40);
+
+            // NOTE: no mostramos mensaje de "impresión enviada" aquí.
+            // El flujo de impresión se disparará desde el botón de impresora del preview.
+
+            pd.PrintPage += (s, e) =>
+            {
+                var g = e.Graphics;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+                int x = e.MarginBounds.Left;
+                int y = e.MarginBounds.Top;
+
+                var titleFont = new Font("Segoe UI", 16f, FontStyle.Bold); // Aumentado de 14f a 16f
+                var companyFont = new Font("Segoe UI Semibold", 13f); // Aumentado de 12f a 13f
+                var normal = new Font("Segoe UI", 9f);
+                var small = new Font("Segoe UI", 8f);
+                var bold = new Font("Segoe UI", 9f, FontStyle.Bold);
+
+                // Header: logo más grande + datos empresa reorganizados
+                int logoWidth = 0;
+                int headerHeight = 100; // Aumentamos el espacio del header para el logo más grande
+                
+                if (logo != null)
+                {
+                    int desiredH = 80; // Aumentado de 60 a 80 píxeles
+                    int desiredW = logo.Width * desiredH / logo.Height;
+                    g.DrawImage(logo, x, y, desiredW, desiredH);
+                    logoWidth = desiredW + 12; // Más espacio entre logo y texto
+                }
+
+                // Empresa - reorganizada para aprovechar mejor el espacio
+                float infoX = x + logoWidth;
+                float companyInfoWidth = (e.MarginBounds.Width * 0.5f) - logoWidth; // Usamos 50% del ancho menos el logo
+                
+                g.DrawString(companyName, companyFont, Brushes.Black, infoX, y);
+                g.DrawString(companyAddress, normal, Brushes.Black, infoX, y + 20);
+                g.DrawString($"{companyPhone}", normal, Brushes.Black, infoX, y + 38);
+                g.DrawString($"{companyEmail}", normal, Brushes.Black, infoX, y + 54);
+                g.DrawString(companyCuit, small, Brushes.Black, infoX, y + 72);
+
+                // Título factura y metadata (derecha) - aprovechando más espacio
+                var sfRight = new StringFormat { Alignment = StringAlignment.Far };
+                float rightSectionX = e.MarginBounds.Left + (e.MarginBounds.Width * 0.55f); // Comenzamos en 55% del ancho
+                float rightSectionWidth = e.MarginBounds.Width * 0.45f; // Usamos 45% del ancho para la sección derecha
+                
+                var titleRect = new RectangleF(rightSectionX, y, rightSectionWidth, 24);
+                g.DrawString($"FACTURA", titleFont, Brushes.Black, titleRect, sfRight);
+
+                var fecha = GetDateString(_venta, "Fecha", "FechaVenta", "FechaHora", "FechaAlta", "CreatedAt") ?? "-";
+                var clienteNom = GetString(_venta, "ClienteNombre", "Cliente", "NombreCliente") ?? _cliente?.Nombre ?? "-";
+
+                g.DrawString($"Venta #{_venta.Id}", bold, Brushes.Black, new RectangleF(rightSectionX, y + 26, rightSectionWidth, 16), sfRight);
+                g.DrawString($"Fecha: {fecha}", normal, Brushes.Black, new RectangleF(rightSectionX, y + 44, rightSectionWidth, 14), sfRight);
+                g.DrawString($"Cliente: {clienteNom}", normal, Brushes.Black, new RectangleF(rightSectionX, y + 62, rightSectionWidth, 14), sfRight);
+
+                y += headerHeight; // Usamos la nueva altura del header
+
+                // Separador
+                g.DrawLine(Pens.Gray, e.MarginBounds.Left, y, e.MarginBounds.Right, y);
+                y += 8;
+
+                // Encabezados tabla - redistribuimos el espacio de manera más eficiente
+                int tableWidth = e.MarginBounds.Width;
+                int xProd = e.MarginBounds.Left;
+                int prodWidth = (int)(tableWidth * 0.45f); // 45% para producto
+                int xQty = xProd + prodWidth;
+                int qtyWidth = (int)(tableWidth * 0.12f); // 12% para cantidad
+                int xPrecio = xQty + qtyWidth;
+                int precioWidth = (int)(tableWidth * 0.20f); // 20% para precio
+                int xSub = xPrecio + precioWidth;
+                int subWidth = (int)(tableWidth * 0.23f); // 23% para subtotal
+
+                g.DrawString("Producto", bold, Brushes.Black, xProd, y);
+                g.DrawString("Cant.", bold, Brushes.Black, new RectangleF(xQty, y, qtyWidth, 16), new StringFormat { Alignment = StringAlignment.Center });
+                g.DrawString("Precio", bold, Brushes.Black, new RectangleF(xPrecio, y, precioWidth, 16), new StringFormat { Alignment = StringAlignment.Center });
+                g.DrawString("Subtotal", bold, Brushes.Black, new RectangleF(xSub, y, subWidth, 16), new StringFormat { Alignment = StringAlignment.Far });
+                y += 18;
+
+                // Líneas de detalle
+                IEnumerable detallesEnum = _venta.Detalles ?? Enumerable.Empty<object>();
+                foreach (object d in detallesEnum)
+                {
+                    if (y > e.MarginBounds.Bottom - 120) { e.HasMorePages = true; return; }
+
+                    var prod = GetString(d, "ProductoNom", "ProductoNombre", "NombreProducto", "Producto", "Descripcion") ?? "-";
+                    var qty = GetDecimal(d, "Cantidad", "Qty", "Unidades");
+                    var precio = GetDecimal(d, "PrecioUnitario", "PrecioUnitari", "Precio", "UnitPrice");
+                    var sub = GetDecimal(d, "Subtotal", "SubTotal", "Importe", "TotalLinea");
+
+                    // Producto: permitir wrapping si es largo y medir la altura necesaria
+                    var measured = g.MeasureString(prod, normal, prodWidth - 8);
+                    var prodHeight = Math.Max(measured.Height, normal.GetHeight(g));
+
+                    // Dibujar producto (puede ocupar varias líneas)
+                    var prodRect = new RectangleF(xProd, y, prodWidth - 8, prodHeight);
+                    g.DrawString(prod, normal, Brushes.Black, prodRect, new StringFormat { Alignment = StringAlignment.Near });
+
+                    // Línea base para textos
+                    float baseLineY = y + prodHeight - normal.GetHeight(g);
+
+                    // Cantidad - centrada
+                    g.DrawString($"{qty:N0}", normal, Brushes.Black, new RectangleF(xQty, baseLineY, qtyWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Center });
+
+                    // Precio - centrado
+                    g.DrawString($"$ {precio:N0}", normal, Brushes.Black, new RectangleF(xPrecio, baseLineY, precioWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Center });
+
+                    // Subtotal - alineado a la derecha
+                    g.DrawString($"$ {sub:N0}", normal, Brushes.Black, new RectangleF(xSub, baseLineY, subWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Far });
+
+                    // Avanzar Y por la altura usada por el producto + espacio
+                    y += (int)prodHeight + 6;
+                }
+
+                // Separador antes de totales
+                y += 6;
+                g.DrawLine(Pens.Gray, e.MarginBounds.Left, y, e.MarginBounds.Right, y);
+                y += 8;
+
+                // Totales (alineados a la derecha) - usando más espacio
+                var total = _venta.Total > 0 ? _venta.Total : _venta.Detalles?.Sum(d => GetDecimal(d, "Subtotal", "SubTotal", "Importe", "TotalLinea")) ?? 0m;
+                var propina = 0m; // placeholder si quieres agregar más campos
+                var subtotalCalc = total - propina;
+
+                float rightColX = e.MarginBounds.Right - 240; // Más espacio para totales
+                float totalColWidth = 240;
+
+                g.DrawString("Subtotal:", bold, Brushes.Black, rightColX, y);
+                g.DrawString($"$ {subtotalCalc:N0}", bold, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 16), new StringFormat { Alignment = StringAlignment.Far });
+                y += 18;
+
+                if (propina > 0)
+                {
+                    g.DrawString("Propina:", normal, Brushes.Black, rightColX, y);
+                    g.DrawString($"$ {propina:N0}", normal, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 14), new StringFormat { Alignment = StringAlignment.Far });
+                    y += 16;
+                }
+
+                var totalFont = new Font("Segoe UI", 12f, FontStyle.Bold); // Fuente más grande para el total
+                g.DrawString("TOTAL:", totalFont, Brushes.Black, rightColX, y);
+                g.DrawString($"$ {total:N0}", totalFont, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 18), new StringFormat { Alignment = StringAlignment.Far });
+                y += 30;
+
+                // Pie opcional con notas y datos legales - mejor uso del espacio
+                var note = "Gracias por su compra. Conservá este comprobante como constancia.";
+                g.DrawString(note, small, Brushes.Gray, e.MarginBounds.Left, y);
+                y += 16;
+                g.DrawString($"Dirección: {companyAddress} | {companyPhone} | {companyEmail}", small, Brushes.Gray, e.MarginBounds.Left, y);
+            };
+
+            using var preview = new PrintPreviewDialog { Document = pd, Width = 900, Height = 700, StartPosition = FormStartPosition.CenterParent };
+
+            // Al mostrarse la vista previa, reemplazamos el botón de impresora por uno propio
+            preview.Shown += (s, e) =>
+            {
+                try
+                {
+                    foreach (Control c in preview.Controls)
+                    {
+                        if (c is ToolStrip ts)
+                        {
+                            // Buscar el item de imprimir por propiedades comunes (tooltip/nombre/texto)
+                            var found = ts.Items.Cast<ToolStripItem>().FirstOrDefault(it =>
+                                (it.ToolTipText != null && (it.ToolTipText.ToLower().Contains("print") || it.ToolTipText.ToLower().Contains("imprimir"))) ||
+                                (it.Name != null && it.Name.ToLower().Contains("print")) ||
+                                (it.Text != null && it.Text.ToLower().Contains("imprimir") || it.Text.ToLower().Contains("print"))
+                            );
+
+                            if (found != null)
+                            {
+                                int idx = ts.Items.IndexOf(found);
+                                // ocultar botón original
+                                found.Visible = false;
+
+                                // crear botón propio (misma imagen/tooltip) y manejar el Click
+                                var myPrint = new ToolStripButton
+                                {
+                                    Image = found.Image,
+                                    DisplayStyle = ToolStripItemDisplayStyle.Image,
+                                    ToolTipText = found.ToolTipText ?? "Imprimir"
+                                };
+
+                                myPrint.Click += (_, __) =>
+                                {
+                                    // Al apretar el icono: validar impresoras y pedir confirmación/selección
+                                    try
+                                    {
+                                        var installed = PrinterSettings.InstalledPrinters;
+                                        if (installed == null || installed.Count == 0)
+                                        {
+                                            MessageBox.Show("No se detectaron impresoras instaladas. Conecta una impresora o configura una impresora virtual (PDF) para poder imprimir.", "Imprimir", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                            return;
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        MessageBox.Show("No fue posible comprobar las impresoras instaladas.", "Imprimir", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                        return;
+                                    }
+
+                                    using var pdialog = new PrintDialog { Document = pd };
+                                    if (pdialog.ShowDialog(this) == DialogResult.OK)
+                                    {
+                                        try
+                                        {
+                                            pd.Print();
+                                            MessageBox.Show("Impresión enviada correctamente.", "Imprimir", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                        }
+                                        catch (Exception exPrint)
+                                        {
+                                            MessageBox.Show($"Error durante la impresión: {exPrint.Message}", "Imprimir", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                        }
+                                    }
+                                };
+
+                                ts.Items.Insert(idx, myPrint);
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // No fallar la vista previa si algo falla al intentar customizar la barra.
+                }
+            };
+
+            try
+            {
+                preview.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al iniciar la vista previa o la impresión: {ex.Message}", "Imprimir", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private const int ExtraWidth = 160;
+ 
         private void AplicarAnchoPreferido()
         {
             // 1. Ensanchar el diálogo
