@@ -74,6 +74,7 @@ namespace TeoAccesorios.Desktop
             var btnCerrarSesion = Btn("Cerrar sesión");
             var btnInicio = Btn("Inicio (Dashboard)");
             var btnReportes = Btn("Reportes");
+            var btnEstadisticas = Btn("Estadísticas");
             var btnEmpleados = Btn("Empleados");
             var btnClientes = Btn("Clientes");
             var btnCategorias = Btn("Categorías");
@@ -100,6 +101,7 @@ namespace TeoAccesorios.Desktop
 
             btnInicio.Click += (_, __) => Nav(btnInicio, ShowKpis);
             btnReportes.Click += (_, __) => Nav(btnReportes, () => ShowInContent(new ReportesForm()));
+            btnEstadisticas.Click += (_, __) => Nav(btnEstadisticas, () => ShowInContent(new EstadisticasForm()));
             btnEmpleados.Click += (_, __) => Nav(btnEmpleados, () => ShowInContent(new UsuariosForm()));
             btnClientes.Click += (_, __) => Nav(btnClientes, () => ShowInContent(new ClientesForm()));
             btnCategorias.Click += (_, __) => Nav(btnCategorias, () => ShowInContent(new CategoriasForm()));
@@ -121,6 +123,7 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(btnCategorias);
             side.Controls.Add(btnClientes);
             if (Sesion.Rol == RolUsuario.Admin) side.Controls.Add(btnEmpleados);
+            side.Controls.Add(btnEstadisticas);
             side.Controls.Add(btnReportes);
             side.Controls.Add(btnInicio);
             if (btnBackup != null) side.Controls.Add(btnBackup);
