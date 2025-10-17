@@ -17,12 +17,6 @@ namespace TeoAccesorios.Desktop
 {
     public class ReportesForm : Form
     {
-        private readonly RadioButton rbSemana = new() { Text = "Semanal", Checked = true, AutoSize = true };
-        private readonly RadioButton rbMes = new() { Text = "Mensual", AutoSize = true };
-        private readonly RadioButton rbRango = new() { Text = "Rango", AutoSize = true };
-
-        private readonly DateTimePicker dpSemana = new() { Value = DateTime.Today, Width = 120 };
-        private readonly DateTimePicker dpMes = new() { Value = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), Format = DateTimePickerFormat.Custom, CustomFormat = "MM/yyyy", ShowUpDown = true, Width = 90 };
         private readonly DateTimePicker dpDesde = new() { Value = DateTime.Today.AddDays(-7), Width = 120 };
         private readonly DateTimePicker dpHasta = new() { Value = DateTime.Today, Width = 120 };
 
@@ -30,7 +24,6 @@ namespace TeoAccesorios.Desktop
         private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };
         private readonly CheckBox chkExcluirAnuladas = new() { Text = "Excluir anuladas", Checked = true, AutoSize = true };
 
-        private readonly Button btnAplicar = new() { Text = "Aplicar" };
         private readonly Button btnExport = new() { Text = "Exportar" };
 
         private readonly Label kpiIngresos = new();
@@ -52,18 +45,13 @@ namespace TeoAccesorios.Desktop
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             var filtros = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(8), AutoSize = false, Height = 56 };
-            filtros.Controls.Add(new Label { Text = "Rango:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(0, 8, 0, 0) });
-            filtros.Controls.Add(rbSemana); filtros.Controls.Add(dpSemana);
-            filtros.Controls.Add(rbMes); filtros.Controls.Add(dpMes);
-            filtros.Controls.Add(rbRango);
-            filtros.Controls.Add(new Label { Text = "Desde:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) });
+            filtros.Controls.Add(new Label { Text = "Desde:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(0, 8, 0, 0) });
             filtros.Controls.Add(dpDesde);
             filtros.Controls.Add(new Label { Text = "Hasta:", AutoSize = true, Padding = new Padding(6, 8, 0, 0) });
             filtros.Controls.Add(dpHasta);
             filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) }); filtros.Controls.Add(cboVendedor);
             filtros.Controls.Add(new Label { Text = "Cliente:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) }); filtros.Controls.Add(cboCliente);
             filtros.Controls.Add(chkExcluirAnuladas);
-            filtros.Controls.Add(btnAplicar);
             filtros.Controls.Add(btnExport);
 
             // Combos
@@ -117,7 +105,13 @@ namespace TeoAccesorios.Desktop
             root.Controls.Add(grid, 0, 2);
             Controls.Add(root);
 
-            btnAplicar.Click += (_, __) => LoadData();
+            // Eventos para aplicar filtros automáticamente
+            dpDesde.ValueChanged += (_, __) => LoadData();
+            dpHasta.ValueChanged += (_, __) => LoadData();
+            cboVendedor.SelectedIndexChanged += (_, __) => LoadData();
+            cboCliente.SelectedIndexChanged += (_, __) => LoadData();
+            chkExcluirAnuladas.CheckedChanged += (_, __) => LoadData();
+
             btnExport.Click += (_, __) => Exportar();
 
             GridHelper.Estilizar(grid);
@@ -143,19 +137,6 @@ namespace TeoAccesorios.Desktop
 
         private (DateTime start, DateTime end) GetRange()
         {
-            if (rbSemana.Checked)
-            {
-                var d = dpSemana.Value.Date;
-                var start = d.AddDays(-(((int)d.DayOfWeek + 6) % 7)); 
-                var end = start.AddDays(7);                           
-                return (start, end);
-            }
-            if (rbMes.Checked)
-            {
-                var start = new DateTime(dpMes.Value.Year, dpMes.Value.Month, 1);
-                var end = start.AddMonths(1);                         
-                return (start, end);
-            }
             var s = dpDesde.Value.Date;
             var e = dpHasta.Value.Date.AddDays(1);                    
             return (s, e);
@@ -166,10 +147,6 @@ namespace TeoAccesorios.Desktop
         {
             var (start, endExcl) = GetRange();
             var endIncl = endExcl.AddDays(-1); 
-            if (rbSemana.Checked)
-                return $"Semana: {start:dd/MM/yyyy} - {endIncl:dd/MM/yyyy}";
-            if (rbMes.Checked)
-                return $"Mes: {dpMes.Value:MM/yyyy} ({start:dd/MM/yyyy} - {endIncl:dd/MM/yyyy})";
             return $"Rango: {start:dd/MM/yyyy} - {endIncl:dd/MM/yyyy}";
         }
 
