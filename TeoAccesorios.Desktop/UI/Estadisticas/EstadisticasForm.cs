@@ -13,6 +13,7 @@ using System.Windows.Forms;
 using TeoAccesorios.Desktop.Models;
 using TeoAccesorios.Desktop.UI.Common;
 using DrawingColor = System.Drawing.Color;
+using QuestPDF.Drawing;
 
 namespace TeoAccesorios.Desktop.UI.Estadisticas
 {
@@ -30,7 +31,17 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
         
         // --- Botones de acción ---
         private readonly Button btnExportar = new() { Text = "📊 Exportar", AutoSize = true, BackColor = DrawingColor.FromArgb(40, 167, 69), ForeColor = DrawingColor.White, FlatStyle = FlatStyle.Flat };
-      
+
+        // --- Definición de Tops ---
+        private readonly (string titulo, string icono, DataGridView grid, DrawingColor color)[] _topsDefinition;
+
+        // --- Diccionario para mapear nombre de top a su grid ---
+        private readonly Dictionary<string, DataGridView> _topGrids = new();
+
+        // --- Diccionario para mapear nombre de top a sus datos ---
+        private readonly Dictionary<string, IEnumerable<dynamic>> _topDataSources = new();
+
+
 
         // --- Grillas para tops ---
         private readonly DataGridView _gridTopProductos = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false };
@@ -49,6 +60,17 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             Text = "📊 Estadísticas de Ventas";
             WindowState = FormWindowState.Maximized;
             BackColor = DrawingColor.FromArgb(248, 249, 250);
+
+            _topsDefinition = new (string, string, DataGridView, DrawingColor)[]
+            {
+                ("Top Productos", "📦", _gridTopProductos, DrawingColor.FromArgb(220, 53, 69)),
+                ("Top Clientes", "👥", _gridTopClientes, DrawingColor.FromArgb(0, 120, 215)),
+                ("Top Vendedores", "🏆", _gridTopVendedores, DrawingColor.FromArgb(255, 193, 7)),
+                ("Top Categorías", "📋", _gridTopCategorias, DrawingColor.FromArgb(40, 167, 69)),
+                ("Top Provincias", "🌍", _gridTopProvincias, DrawingColor.FromArgb(108, 117, 125)),
+                ("Top Localidades", "📍", _gridTopLocalidades, DrawingColor.FromArgb(111, 66, 193))
+            };
+            _topGrids = _topsDefinition.ToDictionary(t => t.titulo, t => t.grid);
 
             ConfigurarLayout();
             ConfigurarGrids();
@@ -237,19 +259,10 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             layoutTops.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
 
             // Crear cards para cada top
-            var tops = new (string titulo, string icono, DataGridView grid, DrawingColor color)[]
+            for (int i = 0; i < _topsDefinition.Length; i++)
             {
-                ("Top Productos", "📦", _gridTopProductos, DrawingColor.FromArgb(220, 53, 69)),
-                ("Top Clientes", "👥", _gridTopClientes, DrawingColor.FromArgb(0, 120, 215)),
-                ("Top Vendedores", "🏆", _gridTopVendedores, DrawingColor.FromArgb(255, 193, 7)),
-                ("Top Categorías", "📋", _gridTopCategorias, DrawingColor.FromArgb(40, 167, 69)),
-                ("Top Provincias", "🌍", _gridTopProvincias, DrawingColor.FromArgb(108, 117, 125)),
-                ("Top Localidades", "📍", _gridTopLocalidades, DrawingColor.FromArgb(111, 66, 193))
-            };
-
-            for (int i = 0; i < tops.Length; i++)
-            {
-                var card = CrearCardTop(tops[i].titulo, tops[i].icono, tops[i].grid, tops[i].color);
+                var (titulo, icono, grid, color) = _topsDefinition[i];
+                var card = CrearCardTop(titulo, icono, grid, color);
                 var col = i % 3;
                 var row = i / 3;
                 layoutTops.Controls.Add(card, col, row);
@@ -388,16 +401,30 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
 
         private Dictionary<string, object> ObtenerFiltrosActivos()
         {
+            // Obtener nombres correctos para provincia y localidad
+            string provinciaNombre = "Todas";
+            string localidadNombre = "Todas";
+
+            if (cboProvincia.SelectedValue is int provinciaId && provinciaId > 0)
+            {
+                var provincia = cboProvincia.SelectedItem as Provincia;
+                provinciaNombre = provincia?.Nombre ?? "Todas";
+            }
+
+            if (cboLocalidad.SelectedValue is int localidadIdSel && localidadIdSel > 0)
+            {
+                var localidad = cboLocalidad.SelectedItem as Localidad;
+                localidadNombre = localidad?.Nombre ?? "Todas";
+            }
+
             return new Dictionary<string, object>
             {
-                ["FechaDesde"] = dpDesde.Value,
-                ["FechaHasta"] = dpHasta.Value,
                 ["Vendedor"] = cboVendedor.SelectedItem?.ToString(),
                 ["Cliente"] = cboCliente.SelectedItem?.ToString(),
                 ["Categoria"] = cboCategoria.SelectedItem?.ToString(),
                 ["Subcategoria"] = cboSubcategoria.SelectedItem?.ToString(),
-                ["Provincia"] = cboProvincia.SelectedItem?.ToString(),
-                ["Localidad"] = cboLocalidad.SelectedItem?.ToString()
+                ["Provincia"] = provinciaNombre,
+                ["Localidad"] = localidadNombre
             };
         }
 
@@ -597,6 +624,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 .OrderByDescending(x => x.Monto)
                 .Take(15)
                 .ToList();
+            _topDataSources["Top Productos"] = topProductos;
             _gridTopProductos.DataSource = topProductos;
 
             // Top Clientes
@@ -606,6 +634,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 .OrderByDescending(x => x.Monto)
                 .Take(15)
                 .ToList();
+            _topDataSources["Top Clientes"] = topClientes;
             _gridTopClientes.DataSource = topClientes;
 
             // Top Vendedores
@@ -615,6 +644,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 .OrderByDescending(x => x.Monto)
                 .Take(15)
                 .ToList();
+            _topDataSources["Top Vendedores"] = topVendedores;
             _gridTopVendedores.DataSource = topVendedores;
 
             // Top Categorías
@@ -627,6 +657,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 .OrderByDescending(x => x.Monto)
                 .Take(15)
                 .ToList();
+            _topDataSources["Top Categorías"] = topCategorias;
             _gridTopCategorias.DataSource = topCategorias;
 
             // Top Provincias
@@ -638,6 +669,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 .OrderByDescending(x => x.Monto)
                 .Take(15)
                 .ToList();
+            _topDataSources["Top Provincias"] = topProvincias;
             _gridTopProvincias.DataSource = topProvincias;
 
             // Top Localidades
@@ -649,6 +681,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 .OrderByDescending(x => x.Monto)
                 .Take(15)
                 .ToList();
+            _topDataSources["Top Localidades"] = topLocalidades;
             _gridTopLocalidades.DataSource = topLocalidades;
         }
 
@@ -662,61 +695,526 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 return;
             }
 
+            var topNames = _topsDefinition.Select(t => t.titulo);
+            using var optionsForm = new ExportOptionsForm(topNames);
+
+            if (optionsForm.ShowDialog(this) != DialogResult.OK || optionsForm.SelectedFormat == ExportOptionsForm.ExportFormat.None)
+            {
+                return;
+            }
+
+            var selectedTops = optionsForm.SelectedTops;
+            var format = optionsForm.SelectedFormat;
+
+            // Esta validación adicional no debería ser necesaria ya que el formulario la maneja,
+            // pero la mantenemos por seguridad
+            if (!selectedTops.Any())
+            {
+                MessageBox.Show("Debe seleccionar al menos un ranking para exportar.", "Selección Vacía", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string filter = format == ExportOptionsForm.ExportFormat.Excel ? "Excel Workbook (*.xlsx)|*.xlsx" : "PDF Document (*.pdf)|*.pdf";
+            string extension = format == ExportOptionsForm.ExportFormat.Excel ? ".xlsx" : ".pdf";
+
             using var sfd = new SaveFileDialog
             {
-                Filter = "Excel Workbook (*.xlsx)|*.xlsx|PDF Document (*.pdf)|*.pdf",
-                FileName = $"Estadisticas_{DateTime.Now:yyyyMMdd_HHmmss}"
+                Filter = filter,
+                FileName = $"Estadisticas_{DateTime.Now:yyyyMMdd_HHmmss}{extension}"
             };
 
-            if (sfd.ShowDialog(this) == DialogResult.OK)
+            if (sfd.ShowDialog(this) != DialogResult.OK) return;
+
+            try
             {
-                try
-                {
-                    if (Path.GetExtension(sfd.FileName).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
-                        ExportarPdf(sfd.FileName);
-                    else
-                        ExportarExcel(sfd.FileName);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error al exportar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                if (format == ExportOptionsForm.ExportFormat.Pdf)
+                    ExportarPdf(sfd.FileName, selectedTops);
+                else
+                    ExportarExcel(sfd.FileName, selectedTops);
+
+                MessageBox.Show("Archivo exportado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al exportar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void ExportarExcel(string filePath)
+        private void ExportarPdf(string filePath, List<string> selectedTops)
+        {
+            try
+            {
+                // Configurar QuestPDF para usar la licencia Community
+                QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+                var filtros = ObtenerFiltrosActivos();
+
+                Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Margin(30);
+
+                        // Encabezado
+                        page.Header().Element(header =>
+                        {
+                            header.Row(row =>
+                            {
+                                row.RelativeItem().Column(col =>
+                                {
+                                    col.Item().Text("Reporte de Estadísticas").Bold().FontSize(20);
+                                    col.Item().Text($"Generado: {DateTime.Now:g} por {Sesion.Usuario}");
+                                    col.Item().Text($"Período: {dpDesde.Value:d} - {dpHasta.Value:d}");
+                                });
+
+                                // Cargar logo desde recursos embebidos
+                                try
+                                {
+                                    var logoResource = Properties.Resources.logo;
+                                    if (logoResource != null)
+                                    {
+                                        using var ms = new MemoryStream();
+                                        logoResource.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                        ms.Position = 0;
+                                        
+                                        row.ConstantItem(100).AlignRight().Image(ms.ToArray(), ImageScaling.FitArea);
+                                    }
+                                }
+                                catch
+                                {
+                                    // Si falla cargar el logo, continuar sin él
+                                    // Intentar método alternativo con archivo
+                                    try
+                                    {
+                                        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "recursos", "logo.png");
+                                        if (File.Exists(logoPath))
+                                        {
+                                            row.ConstantItem(100).AlignRight().Image(logoPath, ImageScaling.FitArea);
+                                        }
+                                        else
+                                        {
+                                            // Buscar en el directorio base
+                                            logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
+                                            if (File.Exists(logoPath))
+                                            {
+                                                row.ConstantItem(100).AlignRight().Image(logoPath, ImageScaling.FitArea);
+                                            }
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        // Si no se puede cargar ningún logo, continuar sin él
+                                    }
+                                }
+                            });
+                        });
+
+                        // Contenido
+                        page.Content().Element(body =>
+                        {
+                            body.Column(col =>
+                            {
+                                // Mostrar filtros aplicados (sin fechas)
+                                col.Item().PaddingBottom(10).Text("Filtros Aplicados:").Bold().FontSize(12);
+
+                                var hayFiltrosEspecificos = false;
+
+                                foreach (var filtro in filtros)
+                                {
+                                    if (filtro.Value != null && filtro.Value.ToString() != "Todos" && filtro.Value.ToString() != "Todas")
+                                    {
+                                        var nombreFiltro = filtro.Key switch
+                                        {
+                                            "Vendedor" => "Vendedor",
+                                            "Cliente" => "Cliente",
+                                            "Categoria" => "Categoría",
+                                            "Subcategoria" => "Subcategoría",
+                                            "Provincia" => "Provincia",
+                                            "Localidad" => "Localidad",
+                                            _ => filtro.Key
+                                        };
+                                        col.Item().Text($"{nombreFiltro}: {filtro.Value}").FontSize(10);
+                                        hayFiltrosEspecificos = true;
+                                    }
+                                    else if (filtro.Value != null)
+                                    {
+                                        var nombreFiltro = filtro.Key switch
+                                        {
+                                            "Vendedor" => "Vendedor",
+                                            "Cliente" => "Cliente",
+                                            "Categoria" => "Categoría",
+                                            "Subcategoria" => "Subcategoría",
+                                            "Provincia" => "Provincia",
+                                            "Localidad" => "Localidad",
+                                            _ => filtro.Key
+                                        };
+                                        col.Item().Text($"{nombreFiltro}: Todos").FontSize(10);
+                                    }
+                                }
+
+                                if (!hayFiltrosEspecificos)
+                                {
+                                    col.Item().Text("Mostrando todos los datos sin filtros específicos").FontSize(10).Italic();
+                                }
+
+                                col.Item().PaddingVertical(10).LineHorizontal(1);
+
+                                foreach (var topName in selectedTops)
+                                {
+                                    col.Item().PaddingTop(20).Text(topName).Bold().FontSize(14);
+                                    var grid = _topGrids[topName];
+                                    var datos = _topDataSources.TryGetValue(topName, out var data) ? data.Cast<object>().ToList() : new List<object>();
+
+                                    if (!datos.Any())
+                                    {
+                                        col.Item().Text("No hay datos para mostrar.").FontSize(10).Italic();
+                                        continue;
+                                    }
+
+                                    col.Item().Table(table =>
+                                    {
+                                        table.ColumnsDefinition(columns =>
+                                        {
+                                            for (int i = 0; i < grid.Columns.Count; i++)
+                                                columns.RelativeColumn();
+                                        });
+
+                                        table.Header(header =>
+                                        {
+                                            foreach (DataGridViewColumn column in grid.Columns)
+                                            {
+                                                header.Cell().Background(Colors.Grey.Lighten3).Padding(5).Text(column.HeaderText).Bold();
+                                            }
+                                        });
+
+                                        foreach (var item in datos)
+                                        {
+                                            var properties = item.GetType().GetProperties();
+                                            foreach (var prop in properties)
+                                            {
+                                                var value = prop.GetValue(item);
+                                                var cell = table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5);
+
+                                                if (prop.Name == "Monto" && (value is decimal || value is double || value is float))
+                                                    cell.AlignRight().Text(((decimal)value).ToString("C0", _culture));
+                                                else if (prop.Name == "Cantidad")
+                                                    cell.AlignRight().Text(value?.ToString() ?? "");
+                                                else
+                                                    cell.Text(value?.ToString() ?? "");
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        });
+
+                        // Pie de página
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.Span("Página ");
+                            x.CurrentPageNumber();
+                        });
+                    });
+                }).GeneratePdf(filePath);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al generar PDF: {ex.Message}", ex);
+            }
+        }
+
+        private void ExportarExcel(string filePath, List<string> selectedTops)
         {
             using var wb = new XLWorkbook();
+            var filtros = ObtenerFiltrosActivos();
 
-            // Crear hojas para cada top
-            var tops = new (string nombre, IEnumerable<dynamic> datos)[]
-            {
-                ("Top Productos", (IEnumerable<dynamic>)_gridTopProductos.DataSource ?? new List<dynamic>()),
-                ("Top Clientes", (IEnumerable<dynamic>)_gridTopClientes.DataSource ?? new List<dynamic>()),
-                ("Top Vendedores", (IEnumerable<dynamic>)_gridTopVendedores.DataSource ?? new List<dynamic>()),
-                ("Top Categorías", (IEnumerable<dynamic>)_gridTopCategorias.DataSource ?? new List<dynamic>()),
-                ("Top Provincias", (IEnumerable<dynamic>)_gridTopProvincias.DataSource ?? new List<dynamic>()),
-                ("Top Localidades", (IEnumerable<dynamic>)_gridTopLocalidades.DataSource ?? new List<dynamic>())
-            };
+            // Crear una sola hoja para todos los rankings
+            var ws = wb.AddWorksheet("Reporte de Estadísticas");
 
-            foreach (var (nombre, datos) in tops)
+            // Configurar impresión para usar todo el ancho
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.PageOrientation = XLPageOrientation.Portrait;
+            ws.PageSetup.Margins.Left = 0.3;
+            ws.PageSetup.Margins.Right = 0.3;
+            ws.PageSetup.Margins.Top = 0.5;
+            ws.PageSetup.Margins.Bottom = 0.5;
+            ws.PageSetup.FitToPages(1, 0); // Ajustar a 1 página de ancho
+
+            // --- ENCABEZADO MEJORADO ---
+            // Título principal con barra azul - usar más columnas para ancho completo
+            ws.Cell("A1").Value = "REPORTE DE ESTADÍSTICAS";
+            ws.Range("A1:J1").Merge(); // Usar más columnas para aprovechar el ancho
+            ws.Cell("A1").Style.Font.SetBold(true);
+            ws.Cell("A1").Style.Font.FontSize = 22; // Fuente más grande
+            ws.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell("A1").Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            ws.Cell("A1").Style.Fill.BackgroundColor = XLColor.FromArgb(0, 120, 215);
+            ws.Cell("A1").Style.Font.FontColor = XLColor.White;
+            ws.Row(1).Height = 35; // Hacer la fila más alta
+
+            // Logo mejorado - más grande y prominente
+            try
             {
-                var ws = wb.AddWorksheet(nombre);
-                if (datos.Any())
+                var logoResource = Properties.Resources.logo;
+                if (logoResource != null)
                 {
-                    ws.Cell(1, 1).InsertTable(datos);
-                    ws.Column(3).Style.NumberFormat.Format = "$ #,##0.00";
-                    ws.Columns().AdjustToContents();
+                    using var ms = new MemoryStream();
+                    logoResource.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    ms.Position = 0;
+                    
+                    var picture = ws.AddPicture(ms)
+                        .MoveTo(ws.Cell("K1"))
+                        .Scale(0.8); // Logo más grande
+                    
+                    // Ajustar la altura de la fila para el logo
+                    ws.Row(1).Height = Math.Max(ws.Row(1).Height, 50);
+                }
+            }
+            catch
+            {
+                // Intentar cargar desde archivo
+                try
+                {
+                    var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "recursos", "logo.png");
+                    if (File.Exists(logoPath))
+                    {
+                        var picture = ws.AddPicture(logoPath)
+                            .MoveTo(ws.Cell("K1"))
+                            .Scale(0.8);
+                        ws.Row(1).Height = Math.Max(ws.Row(1).Height, 50);
+                    }
+                    else
+                    {
+                        logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
+                        if (File.Exists(logoPath))
+                        {
+                            var picture = ws.AddPicture(logoPath)
+                                .MoveTo(ws.Cell("K1"))
+                                .Scale(0.8);
+                            ws.Row(1).Height = Math.Max(ws.Row(1).Height, 50);
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // Información del reporte con fuentes más grandes
+            int currentRow = 3;
+            ws.Cell(currentRow, 1).Value = "Generado:";
+            ws.Cell(currentRow, 1).Style.Font.SetBold();
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 12; // Fuente más grande
+            ws.Cell(currentRow, 2).Value = $"{DateTime.Now:dd/MM/yyyy HH:mm} por {Sesion.Usuario ?? Environment.UserName}";
+            ws.Cell(currentRow, 2).Style.Font.FontSize = 12;
+            
+            currentRow++;
+            ws.Cell(currentRow, 1).Value = "Período:";
+            ws.Cell(currentRow, 1).Style.Font.SetBold();
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 12;
+            ws.Cell(currentRow, 2).Value = $"{dpDesde.Value:dd/MM/yyyy} - {dpHasta.Value:dd/MM/yyyy}";
+            ws.Cell(currentRow, 2).Style.Font.FontSize = 12;
+
+            // --- FILTROS APLICADOS ---
+            currentRow += 2;
+            ws.Cell(currentRow, 1).Value = "Filtros Aplicados:";
+            ws.Cell(currentRow, 1).Style.Font.SetBold();
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 14; // Fuente más grande para sección
+            ws.Cell(currentRow, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+            ws.Range(currentRow, 1, currentRow, 10).Merge(); // Usar más columnas
+            currentRow++;
+
+            var hayFiltrosEspecificos = false;
+            foreach (var filtro in filtros)
+            {
+                if (filtro.Value != null && filtro.Value.ToString() != "Todos" && filtro.Value.ToString() != "Todas")
+                {
+                    var nombreFiltro = filtro.Key switch
+                    {
+                        "Vendedor" => "Vendedor",
+                        "Cliente" => "Cliente", 
+                        "Categoria" => "Categoría",
+                        "Subcategoria" => "Subcategoría",
+                        "Provincia" => "Provincia",
+                        "Localidad" => "Localidad",
+                        _ => filtro.Key
+                    };
+                    ws.Cell(currentRow, 1).Value = $"• {nombreFiltro}:";
+                    ws.Cell(currentRow, 1).Style.Font.SetBold();
+                    ws.Cell(currentRow, 1).Style.Font.FontSize = 11;
+                    ws.Cell(currentRow, 2).Value = filtro.Value.ToString();
+                    ws.Cell(currentRow, 2).Style.Font.FontSize = 11;
+                    currentRow++;
+                    hayFiltrosEspecificos = true;
                 }
             }
 
-            wb.SaveAs(filePath);
-            MessageBox.Show("Excel exportado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
+            if (!hayFiltrosEspecificos)
+            {
+                ws.Cell(currentRow, 1).Value = "• Sin filtros específicos aplicados";
+                ws.Cell(currentRow, 1).Style.Font.Italic = true;
+                ws.Cell(currentRow, 1).Style.Font.FontSize = 11;
+                currentRow++;
+            }
 
-        private void ExportarPdf(string filePath)
-        {
-            MessageBox.Show("Funcionalidad de PDF en desarrollo.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            currentRow += 2;
+
+            // --- PROCESAR CADA RANKING CON TABLAS DE ANCHO COMPLETO ---
+            foreach (var topName in selectedTops)
+            {
+                var datos = _topDataSources.TryGetValue(topName, out var data) ? data : new List<dynamic>();
+                var grid = _topGrids[topName];
+
+                // Título del ranking con estilo mejorado
+                ws.Cell(currentRow, 1).Value = topName;
+                ws.Range(currentRow, 1, currentRow, 10).Merge(); // Usar todo el ancho
+                ws.Cell(currentRow, 1).Style.Font.SetBold(true);
+                ws.Cell(currentRow, 1).Style.Font.FontSize = 16; // Fuente más grande
+                ws.Cell(currentRow, 1).Style.Fill.BackgroundColor = XLColor.FromArgb(0, 120, 215);
+                ws.Cell(currentRow, 1).Style.Font.FontColor = XLColor.White;
+                ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 1).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                ws.Row(currentRow).Height = 25; // Hacer la fila del título más alta
+                currentRow += 2;
+
+                if (datos.Any())
+                {
+                    // Configurar columnas para usar todo el ancho disponible
+                    int totalColumns = grid.Columns.Count;
+                    int startCol = 1;
+                    int endCol = Math.Max(10, totalColumns + 2); // Asegurar que use al menos 10 columnas
+                    
+                    // Calcular anchos de columna para distribución equitativa
+                    double[] columnWidths = new double[totalColumns];
+                    if (totalColumns == 3) // Típico: Nombre, Cantidad, Monto
+                    {
+                        columnWidths[0] = 50; // Columna de nombre más ancha
+                        columnWidths[1] = 15; // Cantidad
+                        columnWidths[2] = 20; // Monto
+                    }
+                    else
+                    {
+                        // Distribución equitativa para otros casos
+                        for (int i = 0; i < totalColumns; i++)
+                        {
+                            columnWidths[i] = 85.0 / totalColumns;
+                        }
+                    }
+
+                    // Encabezados de columna con mejor formato y fuentes más grandes
+                    int col = startCol;
+                    for (int i = 0; i < grid.Columns.Count; i++)
+                    {
+                        var headerCell = ws.Cell(currentRow, col);
+                        headerCell.Value = grid.Columns[i].HeaderText;
+                        headerCell.Style.Font.SetBold(true);
+                        headerCell.Style.Font.FontSize = 13; // Fuente más grande para headers
+                        headerCell.Style.Fill.BackgroundColor = XLColor.FromArgb(108, 117, 125);
+                        headerCell.Style.Font.FontColor = XLColor.White;
+                        headerCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        headerCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                        headerCell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                        
+                        // Aplicar ancho de columna
+                        ws.Column(col).Width = columnWidths[i];
+                        
+                        col++;
+                    }
+                    ws.Row(currentRow).Height = 20; // Hacer las filas de header más altas
+                    currentRow++;
+
+                    // Filas de datos con formato alternado y fuentes más grandes
+                    bool isEvenRow = false;
+                    foreach (var item in datos)
+                    {
+                        var properties = item.GetType().GetProperties();
+                        col = startCol;
+                        
+                        foreach (var prop in properties)
+                        {
+                            var value = prop.GetValue(item);
+                            var cell = ws.Cell(currentRow, col);
+                            
+                            // Formato de fondo alternado
+                            if (isEvenRow)
+                            {
+                                cell.Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);
+                            }
+                            
+                            // Fuente más grande para datos
+                            cell.Style.Font.FontSize = 11;
+                            
+                            if (prop.Name == "Monto" && (value is decimal || value is double || value is float))
+                            {
+                                cell.Value = (decimal)value;
+                                cell.Style.NumberFormat.Format = "$ #,##0";
+                                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                                cell.Style.Font.SetBold();
+                            }
+                            else if (prop.Name == "Cantidad")
+                            {
+                                if (int.TryParse(value?.ToString(), out int cantidad))
+                                {
+                                    cell.Value = cantidad;
+                                    cell.Style.NumberFormat.Format = "#,##0";
+                                }
+                                else
+                                {
+                                    cell.Value = value?.ToString() ?? "";
+                                }
+                                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                            }
+                            else
+                            {
+                                cell.Value = value?.ToString() ?? "";
+                                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                                cell.Style.Alignment.WrapText = true; // Permitir ajuste de texto
+                            }
+                            
+                            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                            cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                            col++;
+                        }
+                        
+                        ws.Row(currentRow).Height = 18; // Filas de datos más altas
+                        currentRow++;
+                        isEvenRow = !isEvenRow;
+                    }
+
+                    // Línea de separación después de cada ranking
+                    if (topName != selectedTops.Last())
+                    {
+                        currentRow++;
+                        ws.Range(currentRow, 1, currentRow, 10).Style.Border.TopBorder = XLBorderStyleValues.Medium;
+                        ws.Range(currentRow, 1, currentRow, 10).Style.Border.TopBorderColor = XLColor.FromArgb(200, 200, 200);
+                        currentRow += 2;
+                    }
+                }
+                else
+                {
+                    ws.Cell(currentRow, 1).Value = "No hay datos para mostrar";
+                    ws.Cell(currentRow, 1).Style.Font.Italic = true;
+                    ws.Cell(currentRow, 1).Style.Font.FontSize = 12;
+                    ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    ws.Range(currentRow, 1, currentRow, 10).Merge();
+                    currentRow += 3;
+                }
+            }
+
+            // --- PIE DE PÁGINA MEJORADO ---
+            ws.PageSetup.Header.Center.AddText("&\"Arial,Bold\"&16REPORTE DE ESTADÍSTICAS"); // Fuente más grande
+            ws.PageSetup.Footer.Left.AddText($"&\"Arial\"&12Generado: {DateTime.Now:dd/MM/yyyy HH:mm}"); // Fuente más grande
+            ws.PageSetup.Footer.Center.AddText("&\"Arial\"&12Página &P de &N");
+            ws.PageSetup.Footer.Right.AddText($"&\"Arial\"&12{Sesion.Usuario ?? Environment.UserName}");
+
+            // Configuración final para usar todo el ancho
+            ws.PageSetup.PrintAreas.Add($"A1:J{currentRow - 1}"); // Área de impresión más amplia
+            ws.ShowGridLines = false;
+
+            // Configurar zoom para mejor visualización
+            ws.SheetView.ZoomScale = 85;
+
+            // Guardar archivo
+            wb.SaveAs(filePath);
         }
 
         #endregion
