@@ -31,6 +31,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
         
         // --- Botones de acción ---
         private readonly Button btnExportar = new() { Text = "📊 Exportar", AutoSize = true, BackColor = DrawingColor.FromArgb(40, 167, 69), ForeColor = DrawingColor.White, FlatStyle = FlatStyle.Flat };
+        private readonly Button btnGraficos = new() { Text = "📈 Gráficos", AutoSize = true, BackColor = DrawingColor.FromArgb(23, 162, 184), ForeColor = DrawingColor.White, FlatStyle = FlatStyle.Flat };
 
         // --- Definición de Tops ---
         private readonly (string titulo, string icono, DataGridView grid, DrawingColor color)[] _topsDefinition;
@@ -157,6 +158,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
   
             panelTitulo.Controls.Add(new Panel { Width = 10 }); // Espaciador
             panelTitulo.Controls.Add(btnExportar);
+            panelTitulo.Controls.Add(btnGraficos);
 
             // Filtros organizados
             var lblFechas = new Label 
@@ -386,7 +388,13 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
 
             // Eventos de botones
             btnExportar.Click += (_, __) => Exportar();
+            btnGraficos.Click += (_, __) => AbrirFormGraficos();
+        }
 
+        private void AbrirFormGraficos()
+        {
+            var graficosForm = new GraficosForm();
+            graficosForm.Show(this);
         }
 
         private Dictionary<string, object> ObtenerFiltrosActivos()
@@ -543,20 +551,20 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             // Aplicar filtros
             if (cboVendedor.SelectedIndex > 0)
             {
-                var vend = cboVendedor.SelectedItem!.ToString();
+                var vend = cboVendedor.SelectedItem?.ToString() ?? string.Empty;
                 q = q.Where(v => string.Equals(v.Vendedor, vend, StringComparison.OrdinalIgnoreCase));
             }
 
             if (cboCliente.SelectedIndex > 0)
             {
-                var cliente = cboCliente.SelectedItem!. ToString();
+                var cliente = cboCliente.SelectedItem?.ToString() ?? string.Empty;
                 q = q.Where(v => string.Equals(v.ClienteNombre, cliente, StringComparison.OrdinalIgnoreCase));
             }
 
             // Filtrar por localidad/provincia
             if (cboLocalidad.SelectedIndex > 0 && cboLocalidad.SelectedValue is int localidadId)
             {
-                q = q.Where(v => v.LocalidadId == localidadId);
+                q = q.Where(v => v.LocalidadId == localidadId); // LocalidadId is nullable, but comparison with int is fine.
             }
             else if (cboProvincia.SelectedIndex > 0 && cboProvincia.SelectedValue is int provinciaId)
             {
@@ -577,13 +585,13 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 if (cboSubcategoria.SelectedIndex > 0 && cboSubcategoria.SelectedItem?.ToString() != "Todas")
                 {
                     // Filtrar por subcategoría específica
-                    var subcategoriaNombre = cboSubcategoria.SelectedItem!.ToString();
+                    var subcategoriaNombre = cboSubcategoria.SelectedItem?.ToString() ?? string.Empty;
                     productosIds = productos
                         .Where(p => string.Equals(p.SubcategoriaNombre, subcategoriaNombre, StringComparison.OrdinalIgnoreCase))
                         .Select(p => p.Id)
                         .ToHashSet();
                 }
-                else if (cboCategoria.SelectedIndex > 0 && cboCategoria.SelectedItem?.ToString() != "Todas")
+                else if (cboCategoria.SelectedIndex > 0 && cboCategoria.SelectedItem?.ToString() != "Todas") // This check is fine
                 {
                     // Filtrar por categoría específica
                     var categoriaNombre = cboCategoria.SelectedItem!.ToString();
