@@ -559,7 +559,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
 
             if (cboCliente.SelectedIndex > 0)
             {
-                var cliente = cboCliente.SelectedItem!.ToString();
+                var cliente = cboCliente.SelectedItem!. ToString();
                 q = q.Where(v => string.Equals(v.ClienteNombre, cliente, StringComparison.OrdinalIgnoreCase));
             }
 
@@ -706,8 +706,6 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             var selectedTops = optionsForm.SelectedTops;
             var format = optionsForm.SelectedFormat;
 
-            // Esta validación adicional no debería ser necesaria ya que el formulario la maneja,
-            // pero la mantenemos por seguridad
             if (!selectedTops.Any())
             {
                 MessageBox.Show("Debe seleccionar al menos un ranking para exportar.", "Selección Vacía", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -926,295 +924,279 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
         private void ExportarExcel(string filePath, List<string> selectedTops)
         {
             using var wb = new XLWorkbook();
-            var filtros = ObtenerFiltrosActivos();
-
-            // Crear una sola hoja para todos los rankings
             var ws = wb.AddWorksheet("Reporte de Estadísticas");
 
-            // Configurar impresión para usar todo el ancho
+            // --- Página / márgenes / escala ---
             ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
             ws.PageSetup.PageOrientation = XLPageOrientation.Portrait;
-            ws.PageSetup.Margins.Left = 0.3;
-            ws.PageSetup.Margins.Right = 0.3;
-            ws.PageSetup.Margins.Top = 0.5;
-            ws.PageSetup.Margins.Bottom = 0.5;
-            ws.PageSetup.FitToPages(1, 0); // Ajustar a 1 página de ancho
-
-            // --- ENCABEZADO MEJORADO ---
-            // Título principal con barra azul - usar más columnas para ancho completo
-            ws.Cell("A1").Value = "REPORTE DE ESTADÍSTICAS";
-            ws.Range("A1:J1").Merge(); // Usar más columnas para aprovechar el ancho
-            ws.Cell("A1").Style.Font.SetBold(true);
-            ws.Cell("A1").Style.Font.FontSize = 22; // Fuente más grande
-            ws.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            ws.Cell("A1").Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-            ws.Cell("A1").Style.Fill.BackgroundColor = XLColor.FromArgb(0, 120, 215);
-            ws.Cell("A1").Style.Font.FontColor = XLColor.White;
-            ws.Row(1).Height = 35; // Hacer la fila más alta
-
-            // Logo mejorado - más grande y prominente
-            try
-            {
-                var logoResource = Properties.Resources.logo;
-                if (logoResource != null)
-                {
-                    using var ms = new MemoryStream();
-                    logoResource.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                    ms.Position = 0;
-                    
-                    var picture = ws.AddPicture(ms)
-                        .MoveTo(ws.Cell("K1"))
-                        .Scale(0.8); // Logo más grande
-                    
-                    // Ajustar la altura de la fila para el logo
-                    ws.Row(1).Height = Math.Max(ws.Row(1).Height, 50);
-                }
-            }
-            catch
-            {
-                // Intentar cargar desde archivo
-                try
-                {
-                    var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "recursos", "logo.png");
-                    if (File.Exists(logoPath))
-                    {
-                        var picture = ws.AddPicture(logoPath)
-                            .MoveTo(ws.Cell("K1"))
-                            .Scale(0.8);
-                        ws.Row(1).Height = Math.Max(ws.Row(1).Height, 50);
-                    }
-                    else
-                    {
-                        logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
-                        if (File.Exists(logoPath))
-                        {
-                            var picture = ws.AddPicture(logoPath)
-                                .MoveTo(ws.Cell("K1"))
-                                .Scale(0.8);
-                            ws.Row(1).Height = Math.Max(ws.Row(1).Height, 50);
-                        }
-                    }
-                }
-                catch { }
-            }
-
-            // Información del reporte con fuentes más grandes
-            int currentRow = 3;
-            ws.Cell(currentRow, 1).Value = "Generado:";
-            ws.Cell(currentRow, 1).Style.Font.SetBold();
-            ws.Cell(currentRow, 1).Style.Font.FontSize = 12; // Fuente más grande
-            ws.Cell(currentRow, 2).Value = $"{DateTime.Now:dd/MM/yyyy HH:mm} por {Sesion.Usuario ?? Environment.UserName}";
-            ws.Cell(currentRow, 2).Style.Font.FontSize = 12;
-            
-            currentRow++;
-            ws.Cell(currentRow, 1).Value = "Período:";
-            ws.Cell(currentRow, 1).Style.Font.SetBold();
-            ws.Cell(currentRow, 1).Style.Font.FontSize = 12;
-            ws.Cell(currentRow, 2).Value = $"{dpDesde.Value:dd/MM/yyyy} - {dpHasta.Value:dd/MM/yyyy}";
-            ws.Cell(currentRow, 2).Style.Font.FontSize = 12;
-
-            // --- FILTROS APLICADOS ---
-            currentRow += 2;
-            ws.Cell(currentRow, 1).Value = "Filtros Aplicados:";
-            ws.Cell(currentRow, 1).Style.Font.SetBold();
-            ws.Cell(currentRow, 1).Style.Font.FontSize = 14; // Fuente más grande para sección
-            ws.Cell(currentRow, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-            ws.Range(currentRow, 1, currentRow, 10).Merge(); // Usar más columnas
-            currentRow++;
-
-            var hayFiltrosEspecificos = false;
-            foreach (var filtro in filtros)
-            {
-                if (filtro.Value != null && filtro.Value.ToString() != "Todos" && filtro.Value.ToString() != "Todas")
-                {
-                    var nombreFiltro = filtro.Key switch
-                    {
-                        "Vendedor" => "Vendedor",
-                        "Cliente" => "Cliente", 
-                        "Categoria" => "Categoría",
-                        "Subcategoria" => "Subcategoría",
-                        "Provincia" => "Provincia",
-                        "Localidad" => "Localidad",
-                        _ => filtro.Key
-                    };
-                    ws.Cell(currentRow, 1).Value = $"• {nombreFiltro}:";
-                    ws.Cell(currentRow, 1).Style.Font.SetBold();
-                    ws.Cell(currentRow, 1).Style.Font.FontSize = 11;
-                    ws.Cell(currentRow, 2).Value = filtro.Value.ToString();
-                    ws.Cell(currentRow, 2).Style.Font.FontSize = 11;
-                    currentRow++;
-                    hayFiltrosEspecificos = true;
-                }
-            }
-
-            if (!hayFiltrosEspecificos)
-            {
-                ws.Cell(currentRow, 1).Value = "• Sin filtros específicos aplicados";
-                ws.Cell(currentRow, 1).Style.Font.Italic = true;
-                ws.Cell(currentRow, 1).Style.Font.FontSize = 11;
-                currentRow++;
-            }
-
-            currentRow += 2;
-
-            // --- PROCESAR CADA RANKING CON TABLAS DE ANCHO COMPLETO ---
-            foreach (var topName in selectedTops)
-            {
-                var datos = _topDataSources.TryGetValue(topName, out var data) ? data : new List<dynamic>();
-                var grid = _topGrids[topName];
-
-                // Título del ranking con estilo mejorado
-                ws.Cell(currentRow, 1).Value = topName;
-                ws.Range(currentRow, 1, currentRow, 10).Merge(); // Usar todo el ancho
-                ws.Cell(currentRow, 1).Style.Font.SetBold(true);
-                ws.Cell(currentRow, 1).Style.Font.FontSize = 16; // Fuente más grande
-                ws.Cell(currentRow, 1).Style.Fill.BackgroundColor = XLColor.FromArgb(0, 120, 215);
-                ws.Cell(currentRow, 1).Style.Font.FontColor = XLColor.White;
-                ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                ws.Cell(currentRow, 1).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-                ws.Row(currentRow).Height = 25; // Hacer la fila del título más alta
-                currentRow += 2;
-
-                if (datos.Any())
-                {
-                    // Configurar columnas para usar todo el ancho disponible
-                    int totalColumns = grid.Columns.Count;
-                    int startCol = 1;
-                    int endCol = Math.Max(10, totalColumns + 2); // Asegurar que use al menos 10 columnas
-                    
-                    // Calcular anchos de columna para distribución equitativa
-                    double[] columnWidths = new double[totalColumns];
-                    if (totalColumns == 3) // Típico: Nombre, Cantidad, Monto
-                    {
-                        columnWidths[0] = 50; // Columna de nombre más ancha
-                        columnWidths[1] = 15; // Cantidad
-                        columnWidths[2] = 20; // Monto
-                    }
-                    else
-                    {
-                        // Distribución equitativa para otros casos
-                        for (int i = 0; i < totalColumns; i++)
-                        {
-                            columnWidths[i] = 85.0 / totalColumns;
-                        }
-                    }
-
-                    // Encabezados de columna con mejor formato y fuentes más grandes
-                    int col = startCol;
-                    for (int i = 0; i < grid.Columns.Count; i++)
-                    {
-                        var headerCell = ws.Cell(currentRow, col);
-                        headerCell.Value = grid.Columns[i].HeaderText;
-                        headerCell.Style.Font.SetBold(true);
-                        headerCell.Style.Font.FontSize = 13; // Fuente más grande para headers
-                        headerCell.Style.Fill.BackgroundColor = XLColor.FromArgb(108, 117, 125);
-                        headerCell.Style.Font.FontColor = XLColor.White;
-                        headerCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        headerCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                        headerCell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                        
-                        // Aplicar ancho de columna
-                        ws.Column(col).Width = columnWidths[i];
-                        
-                        col++;
-                    }
-                    ws.Row(currentRow).Height = 20; // Hacer las filas de header más altas
-                    currentRow++;
-
-                    // Filas de datos con formato alternado y fuentes más grandes
-                    bool isEvenRow = false;
-                    foreach (var item in datos)
-                    {
-                        var properties = item.GetType().GetProperties();
-                        col = startCol;
-                        
-                        foreach (var prop in properties)
-                        {
-                            var value = prop.GetValue(item);
-                            var cell = ws.Cell(currentRow, col);
-                            
-                            // Formato de fondo alternado
-                            if (isEvenRow)
-                            {
-                                cell.Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);
-                            }
-                            
-                            // Fuente más grande para datos
-                            cell.Style.Font.FontSize = 11;
-                            
-                            if (prop.Name == "Monto" && (value is decimal || value is double || value is float))
-                            {
-                                cell.Value = (decimal)value;
-                                cell.Style.NumberFormat.Format = "$ #,##0";
-                                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-                                cell.Style.Font.SetBold();
-                            }
-                            else if (prop.Name == "Cantidad")
-                            {
-                                if (int.TryParse(value?.ToString(), out int cantidad))
-                                {
-                                    cell.Value = cantidad;
-                                    cell.Style.NumberFormat.Format = "#,##0";
-                                }
-                                else
-                                {
-                                    cell.Value = value?.ToString() ?? "";
-                                }
-                                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                            }
-                            else
-                            {
-                                cell.Value = value?.ToString() ?? "";
-                                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-                                cell.Style.Alignment.WrapText = true; // Permitir ajuste de texto
-                            }
-                            
-                            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                            cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                            col++;
-                        }
-                        
-                        ws.Row(currentRow).Height = 18; // Filas de datos más altas
-                        currentRow++;
-                        isEvenRow = !isEvenRow;
-                    }
-
-                    // Línea de separación después de cada ranking
-                    if (topName != selectedTops.Last())
-                    {
-                        currentRow++;
-                        ws.Range(currentRow, 1, currentRow, 10).Style.Border.TopBorder = XLBorderStyleValues.Medium;
-                        ws.Range(currentRow, 1, currentRow, 10).Style.Border.TopBorderColor = XLColor.FromArgb(200, 200, 200);
-                        currentRow += 2;
-                    }
-                }
-                else
-                {
-                    ws.Cell(currentRow, 1).Value = "No hay datos para mostrar";
-                    ws.Cell(currentRow, 1).Style.Font.Italic = true;
-                    ws.Cell(currentRow, 1).Style.Font.FontSize = 12;
-                    ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    ws.Range(currentRow, 1, currentRow, 10).Merge();
-                    currentRow += 3;
-                }
-            }
-
-            // --- PIE DE PÁGINA MEJORADO ---
-            ws.PageSetup.Header.Center.AddText("&\"Arial,Bold\"&16REPORTE DE ESTADÍSTICAS"); // Fuente más grande
-            ws.PageSetup.Footer.Left.AddText($"&\"Arial\"&12Generado: {DateTime.Now:dd/MM/yyyy HH:mm}"); // Fuente más grande
-            ws.PageSetup.Footer.Center.AddText("&\"Arial\"&12Página &P de &N");
-            ws.PageSetup.Footer.Right.AddText($"&\"Arial\"&12{Sesion.Usuario ?? Environment.UserName}");
-
-            // Configuración final para usar todo el ancho
-            ws.PageSetup.PrintAreas.Add($"A1:J{currentRow - 1}"); // Área de impresión más amplia
+            ws.PageSetup.Margins.Left = 0.2;
+            ws.PageSetup.Margins.Right = 0.2;
+            ws.PageSetup.Margins.Top = 0.4;
+            ws.PageSetup.Margins.Bottom = 0.7;
+            ws.PageSetup.Margins.Header = 0.3;
+            ws.PageSetup.Margins.Footer = 0.5;
+            ws.PageSetup.FitToPages(1, 0);
             ws.ShowGridLines = false;
 
-            // Configurar zoom para mejor visualización
-            ws.SheetView.ZoomScale = 85;
+            // Mantener tamaño del header/footer aunque se escale la hoja
+            ws.PageSetup.ScaleHFWithDocument = false;
+            ws.PageSetup.AlignHFWithMargins = true;
 
-            // Guardar archivo
+            // --- Anchuras de columnas (3 columnas reales para las tablas) ---
+            ws.Column(1).Width = 48; // Nombre
+            ws.Column(2).Width = 10; // Cant/Comp/Ventas
+            ws.Column(3).Width = 40.71; // Total - Ajuste específico solicitado
+
+            int row = 1;
+
+            // ==== ENCABEZADO CON TÍTULO AZUL CENTRADO ====
+            // Título en azul que se extiende por toda la hoja (columnas A, B, C)
+            EstiloTitulo(ws.Range(row, 1, row, 3), "REPORTE DE ESTADÍSTICAS");
+            row++;
+
+            // Primera fila de información: "Generado: valor" en A, logo en C
+            ws.Cell(row, 1).Value = $"Generado: {DateTime.Now:dd/MM/yyyy HH:mm} por {Sesion.Usuario ?? Environment.UserName}";
+            ws.Cell(row, 1).Style.Font.SetBold();
+            ws.Cell(row, 1).Style.Font.FontSize = 11;
+            
+            // Logo en la columna C, centrado
+            try
+            {
+                var logo = Properties.Resources.logo;
+                if (logo != null)
+                {
+                    using var ms = new MemoryStream();
+                    logo.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    ms.Position = 0;
+                    var picture = ws.AddPicture(ms);
+                    // Colocar el logo en la columna C, centrado
+                    picture.MoveTo(ws.Cell(row, 3), 15, 5);
+                    picture.Scale(0.6);
+                }
+            }
+            catch 
+            { 
+                // Si no hay logo, continuar sin él
+            }
+            
+            // Ajustar altura de la fila para acomodar logo
+            ws.Row(row).Height = 40;
+            row++;
+            
+            // Segunda fila de información: "Período: fechas" en A
+            ws.Cell(row, 1).Value = $"Período: {dpDesde.Value:dd/MM/yyyy} - {dpHasta.Value:dd/MM/yyyy}";
+            ws.Cell(row, 1).Style.Font.SetBold();
+            ws.Cell(row, 1).Style.Font.FontSize = 11;
+
+            // ==== FILTROS APLICADOS ====
+            row += 2;
+            var filtros = ObtenerFiltrosActivos();
+            var banda = ws.Range(row, 1, row, 3);
+            banda.Merge().Value = "Filtros Aplicados:";
+            banda.Style.Fill.BackgroundColor = XLColor.FromHtml("#D9D9D9");
+            banda.Style.Font.SetBold();
+            row++;
+
+            bool hayEspecificos = false;
+            foreach (var f in filtros)
+            {
+                var v = f.Value?.ToString();
+                if (!string.IsNullOrWhiteSpace(v) && v != "Todos" && v != "Todas")
+                {
+                    ws.Cell(row, 1).Value = $"• {NombreFiltroLegible(f.Key)}:";
+                    ws.Cell(row, 1).Style.Font.SetBold();
+                    ws.Cell(row, 2).Value = v;
+                    row++;
+                    hayEspecificos = true;
+                }
+            }
+            if (!hayEspecificos)
+            {
+                ws.Cell(row, 1).Value = "• Sin filtros específicos aplicados";
+                ws.Cell(row, 1).Style.Font.Italic = true;
+                row++;
+            }
+
+            row += 1;
+
+            // ==== BLOQUES TOP ====
+            foreach (var topName in selectedTops)
+            {
+                var datos = _topDataSources.TryGetValue(topName, out var data)
+                    ? data?.Cast<object>()?.ToList() ?? new List<object>()
+                    : new List<object>();
+
+                if (!datos.Any())
+                {
+                    // Título
+                    EstiloBarraSeccion(ws.Range(row, 1, row, 3), topName);
+                    row += 1;
+                    ws.Cell(row, 1).Value = "No hay datos para mostrar.";
+                    ws.Cell(row, 1).Style.Font.Italic = true;
+                    row += 2;
+                    continue;
+                }
+
+                // Título
+                EstiloBarraSeccion(ws.Range(row, 1, row, 3), topName);
+                row++;
+
+                // Encabezados de tabla según top
+                string col2Header = topName switch
+                {
+                    "Top Clientes" => "Comp.",
+                    "Top Vendedores" => "Ventas",
+                    _ => "Cant."
+                };
+
+                // Header
+                ws.Cell(row, 1).Value = (topName.Contains("Productos") ? "Producto" :
+                                         topName.Contains("Clientes") ? "Cliente" :
+                                         topName.Contains("Vendedores") ? "Vendedor" :
+                                         topName.Contains("Categorías") ? "Categoría" :
+                                         "Nombre");
+                ws.Cell(row, 2).Value = col2Header;
+                ws.Cell(row, 3).Value = "Total";
+                EstiloHeaderTabla(ws.Range(row, 1, row, 3));
+                row++;
+
+                // Datos
+                // Asegurar orden por Monto desc
+                var ordenados = datos
+                    .OrderByDescending(o => Convert.ToDecimal(
+                        o.GetType().GetProperty("Monto")?.GetValue(o) ?? 0m))
+                    .ToList();
+
+                int dataStart = row;
+                for (int i = 0; i < ordenados.Count; i++)
+                {
+                    var item = ordenados[i];
+                    var t = item.GetType();
+
+                    var nombre = t.GetProperty("Nombre")?.GetValue(item)?.ToString() ?? "";
+                    var cantidad = t.GetProperty("Cantidad")?.GetValue(item);
+                    var montoObj = t.GetProperty("Monto")?.GetValue(item);
+
+                    ws.Cell(row, 1).Value = nombre;
+
+                    if (cantidad is IConvertible)
+                    {
+                        ws.Cell(row, 2).Value = Convert.ToInt32(cantidad);
+                        ws.Cell(row, 2).Style.NumberFormat.Format = "#,##0";
+                        ws.Cell(row, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    }
+                    else
+                    {
+                        ws.Cell(row, 2).Value = cantidad?.ToString() ?? "";
+                    }
+
+                    if (montoObj is IConvertible)
+                    {
+                        ws.Cell(row, 3).Value = Convert.ToDecimal(montoObj);
+                        ws.Cell(row, 3).Style.NumberFormat.Format = "$ #,##0";
+                        ws.Cell(row, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                        ws.Cell(row, 3).Style.Font.SetBold();
+                    }
+                    else
+                    {
+                        ws.Cell(row, 3).Value = montoObj?.ToString() ?? "";
+                        ws.Cell(row, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    }
+
+                    // Zebra
+                    if (i % 2 == 1)
+                        ws.Range(row, 1, row, 3).Style.Fill.BackgroundColor = XLColor.FromHtml("#F8F9FA");
+
+                    ws.Row(row).Height = 18;
+                    row++;
+                }
+
+                // Bordes + autofiltro + alineaciones
+                var rangoTabla = ws.Range(dataStart - 1, 1, row - 1, 3); // incluye header
+                rangoTabla.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                rangoTabla.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                rangoTabla.SetAutoFilter();
+
+                // Espacio entre bloques
+                row += 1;
+            }
+
+            // Dejar 1 fila en blanco como colchón antes del pie
+            row++;
+            ws.Row(row).Height = 12;
+
+            // ==== Header/Footer de página ====
+            // Quitar cualquier header de impresión (no quiero texto negro arriba)
+            ws.PageSetup.Header.Left.Clear();
+            ws.PageSetup.Header.Center.Clear();
+            ws.PageSetup.Header.Right.Clear();
+
+            // Footer correcto
+            ws.PageSetup.Footer.Left.Clear();
+            ws.PageSetup.Footer.Center.Clear();
+            ws.PageSetup.Footer.Right.Clear();
+
+            ws.PageSetup.Footer.Left.AddText($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm}");
+            ws.PageSetup.Footer.Center.AddText("Página &P de &N");
+            ws.PageSetup.Footer.Right.AddText(Sesion.Usuario ?? Environment.UserName);
+
+            // Área de impresión hasta la última fila escrita 
+            ws.PageSetup.PrintAreas.Clear();
+            ws.PageSetup.PrintAreas.Add($"A1:C{row}");
+            ws.SheetView.ZoomScale = 90;
+
             wb.SaveAs(filePath);
+        }
+
+        private static void EstiloTitulo(IXLRange rango, string texto)
+        {
+            rango.Merge();
+            rango.Value = texto;
+            rango.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E73BE"); // Azul
+            rango.Style.Font.SetBold();
+            rango.Style.Font.FontColor = XLColor.White;
+            rango.Style.Font.FontSize = 14;
+            rango.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            rango.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            rango.Worksheet.Row(rango.FirstRow().RowNumber()).Height = 28;
+        }
+
+        private static void EstiloBarraSeccion(IXLRange rango, string texto)
+        {
+            rango.Merge();
+            rango.Value = texto;
+            rango.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E73BE");
+            rango.Style.Font.SetBold();
+            rango.Style.Font.FontColor = XLColor.White;
+            rango.Style.Font.FontSize = 12;
+            rango.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            rango.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            rango.Worksheet.Row(rango.FirstRow().RowNumber()).Height = 22;
+        }
+
+        private static void EstiloHeaderTabla(IXLRange rango)
+        {
+            rango.Style.Fill.BackgroundColor = XLColor.FromHtml("#6C757D");
+            rango.Style.Font.SetBold();
+            rango.Style.Font.FontColor = XLColor.White;
+            rango.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            rango.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            rango.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            rango.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        private static string NombreFiltroLegible(string key)
+        {
+            return key switch
+            {
+                "Vendedor" => "Vendedor",
+                "Cliente" => "Cliente",
+                "Categoria" => "Categoría",
+                "Subcategoria" => "Subcategoría",
+                "Provincia" => "Provincia",
+                "Localidad" => "Localidad",
+                _ => key
+            };
         }
 
         #endregion
