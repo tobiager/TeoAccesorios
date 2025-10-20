@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 
 // Alias seguro al namespace de tus forms de provincias
 using ProvsUI = TeoAccesorios.Desktop.UI.Provincias;
+using StatsUI = TeoAccesorios.Desktop.UI.Estadisticas;
 
 namespace TeoAccesorios.Desktop
 {
@@ -101,7 +102,7 @@ namespace TeoAccesorios.Desktop
 
             btnInicio.Click += (_, __) => Nav(btnInicio, ShowKpis);
             btnReportes.Click += (_, __) => Nav(btnReportes, () => ShowInContent(new ReportesForm()));
-            btnEstadisticas.Click += (_, __) => Nav(btnEstadisticas, () => ShowInContent(new EstadisticasForm()));
+            btnEstadisticas.Click += (_, __) => Nav(btnEstadisticas, () => ShowInContent(new StatsUI.EstadisticasForm()));
             btnEmpleados.Click += (_, __) => Nav(btnEmpleados, () => ShowInContent(new UsuariosForm()));
             btnClientes.Click += (_, __) => Nav(btnClientes, () => ShowInContent(new ClientesForm()));
             btnCategorias.Click += (_, __) => Nav(btnCategorias, () => ShowInContent(new CategoriasForm()));

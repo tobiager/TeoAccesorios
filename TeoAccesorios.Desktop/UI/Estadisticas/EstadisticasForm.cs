@@ -14,7 +14,7 @@ using TeoAccesorios.Desktop.Models;
 using TeoAccesorios.Desktop.UI.Common;
 using DrawingColor = System.Drawing.Color;
 
-namespace TeoAccesorios.Desktop
+namespace TeoAccesorios.Desktop.UI.Estadisticas
 {
     public class EstadisticasForm : Form
     {
@@ -24,12 +24,13 @@ namespace TeoAccesorios.Desktop
         private readonly ComboBox cboVendedor = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         private readonly ComboBox cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
+        private readonly ComboBox cboSubcategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         private readonly ComboBox cboProvincia = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         private readonly ComboBox cboLocalidad = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         
         // --- Botones de acción ---
         private readonly Button btnExportar = new() { Text = "📊 Exportar", AutoSize = true, BackColor = DrawingColor.FromArgb(40, 167, 69), ForeColor = DrawingColor.White, FlatStyle = FlatStyle.Flat };
-        private readonly Button btnAnalisisGrafico = new() { Text = "📈 Análisis Gráfico", AutoSize = true, BackColor = DrawingColor.FromArgb(0, 120, 215), ForeColor = DrawingColor.White, FlatStyle = FlatStyle.Flat };
+      
 
         // --- Grillas para tops ---
         private readonly DataGridView _gridTopProductos = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false };
@@ -131,7 +132,7 @@ namespace TeoAccesorios.Desktop
             };
 
             panelTitulo.Controls.Add(lblTitulo);
-            panelTitulo.Controls.Add(btnAnalisisGrafico);
+  
             panelTitulo.Controls.Add(new Panel { Width = 10 }); // Espaciador
             panelTitulo.Controls.Add(btnExportar);
 
@@ -178,6 +179,8 @@ namespace TeoAccesorios.Desktop
             layout.Controls.Add(lblProductos, 0, 2);
             layout.Controls.Add(new Label { Text = "Categoría:", AutoSize = true, Anchor = AnchorStyles.Right, Padding = new Padding(10, 6, 5, 0) }, 1, 2);
             layout.Controls.Add(cboCategoria, 2, 2);
+            layout.Controls.Add(new Label { Text = "Subcategoría:", AutoSize = true, Anchor = AnchorStyles.Right, Padding = new Padding(15, 6, 5, 0) }, 3, 2);
+            layout.Controls.Add(cboSubcategoria, 4, 2);
 
             var lblUbicacion = new Label 
             { 
@@ -373,19 +376,14 @@ namespace TeoAccesorios.Desktop
             dpHasta.ValueChanged += (_, __) => CargarDatos();
             cboVendedor.SelectedIndexChanged += (_, __) => CargarDatos();
             cboCliente.SelectedIndexChanged += (_, __) => CargarDatos();
-            cboCategoria.SelectedIndexChanged += (_, __) => CargarDatos();
+            cboCategoria.SelectedIndexChanged += (_, __) => { CargarSubcategorias(); CargarDatos(); };
+            cboSubcategoria.SelectedIndexChanged += (_, __) => CargarDatos();
             cboProvincia.SelectedIndexChanged += (_, __) => { CargarLocalidades(); CargarDatos(); };
             cboLocalidad.SelectedIndexChanged += (_, __) => CargarDatos();
 
             // Eventos de botones
             btnExportar.Click += (_, __) => Exportar();
-            btnAnalisisGrafico.Click += (_, __) => AbrirAnalisisGrafico();
-        }
 
-        private void AbrirAnalisisGrafico()
-        {
-            var formGraficos = new AnalisisGraficoForm(_ventasFiltradas, ObtenerFiltrosActivos());
-            formGraficos.ShowDialog(this);
         }
 
         private Dictionary<string, object> ObtenerFiltrosActivos()
@@ -397,6 +395,7 @@ namespace TeoAccesorios.Desktop
                 ["Vendedor"] = cboVendedor.SelectedItem?.ToString(),
                 ["Cliente"] = cboCliente.SelectedItem?.ToString(),
                 ["Categoria"] = cboCategoria.SelectedItem?.ToString(),
+                ["Subcategoria"] = cboSubcategoria.SelectedItem?.ToString(),
                 ["Provincia"] = cboProvincia.SelectedItem?.ToString(),
                 ["Localidad"] = cboLocalidad.SelectedItem?.ToString()
             };
@@ -440,7 +439,49 @@ namespace TeoAccesorios.Desktop
             provincias.Insert(0, new Provincia { Id = 0, Nombre = "Todas" });
             FormUtils.BindCombo(cboProvincia, provincias, selectedValue: 0);
 
+            CargarSubcategorias();
             CargarLocalidades();
+        }
+
+        private void CargarSubcategorias()
+        {
+            if (cboCategoria.SelectedIndex == 0 || cboCategoria.SelectedItem?.ToString() == "Todas")
+            {
+                // Si no hay categoría específica seleccionada, mostrar todas las subcategorías
+                var todasSubcategorias = Repository.ListarSubcategorias(null, false)
+                    .Select(s => s.Nombre)
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(s => s)
+                    .ToList();
+                todasSubcategorias.Insert(0, "Todas");
+                FormUtils.BindCombo(cboSubcategoria, todasSubcategorias, "Todas");
+            }
+            else
+            {
+                // Buscar la categoría seleccionada y filtrar subcategorías
+                var categoriaNombre = cboCategoria.SelectedItem?.ToString();
+                var categoria = Repository.ListarCategorias(true)
+                    .FirstOrDefault(c => string.Equals(c.Nombre, categoriaNombre, StringComparison.OrdinalIgnoreCase));
+
+                if (categoria != null)
+                {
+                    var subcategorias = Repository.ListarSubcategorias(categoria.Id, false)
+                        .Select(s => s.Nombre)
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(s => s)
+                        .ToList();
+                    subcategorias.Insert(0, "Todas");
+                    FormUtils.BindCombo(cboSubcategoria, subcategorias, "Todas");
+                }
+                else
+                {
+                    // Si no se encuentra la categoría, limpiar subcategorías
+                    var vacia = new List<string> { "Todas" };
+                    FormUtils.BindCombo(cboSubcategoria, vacia, "Todas");
+                }
+            }
         }
 
         private void CargarLocalidades()
@@ -510,18 +551,37 @@ namespace TeoAccesorios.Desktop
 
             var ventas = q.ToList();
 
-            // Filtrar por categoría
-            if (cboCategoria.SelectedIndex > 0)
+            // Filtrar por categoría y subcategoría
+            if (cboCategoria.SelectedIndex > 0 || cboSubcategoria.SelectedIndex > 0)
             {
-                var catNombre = cboCategoria.SelectedItem!.ToString();
-                var productosEnCategoria = Repository.ListarProductos(true)
-                    .Where(p => string.Equals(p.CategoriaNombre, catNombre, StringComparison.OrdinalIgnoreCase))
-                    .Select(p => p.Id)
-                    .ToHashSet();
+                var productos = Repository.ListarProductos(true).ToList();
+                var productosIds = new HashSet<int>();
 
-                ventas = ventas
-                    .Where(v => v.Detalles.Any(d => productosEnCategoria.Contains(d.ProductoId)))
-                    .ToList();
+                if (cboSubcategoria.SelectedIndex > 0 && cboSubcategoria.SelectedItem?.ToString() != "Todas")
+                {
+                    // Filtrar por subcategoría específica
+                    var subcategoriaNombre = cboSubcategoria.SelectedItem!.ToString();
+                    productosIds = productos
+                        .Where(p => string.Equals(p.SubcategoriaNombre, subcategoriaNombre, StringComparison.OrdinalIgnoreCase))
+                        .Select(p => p.Id)
+                        .ToHashSet();
+                }
+                else if (cboCategoria.SelectedIndex > 0 && cboCategoria.SelectedItem?.ToString() != "Todas")
+                {
+                    // Filtrar por categoría específica
+                    var categoriaNombre = cboCategoria.SelectedItem!.ToString();
+                    productosIds = productos
+                        .Where(p => string.Equals(p.CategoriaNombre, categoriaNombre, StringComparison.OrdinalIgnoreCase))
+                        .Select(p => p.Id)
+                        .ToHashSet();
+                }
+
+                if (productosIds.Any())
+                {
+                    ventas = ventas
+                        .Where(v => v.Detalles.Any(d => productosIds.Contains(d.ProductoId)))
+                        .ToList();
+                }
             }
 
             return ventas;
@@ -660,296 +720,5 @@ namespace TeoAccesorios.Desktop
         }
 
         #endregion
-    }
-
-    // === FORMULARIO SEPARADO PARA ANÁLISIS GRÁFICO ===
-    public class AnalisisGraficoForm : Form
-    {
-        private readonly List<Venta> _ventas;
-        private readonly Dictionary<string, object> _filtros;
-        
-        // Controles para personalización
-        private readonly ComboBox cboTipoGrafico = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 150 };
-        private readonly ComboBox cboAgrupacion = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 150 };
-        private readonly ComboBox cboMetrica = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 150 };
-        private readonly CheckBox chkComparacion = new() { Text = "Comparar períodos", AutoSize = true };
-        private readonly DateTimePicker dpComparacionDesde = new() { Value = DateTime.Today.AddDays(-60), Width = 120, Enabled = false };
-        private readonly DateTimePicker dpComparacionHasta = new() { Value = DateTime.Today.AddDays(-31), Width = 120, Enabled = false };
-        
-        private readonly Panel _panelGrafico = new() { Dock = DockStyle.Fill, BackColor = DrawingColor.White };
-
-        public AnalisisGraficoForm(List<Venta> ventas, Dictionary<string, object> filtros)
-        {
-            _ventas = ventas;
-            _filtros = filtros;
-            
-            InitializeComponent();
-            ConfigurarControles();
-            ConfigurarEventos();
-        }
-
-        private void InitializeComponent()
-        {
-            Text = "📈 Análisis Gráfico Avanzado";
-            Size = new System.Drawing.Size(1200, 800);
-            StartPosition = FormStartPosition.CenterParent;
-            BackColor = DrawingColor.FromArgb(248, 249, 250);
-
-            var layout = new TableLayoutPanel 
-            { 
-                Dock = DockStyle.Fill, 
-                ColumnCount = 1, 
-                RowCount = 2,
-                Padding = new Padding(15)
-            };
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Controles
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // Gráfico
-
-            // Panel de controles
-            var panelControles = CrearPanelControlesGrafico();
-            layout.Controls.Add(panelControles, 0, 0);
-            layout.Controls.Add(_panelGrafico, 0, 1);
-
-            Controls.Add(layout);
-        }
-
-        private Panel CrearPanelControlesGrafico()
-        {
-            var panel = new Panel 
-            { 
-                Dock = DockStyle.Fill, 
-                AutoSize = true,
-                BackColor = DrawingColor.White,
-                Padding = new Padding(20),
-                Margin = new Padding(0, 0, 0, 15)
-            };
-
-            panel.Paint += (s, e) => 
-            {
-                using var pen = new Pen(DrawingColor.FromArgb(222, 226, 230));
-                e.Graphics.DrawRectangle(pen, 0, 0, panel.Width - 1, panel.Height - 1);
-            };
-
-            var layout = new FlowLayoutPanel 
-            { 
-                Dock = DockStyle.Top, 
-                AutoSize = true, 
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = true
-            };
-
-            // Título
-            var lblTitulo = new Label 
-            { 
-                Text = "🎨 Personalización del Gráfico", 
-                Font = new Font("Segoe UI", 12, FontStyle.Bold), 
-                ForeColor = DrawingColor.FromArgb(33, 37, 41),
-                AutoSize = true,
-                Margin = new Padding(0, 0, 30, 15)
-            };
-            layout.Controls.Add(lblTitulo);
-            layout.SetFlowBreak(lblTitulo, true);
-
-            // Controles de personalización
-            layout.Controls.Add(new Label { Text = "Tipo de Gráfico:", AutoSize = true, Padding = new Padding(0, 6, 5, 0) });
-            layout.Controls.Add(cboTipoGrafico);
-            layout.Controls.Add(new Panel { Width = 20 }); // Espaciador
-
-            layout.Controls.Add(new Label { Text = "Agrupar por:", AutoSize = true, Padding = new Padding(0, 6, 5, 0) });
-            layout.Controls.Add(cboAgrupacion);
-            layout.Controls.Add(new Panel { Width = 20 }); // Espaciador
-
-            layout.Controls.Add(new Label { Text = "Métrica:", AutoSize = true, Padding = new Padding(0, 6, 5, 0) });
-            layout.Controls.Add(cboMetrica);
-            layout.SetFlowBreak(cboMetrica, true);
-
-            // Segunda fila - Comparación
-            layout.Controls.Add(chkComparacion);
-            layout.Controls.Add(new Label { Text = "Desde:", AutoSize = true, Padding = new Padding(15, 6, 5, 0) });
-            layout.Controls.Add(dpComparacionDesde);
-            layout.Controls.Add(new Label { Text = "Hasta:", AutoSize = true, Padding = new Padding(15, 6, 5, 0) });
-            layout.Controls.Add(dpComparacionHasta);
-
-            panel.Controls.Add(layout);
-            return panel;
-        }
-
-        private void ConfigurarControles()
-        {
-            // Tipos de gráfico
-            var tiposGrafico = new[] { "Líneas", "Barras", "Área", "Circular", "Dispersión" };
-            FormUtils.BindCombo(cboTipoGrafico, tiposGrafico, "Líneas");
-
-            // Agrupaciones
-            var agrupaciones = new[] { "Por Día", "Por Semana", "Por Mes", "Por Trimestre", "Por Vendedor", "Por Cliente", "Por Categoría", "Por Provincia" };
-            FormUtils.BindCombo(cboAgrupacion, agrupaciones, "Por Día");
-
-            // Métricas
-            var metricas = new[] { "Monto Total", "Cantidad de Ventas", "Promedio por Venta", "Productos Vendidos" };
-            FormUtils.BindCombo(cboMetrica, metricas, "Monto Total");
-
-            _panelGrafico.Paint += PanelGrafico_Paint;
-        }
-
-        private void ConfigurarEventos()
-        {
-            cboTipoGrafico.SelectedIndexChanged += (_, __) => _panelGrafico.Invalidate();
-            cboAgrupacion.SelectedIndexChanged += (_, __) => _panelGrafico.Invalidate();
-            cboMetrica.SelectedIndexChanged += (_, __) => _panelGrafico.Invalidate();
-            
-            chkComparacion.CheckedChanged += (_, __) => 
-            {
-                dpComparacionDesde.Enabled = chkComparacion.Checked;
-                dpComparacionHasta.Enabled = chkComparacion.Checked;
-                _panelGrafico.Invalidate();
-            };
-            
-            dpComparacionDesde.ValueChanged += (_, __) => { if (chkComparacion.Checked) _panelGrafico.Invalidate(); };
-            dpComparacionHasta.ValueChanged += (_, __) => { if (chkComparacion.Checked) _panelGrafico.Invalidate(); };
-        }
-
-        private void PanelGrafico_Paint(object? sender, PaintEventArgs e)
-        {
-            if (!_ventas.Any())
-            {
-                var message = "📊 No hay datos para mostrar";
-                var font = new Font("Segoe UI", 14);
-                var size = e.Graphics.MeasureString(message, font);
-                var x = (_panelGrafico.Width - size.Width) / 2;
-                var y = (_panelGrafico.Height - size.Height) / 2;
-                
-                e.Graphics.DrawString(message, font, Brushes.Gray, x, y);
-                return;
-            }
-
-            // Aquí se implementaría la lógica de dibujo según el tipo de gráfico seleccionado
-            var tipoGrafico = cboTipoGrafico.SelectedItem?.ToString() ?? "Líneas";
-            var agrupacion = cboAgrupacion.SelectedItem?.ToString() ?? "Por Día";
-            var metrica = cboMetrica.SelectedItem?.ToString() ?? "Monto Total";
-
-            switch (tipoGrafico)
-            {
-                case "Líneas":
-                    DibujarGraficoLineas(e.Graphics, agrupacion, metrica);
-                    break;
-                case "Barras":
-                    DibujarGraficoBarras(e.Graphics, agrupacion, metrica);
-                    break;
-                case "Circular":
-                    DibujarGraficoCircular(e.Graphics, agrupacion, metrica);
-                    break;
-                default:
-                    DibujarGraficoLineas(e.Graphics, agrupacion, metrica);
-                    break;
-            }
-        }
-
-        private void DibujarGraficoLineas(Graphics g, string agrupacion, string metrica)
-        {
-            // Implementación básica del gráfico de líneas
-            var rect = _panelGrafico.ClientRectangle;
-            var margin = 80;
-            var graphRect = new Rectangle(margin, margin, rect.Width - 2 * margin, rect.Height - 2 * margin);
-
-            // Título
-            var title = $"Gráfico de {metrica} {agrupacion}";
-            var titleFont = new Font("Segoe UI", 14, FontStyle.Bold);
-            var titleSize = g.MeasureString(title, titleFont);
-            g.DrawString(title, titleFont, Brushes.Black, (rect.Width - titleSize.Width) / 2, 20);
-
-            // Ejes
-            g.DrawLine(new Pen(DrawingColor.FromArgb(108, 117, 125), 2), margin, rect.Height - margin, rect.Width - margin, rect.Height - margin);
-            g.DrawLine(new Pen(DrawingColor.FromArgb(108, 117, 125), 2), margin, margin, margin, rect.Height - margin);
-
-            // Datos simulados para demostración
-            var datos = ProcesarDatosParaGrafico(agrupacion, metrica);
-            if (datos.Any())
-            {
-                var maxValue = datos.Max(d => d.Value);
-                var stepX = graphRect.Width / (float)Math.Max(1, datos.Count - 1);
-
-                var points = new List<PointF>();
-                for (int i = 0; i < datos.Count; i++)
-                {
-                    var x = margin + i * stepX;
-                    var y = rect.Height - margin - (graphRect.Height * (float)(datos[i].Value / maxValue));
-                    points.Add(new PointF(x, y));
-                }
-
-                if (points.Count > 1)
-                {
-                    g.DrawLines(new Pen(DrawingColor.FromArgb(0, 120, 215), 3), points.ToArray());
-                }
-
-                foreach (var point in points)
-                {
-                    g.FillEllipse(new SolidBrush(DrawingColor.FromArgb(0, 120, 215)), point.X - 4, point.Y - 4, 8, 8);
-                }
-            }
-        }
-
-        private void DibujarGraficoBarras(Graphics g, string agrupacion, string metrica)
-        {
-            // Implementación del gráfico de barras
-            var rect = _panelGrafico.ClientRectangle;
-            var margin = 80;
-            
-            var title = $"Gráfico de Barras - {metrica} {agrupacion}";
-            var titleFont = new Font("Segoe UI", 14, FontStyle.Bold);
-            var titleSize = g.MeasureString(title, titleFont);
-            g.DrawString(title, titleFont, Brushes.Black, (rect.Width - titleSize.Width) / 2, 20);
-
-            // Implementación básica de barras...
-        }
-
-        private void DibujarGraficoCircular(Graphics g, string agrupacion, string metrica)
-        {
-            // Implementación del gráfico circular
-            var rect = _panelGrafico.ClientRectangle;
-            
-            var title = $"Gráfico Circular - {metrica} {agrupacion}";
-            var titleFont = new Font("Segoe UI", 14, FontStyle.Bold);
-            var titleSize = g.MeasureString(title, titleFont);
-            g.DrawString(title, titleFont, Brushes.Black, (rect.Width - titleSize.Width) / 2, 20);
-
-            // Implementación básica circular...
-        }
-
-        private List<(string Label, decimal Value)> ProcesarDatosParaGrafico(string agrupacion, string metrica)
-        {
-            switch (agrupacion)
-            {
-                case "Por Día":
-                    return _ventas
-                        .GroupBy(v => v.FechaVenta.Date)
-                        .Select(g => (g.Key.ToString("dd/MM"), ObtenerValorMetrica<DateTime>(g, metrica)))
-                        .OrderBy(x => x.Item1)
-                        .ToList();
-
-                case "Por Vendedor":
-                    return _ventas
-                        .GroupBy(v => v.Vendedor)
-                        .Select(g => (g.Key, ObtenerValorMetrica<string>(g, metrica)))
-                        .OrderByDescending(x => x.Item2)
-                        .Take(10)
-                        .ToList();
-
-                // Más agrupaciones...
-                default:
-                    return new List<(string, decimal)>();
-            }
-        }
-
-        private decimal ObtenerValorMetrica<TKey>(IGrouping<TKey, Venta> grupo, string metrica)
-        {
-            return metrica switch
-            {
-                "Monto Total" => grupo.Sum(v => v.Total),
-                "Cantidad de Ventas" => grupo.Count(),
-                "Promedio por Venta" => grupo.Any() ? grupo.Sum(v => v.Total) / grupo.Count() : 0,
-                "Productos Vendidos" => grupo.SelectMany(v => v.Detalles).Sum(d => d.Cantidad),
-                _ => 0
-            };
-        }
     }
 }
