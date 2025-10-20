@@ -326,16 +326,6 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             foreach (var grid in grids)
             {
                 GridHelper.Estilizar(grid);
-                grid.RowHeadersVisible = false;
-                grid.AllowUserToAddRows = false;
-                grid.AllowUserToDeleteRows = false;
-                grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-                grid.MultiSelect = false;
-                grid.BackgroundColor = DrawingColor.White;
-                grid.GridColor = DrawingColor.FromArgb(233, 236, 239);
-                grid.DefaultCellStyle.SelectionBackColor = DrawingColor.FromArgb(0, 120, 215);
-                grid.DefaultCellStyle.SelectionForeColor = DrawingColor.White;
-                
                 ConfigurarColumnasGrid(grid);
             }
         }
@@ -347,37 +337,37 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             if (grid == _gridTopProductos)
             {
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Producto", DataPropertyName = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Cant.", DataPropertyName = "Cantidad", Width = 60, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Cantidad", DataPropertyName = "Cantidad", Width = 80, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Total", DataPropertyName = "Monto", Width = 90, DefaultCellStyle = { Format = "C0", Alignment = DataGridViewContentAlignment.MiddleRight } });
             }
             else if (grid == _gridTopClientes)
             {
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Cliente", DataPropertyName = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Comp.", DataPropertyName = "Cantidad", Width = 60, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Compras", DataPropertyName = "Cantidad", Width = 80, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Total", DataPropertyName = "Monto", Width = 90, DefaultCellStyle = { Format = "C0", Alignment = DataGridViewContentAlignment.MiddleRight } });
             }
             else if (grid == _gridTopVendedores)
             {
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Vendedor", DataPropertyName = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ventas", DataPropertyName = "Cantidad", Width = 60, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ventas", DataPropertyName = "Cantidad", Width = 80, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Total", DataPropertyName = "Monto", Width = 90, DefaultCellStyle = { Format = "C0", Alignment = DataGridViewContentAlignment.MiddleRight } });
             }
             else if (grid == _gridTopCategorias)
             {
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Categoría", DataPropertyName = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Prod.", DataPropertyName = "Cantidad", Width = 60, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Productos", DataPropertyName = "Cantidad", Width = 80, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Total", DataPropertyName = "Monto", Width = 90, DefaultCellStyle = { Format = "C0", Alignment = DataGridViewContentAlignment.MiddleRight } });
             }
             else if (grid == _gridTopProvincias)
             {
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Provincia", DataPropertyName = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ventas", DataPropertyName = "Cantidad", Width = 60, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ventas", DataPropertyName = "Cantidad", Width = 80, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Total", DataPropertyName = "Monto", Width = 90, DefaultCellStyle = { Format = "C0", Alignment = DataGridViewContentAlignment.MiddleRight } });
             }
             else if (grid == _gridTopLocalidades)
             {
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Localidad", DataPropertyName = "Nombre", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
-                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ventas", DataPropertyName = "Cantidad", Width = 60, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ventas", DataPropertyName = "Cantidad", Width = 80, DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight } });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Total", DataPropertyName = "Monto", Width = 90, DefaultCellStyle = { Format = "C0", Alignment = DataGridViewContentAlignment.MiddleRight } });
             }
         }
@@ -943,9 +933,9 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             ws.PageSetup.AlignHFWithMargins = true;
 
             // --- Anchuras de columnas (3 columnas reales para las tablas) ---
-            ws.Column(1).Width = 48; // Nombre
-            ws.Column(2).Width = 10; // Cant/Comp/Ventas
-            ws.Column(3).Width = 40.71; // Total - Ajuste específico solicitado
+            ws.Column(1).Width = 40; // Nombre - Reducido para dar más espacio a segunda columna
+            ws.Column(2).Width = 15; // Cantidad/Compras/Ventas/Productos - Aumentado para títulos completos
+            ws.Column(3).Width = 40.71; // Total
 
             int row = 1;
 
@@ -1041,12 +1031,13 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 EstiloBarraSeccion(ws.Range(row, 1, row, 3), topName);
                 row++;
 
-                // Encabezados de tabla según top
+                // Encabezados de tabla según top - TÍTULOS COMPLETOS
                 string col2Header = topName switch
                 {
-                    "Top Clientes" => "Comp.",
+                    "Top Clientes" => "Compras",
                     "Top Vendedores" => "Ventas",
-                    _ => "Cant."
+                    "Top Categorías" => "Productos",
+                    _ => "Cantidad"
                 };
 
                 // Header
