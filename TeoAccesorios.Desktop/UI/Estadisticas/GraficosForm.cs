@@ -26,11 +26,31 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
         private readonly ComboBox _cboTipoGrafico = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
         private readonly ComboBox _cboGranularidad = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180, Visible = false };
         private readonly ComboBox _cboEstiloGrafico = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
-        private readonly DateTimePicker _dpDesde1 = new() { Value = DateTime.Today.AddDays(-30), Width = 110 };
-        private readonly DateTimePicker _dpHasta1 = new() { Value = DateTime.Today, Width = 110 };
+        private readonly DateTimePicker _dpDesde1 = new() { 
+            Value = DateTime.Today.AddDays(-30), 
+            Width = 110,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+};
+        private readonly DateTimePicker _dpHasta1 = new() { 
+            Value = DateTime.Today, 
+            Width = 110,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+};
         private readonly CheckBox _chkComparar = new() { Text = "Comparar con otro período", AutoSize = true };
-        private readonly DateTimePicker _dpDesde2 = new() { Value = DateTime.Today.AddDays(-60), Width = 110 };
-        private readonly DateTimePicker _dpHasta2 = new() { Value = DateTime.Today.AddDays(-31), Width = 110 };
+        private readonly DateTimePicker _dpDesde2 = new() { 
+            Value = DateTime.Today.AddDays(-60), 
+            Width = 110,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+};
+        private readonly DateTimePicker _dpHasta2 = new() { 
+            Value = DateTime.Today.AddDays(-31), 
+            Width = 110,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+};
         private readonly ComboBox _cboVendedor = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
         private readonly ComboBox _cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
         private readonly ComboBox _cboProvincia = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };

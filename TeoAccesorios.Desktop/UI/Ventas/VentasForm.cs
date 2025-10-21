@@ -20,8 +20,18 @@ namespace TeoAccesorios.Desktop
         };
 
         private readonly CheckBox chkRango = new() { Text = "Rango fechas", AutoSize = true };
-        private readonly DateTimePicker dpDesde = new() { Width = 130, Value = DateTime.Today.AddDays(-7) };
-        private readonly DateTimePicker dpHasta = new() { Width = 130, Value = DateTime.Today };
+        private readonly DateTimePicker dpDesde = new() { 
+            Width = 130, 
+            Value = DateTime.Today.AddDays(-7),
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+};
+private readonly DateTimePicker dpHasta = new() { 
+    Width = 130, 
+    Value = DateTime.Today,
+    Format = DateTimePickerFormat.Custom,
+    CustomFormat = "dd/MM/yy"
+};
 
         private readonly ComboBox cboVendedor = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
         private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };

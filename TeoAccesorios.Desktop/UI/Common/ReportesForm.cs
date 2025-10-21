@@ -17,8 +17,18 @@ namespace TeoAccesorios.Desktop
 {
     public class ReportesForm : Form
     {
-        private readonly DateTimePicker dpDesde = new() { Value = DateTime.Today.AddDays(-7), Width = 120 };
-        private readonly DateTimePicker dpHasta = new() { Value = DateTime.Today, Width = 120 };
+        private readonly DateTimePicker dpDesde = new() { 
+            Value = DateTime.Today.AddDays(-7), 
+            Width = 120,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+};
+        private readonly DateTimePicker dpHasta = new() { 
+            Value = DateTime.Today, 
+            Width = 120,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+};
 
         private readonly ComboBox cboVendedor = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
         private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };
@@ -291,7 +301,7 @@ namespace TeoAccesorios.Desktop
             ws.Range(row, 1, row, 4).Style.Font.Bold = true;
             ws.Cell(row, 5).FormulaA1 = $"SUM(E8:E{row - 1})";
             ws.Cell(row, 5).Style.NumberFormat.Format = "$ #,##0";
-            ws.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.FromHtml("#F6F6F6");
+            ws.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.FromHtml("#F6F6F6");
             ws.Range(7, 1, row, 5).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             ws.Range(7, 1, row, 5).Style.Border.InsideBorder = XLBorderStyleValues.Dotted;
 

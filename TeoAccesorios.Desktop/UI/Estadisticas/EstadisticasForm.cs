@@ -20,8 +20,18 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
     public class EstadisticasForm : Form
     {
         // --- Filtros ---
-        private readonly DateTimePicker dpDesde = new() { Value = DateTime.Today.AddDays(-30), Width = 110 };
-        private readonly DateTimePicker dpHasta = new() { Value = DateTime.Today, Width = 110 };
+        private readonly DateTimePicker dpDesde = new() { 
+            Value = DateTime.Today.AddDays(-30), 
+            Width = 110,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+        };
+        private readonly DateTimePicker dpHasta = new() { 
+            Value = DateTime.Today, 
+            Width = 110,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "dd/MM/yy"
+        };
         private readonly ComboBox cboVendedor = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
         private readonly ComboBox cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
