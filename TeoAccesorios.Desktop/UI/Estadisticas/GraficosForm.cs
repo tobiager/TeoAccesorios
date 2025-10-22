@@ -31,30 +31,29 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             Width = 110,
             Format = DateTimePickerFormat.Custom,
             CustomFormat = "dd/MM/yy"
-};
+        };
         private readonly DateTimePicker _dpHasta1 = new() { 
             Value = DateTime.Today, 
             Width = 110,
             Format = DateTimePickerFormat.Custom,
             CustomFormat = "dd/MM/yy"
-};
+        };
         private readonly CheckBox _chkComparar = new() { Text = "Comparar con otro período", AutoSize = true };
         private readonly DateTimePicker _dpDesde2 = new() { 
             Value = DateTime.Today.AddDays(-60), 
             Width = 110,
             Format = DateTimePickerFormat.Custom,
             CustomFormat = "dd/MM/yy"
-};
+        };
         private readonly DateTimePicker _dpHasta2 = new() { 
             Value = DateTime.Today.AddDays(-31), 
             Width = 110,
             Format = DateTimePickerFormat.Custom,
             CustomFormat = "dd/MM/yy"
-};
+        };
         private readonly ComboBox _cboVendedor = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
         private readonly ComboBox _cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
         private readonly ComboBox _cboProvincia = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
-        private readonly Button _btnGenerar = new() { Text = "📊 Generar Gráfico", AutoSize = true, BackColor = Color.FromArgb(0, 123, 255), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 35 };
         private readonly Button _btnExportar = new() { Text = "📄 Exportar", AutoSize = true, BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 35 };
         private readonly WebView2 _webView = new() { Dock = DockStyle.Fill };
 
@@ -145,8 +144,6 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             panelControles.Controls.Add(_cboProvincia);
 
             panelControles.Controls.Add(new Panel { Height = 20 }); // Espaciador
-            panelControles.Controls.Add(_btnGenerar);
-            panelControles.Controls.Add(new Panel { Height = 10 }); // Espaciador
             panelControles.Controls.Add(_btnExportar);
 
             mainLayout.Controls.Add(panelControles, 0, 0);
@@ -197,7 +194,6 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             // Granularidad
             _cboGranularidad.Items.AddRange(Enum.GetNames(typeof(GranularidadTemporal)));
             _cboGranularidad.SelectedItem = "Auto";
-
 
             // Estilo de Gráfico
             _cboEstiloGrafico.Items.AddRange(new object[] { "Barras", "Torta (Pie)", "Líneas", "Dona (Doughnut)" });
@@ -251,7 +247,6 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             _panelFechas2.Visible = false;
 
 
-            _btnGenerar.Click += async (s, e) => { _debounceTimer.Stop(); await GenerarGrafico(); };
             _btnExportar.Click += async (s, e) => await Exportar();
         }
 
@@ -780,7 +775,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                             col.Item().PaddingTop(10).Text("Filtros Aplicados:").SemiBold();
                             bool sinFiltros = true;
                             if (_cboVendedor.SelectedIndex > 0) { col.Item().Text($"Vendedor: {_cboVendedor.SelectedItem}"); sinFiltros = false; }
-                            if (_cboCategoria.SelectedIndex > 0) { col.Item().Text($"Categoría: {_cboCategoria.SelectedItem?.ToString() ?? "Todas"}"); sinFiltros = false; } // Corrected null handling
+                            if (_cboCategoria.SelectedIndex > 0) { col.Item().Text($"Categoría: {_cboCategoria.SelectedItem?.ToString() ?? "Todas"}"); sinFiltros = false; }
                             if (_cboProvincia.SelectedIndex > 0) { col.Item().Text($"Provincia: {_cboProvincia.Text}"); sinFiltros = false; }
                             if (sinFiltros) col.Item().Text("Ninguno").Italic(); // This line is fine, it's a literal string.
 
