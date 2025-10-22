@@ -5,7 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 using TeoAccesorios.Desktop.UI.Common;
-using TeoAccesorios.Desktop.Models; // Ya existe
+using TeoAccesorios.Desktop.Models; 
 using System.Drawing;
 using System.Reflection;
 
@@ -15,7 +15,9 @@ namespace TeoAccesorios.Desktop
     {
         //  UI principal 
         private readonly ComboBox cboCliente = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
+        private readonly Button btnBuscarCliente = new() { Text = "🔍", Width = 32, Height = 24 };
         private readonly ComboBox cboProducto = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 320 };
+        private readonly Button btnBuscarProducto = new() { Text = "🔍", Width = 32, Height = 24 };
         private readonly NumericUpDown numCant = new() { Minimum = 1, Maximum = 1000, Value = 1, Width = 90, TextAlign = HorizontalAlignment.Right };
         private readonly ComboBox cboCanal = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
         private readonly TextBox txtDireccionEnvio = new() { Width = 420, PlaceholderText = "Dirección de envío" };
@@ -78,11 +80,16 @@ namespace TeoAccesorios.Desktop
             StartPosition = FormStartPosition.CenterParent;
             Font = new Font("Segoe UI", 10F);
 
-            // --- Fila 1: cliente / canal / dirección
+            // Configurar tooltips para los botones de búsqueda
+            var toolTip = new ToolTip();
+            toolTip.SetToolTip(btnBuscarCliente, "Buscar cliente");
+            toolTip.SetToolTip(btnBuscarProducto, "Buscar producto");
+
+            // --- Fila 1: cliente con botón de búsqueda
             var fila1 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(12, 10, 12, 6), WrapContents = false };
             fila1.Controls.AddRange(new Control[]
             {
-                Etiqueta("Cliente"), cboCliente
+                Etiqueta("Cliente"), cboCliente, btnBuscarCliente
             });
 
             // --- Fila 1.5: Dirección
@@ -98,12 +105,11 @@ namespace TeoAccesorios.Desktop
                 chkCambiarDireccion
             });
 
-
-            // --- Fila 2: producto / cantidad / acciones
+            // --- Fila 2: producto con botón de búsqueda / cantidad / acciones
             var fila2 = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(12, 6, 12, 10), WrapContents = false };
             fila2.Controls.AddRange(new Control[]
             {
-                Etiqueta("Producto"), cboProducto,
+                Etiqueta("Producto"), cboProducto, btnBuscarProducto,
                 Separador(16),
                 Etiqueta("Cant."), numCant,
                 Separador(16),
@@ -201,10 +207,62 @@ namespace TeoAccesorios.Desktop
             cboCliente.SelectedIndexChanged += (s, e) => OnClienteChanged();
             chkCambiarDireccion.CheckedChanged += (_, __) => ActualizarVisibilidadDireccion();
 
+            // --- Eventos de búsqueda ---
+            btnBuscarCliente.Click += (_, __) => AbrirBuscadorCliente();
+            btnBuscarProducto.Click += (_, __) => AbrirBuscadorProducto();
+
             // Disparar el primer cambio para cargar datos del cliente inicial
             OnClienteChanged();
             // Configurar los manejadores de eventos para los botones de acción
             SetupActionHandlers();
+        }
+
+        private void AbrirBuscadorCliente()
+        {
+            using var form = new ClienteSelectorForm();
+            if (form.ShowDialog(this) == DialogResult.OK && form.ClienteSeleccionado != null)
+            {
+                // Buscar el cliente en la lista actual y seleccionarlo
+                var cliente = form.ClienteSeleccionado;
+                var index = _clientes.FindIndex(c => c.Id == cliente.Id);
+                
+                if (index >= 0)
+                {
+                    cboCliente.SelectedIndex = index;
+                }
+                else
+                {
+                    // Si el cliente no está en la lista actual, lo agregamos temporalmente
+                    _clientes.Add(cliente);
+                    var bindingSource = (BindingSource)cboCliente.DataSource;
+                    bindingSource.ResetBindings(false);
+                    cboCliente.SelectedValue = cliente.Id;
+                }
+            }
+        }
+
+        private void AbrirBuscadorProducto()
+        {
+            using var form = new ProductoSelectorForm();
+            if (form.ShowDialog(this) == DialogResult.OK && form.ProductoSeleccionado != null)
+            {
+                // Buscar el producto en la lista actual y seleccionarlo
+                var producto = form.ProductoSeleccionado;
+                var index = _productos.FindIndex(p => p.Id == producto.Id);
+                
+                if (index >= 0)
+                {
+                    cboProducto.SelectedIndex = index;
+                }
+                else
+                {
+                    // Si el producto no está en la lista actual, lo agregamos temporalmente
+                    _productos.Add(producto);
+                    var bindingSource = (BindingSource)cboProducto.DataSource;
+                    bindingSource.ResetBindings(false);
+                    cboProducto.SelectedValue = producto.Id;
+                }
+            }
         }
 
         private void OnClienteChanged()
@@ -416,10 +474,7 @@ namespace TeoAccesorios.Desktop
             };
         }
 
-        private void GuardarVenta()
-        {
-            // Este método ahora está vacío. La lógica se movió a SetupActionHandlers.
-        }
+        
 
         //  Datos en grilla + totales 
         private void RefrescarGrid()
@@ -454,5 +509,416 @@ namespace TeoAccesorios.Desktop
             new() { Text = texto, AutoSize = true, Padding = new Padding(0, 8, 0, 0), TextAlign = ContentAlignment.MiddleLeft };
 
         private static Control Separador(int width) => new Label { Width = width };
+    }
+
+    // ===== Formulario de selección de clientes =====
+    public class ClienteSelectorForm : Form
+    {
+        private readonly DataGridView grid = new()
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = true,
+            AutoGenerateColumns = false,
+            MultiSelect = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,  
+            ScrollBars = ScrollBars.Both,  // Permitir scroll horizontal si es necesario
+            AllowUserToResizeColumns = true  // Permitir redimensionar columnas manualmente
+        };
+
+        private readonly TextBox txtBuscar = new() { PlaceholderText = "Buscar cliente por nombre, email, teléfono o dirección...", Width = 400 };  // Aumentado el ancho y texto más descriptivo
+        private readonly Button btnSeleccionar = new() { Text = "Seleccionar", Width = 100 };
+        private readonly Button btnCancelar = new() { Text = "Cancelar", Width = 100 };
+
+        private readonly BindingSource bs = new();
+        private List<Cliente> _clientesOriginal = new();
+        
+        public Cliente? ClienteSeleccionado { get; private set; }
+
+        public ClienteSelectorForm()
+        {
+            Text = "Seleccionar Cliente";
+            Width = 1300;  // Aumentado aún más para acomodar todas las columnas
+            Height = 700;
+            StartPosition = FormStartPosition.CenterParent;
+            Font = new Font("Segoe UI", 10F);
+
+            // Configurar columnas de la grilla
+            ConfigurarColumnas();
+
+            // Panel superior con búsqueda
+            var panelBusqueda = new FlowLayoutPanel 
+            { 
+                Dock = DockStyle.Top, 
+                Height = 45, 
+                Padding = new Padding(12, 8, 12, 8),
+                WrapContents = false
+            };
+            panelBusqueda.Controls.Add(new Label { Text = "Buscar:", AutoSize = true, Padding = new Padding(0, 8, 8, 0) });
+            panelBusqueda.Controls.Add(txtBuscar);
+
+            // Panel inferior con botones
+            var panelBotones = new FlowLayoutPanel 
+            { 
+                Dock = DockStyle.Bottom, 
+                Height = 50, 
+                Padding = new Padding(12),
+                FlowDirection = FlowDirection.RightToLeft
+            };
+            panelBotones.Controls.Add(btnCancelar);
+            panelBotones.Controls.Add(btnSeleccionar);
+
+            // Layout principal
+            Controls.Add(grid);
+            Controls.Add(panelBotones);
+            Controls.Add(panelBusqueda);
+
+            // Estilo de grilla
+            GridHelper.Estilizar(grid);
+
+            // Eventos
+            txtBuscar.TextChanged += (_, __) => FiltrarClientes();
+            btnSeleccionar.Click += (_, __) => SeleccionarCliente();
+            btnCancelar.Click += (_, __) => { DialogResult = DialogResult.Cancel; Close(); };
+            grid.DoubleClick += (_, __) => SeleccionarCliente();
+            grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) SeleccionarCliente(); };
+
+            // Cargar datos
+            CargarClientes();
+            
+            AcceptButton = btnSeleccionar;
+            CancelButton = btnCancelar;
+        }
+
+        private void ConfigurarColumnas()
+        {
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Id",
+                HeaderText = "Id",
+                DataPropertyName = "Id",
+                Width = 50,
+                ReadOnly = true
+            });
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Nombre",
+                HeaderText = "Nombre",
+                DataPropertyName = "Nombre",
+                Width = 200,
+                ReadOnly = true
+            });
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Email",
+                HeaderText = "Email",
+                DataPropertyName = "Email",
+                Width = 250,
+                ReadOnly = true
+            });
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Telefono",
+                HeaderText = "Teléfono",
+                DataPropertyName = "Telefono",
+                Width = 140,
+                ReadOnly = true
+            });
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Direccion",
+                HeaderText = "Dirección",
+                DataPropertyName = "Direccion",
+                Width = 300,
+                ReadOnly = true
+            });
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "LocalidadNombre",
+                HeaderText = "Localidad",
+                DataPropertyName = "LocalidadNombre",
+                Width = 150,
+                ReadOnly = true
+            });
+        }
+
+        private void CargarClientes()
+        {
+            _clientesOriginal = Repository.ListarClientes(false);
+            bs.DataSource = _clientesOriginal;
+            grid.DataSource = bs;
+        }
+
+        private void FiltrarClientes()
+        {
+            var busqueda = txtBuscar.Text?.Trim() ?? "";
+            
+            if (string.IsNullOrWhiteSpace(busqueda))
+            {
+                bs.DataSource = _clientesOriginal;
+            }
+            else
+            {
+                var filtrados = _clientesOriginal.Where(c => 
+                    (c.Nombre ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (c.Email ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (c.Telefono ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (c.Direccion ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (c.LocalidadNombre ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0
+                ).ToList();
+                
+                bs.DataSource = filtrados;
+            }
+            
+            bs.ResetBindings(false);
+        }
+
+        private void SeleccionarCliente()
+        {
+            if (grid.CurrentRow?.DataBoundItem is Cliente cliente)
+            {
+                ClienteSeleccionado = cliente;
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            else
+            {
+                MessageBox.Show("Por favor, seleccione un cliente.", "Selección requerida", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+    }
+
+    // ===== Formulario de selección de productos =====
+    public class ProductoSelectorForm : Form
+    {
+        private readonly DataGridView grid = new()
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = true,
+            AutoGenerateColumns = false,
+            MultiSelect = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false
+        };
+
+        private readonly TextBox txtBuscar = new() { PlaceholderText = "Buscar producto por nombre...", Width = 300 };
+        private readonly ComboBox cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
+        private readonly Button btnSeleccionar = new() { Text = "Seleccionar", Width = 100 };
+        private readonly Button btnCancelar = new() { Text = "Cancelar", Width = 100 };
+
+        private readonly BindingSource bs = new();
+        private List<Producto> _productosOriginal = new();
+        private readonly CultureInfo _culture = new("es-AR");
+        
+        public Producto? ProductoSeleccionado { get; private set; }
+
+        public ProductoSelectorForm()
+        {
+            Text = "Seleccionar Producto";
+            Width = 900;
+            Height = 650;
+            StartPosition = FormStartPosition.CenterParent;
+            Font = new Font("Segoe UI", 10F);
+
+            // Configurar columnas de la grilla
+            ConfigurarColumnas();
+
+            // Panel superior con búsqueda y filtros
+            var panelBusqueda = new FlowLayoutPanel 
+            { 
+                Dock = DockStyle.Top, 
+                Height = 45, 
+                Padding = new Padding(12, 8, 12, 8),
+                WrapContents = false
+            };
+            panelBusqueda.Controls.Add(new Label { Text = "Buscar:", AutoSize = true, Padding = new Padding(0, 8, 8, 0) });
+            panelBusqueda.Controls.Add(txtBuscar);
+            panelBusqueda.Controls.Add(new Label { Text = "Categoría:", AutoSize = true, Padding = new Padding(16, 8, 8, 0) });
+            panelBusqueda.Controls.Add(cboCategoria);
+
+            // Panel inferior con botones
+            var panelBotones = new FlowLayoutPanel 
+            { 
+                Dock = DockStyle.Bottom, 
+                Height = 50, 
+                Padding = new Padding(12),
+                FlowDirection = FlowDirection.RightToLeft
+            };
+            panelBotones.Controls.Add(btnCancelar);
+            panelBotones.Controls.Add(btnSeleccionar);
+
+            // Layout principal
+            Controls.Add(grid);
+            Controls.Add(panelBotones);
+            Controls.Add(panelBusqueda);
+
+            // Estilo de grilla
+            GridHelper.Estilizar(grid);
+
+            // Eventos
+            txtBuscar.TextChanged += (_, __) => FiltrarProductos();
+            cboCategoria.SelectedIndexChanged += (_, __) => FiltrarProductos();
+            btnSeleccionar.Click += (_, __) => SeleccionarProducto();
+            btnCancelar.Click += (_, __) => { DialogResult = DialogResult.Cancel; Close(); };
+            grid.DoubleClick += (_, __) => SeleccionarProducto();
+            grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) SeleccionarProducto(); };
+
+            // Cargar datos
+            CargarCategorias();
+            CargarProductos();
+            
+            AcceptButton = btnSeleccionar;
+            CancelButton = btnCancelar;
+        }
+
+        private void ConfigurarColumnas()
+        {
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Id",
+                HeaderText = "Id",
+                DataPropertyName = "Id",
+                Width = 50,
+                ReadOnly = true
+            });
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Nombre",
+                HeaderText = "Nombre",
+                DataPropertyName = "Nombre",
+                Width = 200,  // Ancho fijo más amplio
+                ReadOnly = true
+            });
+
+            var colPrecio = new DataGridViewTextBoxColumn
+            {
+                Name = "Precio",
+                HeaderText = "Precio",
+                DataPropertyName = "Precio",
+                Width = 120,
+                ReadOnly = true
+            };
+            colPrecio.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            colPrecio.DefaultCellStyle.FormatProvider = _culture;
+            colPrecio.DefaultCellStyle.Format = "C2";
+
+            var colStock = new DataGridViewTextBoxColumn
+            {
+                Name = "Stock",
+                HeaderText = "Stock",
+                DataPropertyName = "Stock",
+                Width = 80,
+                ReadOnly = true
+            };
+            colStock.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            grid.Columns.Add(colStock);
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "CategoriaNombre",
+                HeaderText = "Categoría",
+                DataPropertyName = "CategoriaNombre",
+                Width = 150,
+                ReadOnly = true
+            });
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "SubcategoriaNombre",
+                HeaderText = "Subcategoría",
+                DataPropertyName = "SubcategoriaNombre",
+                Width = 150,
+                ReadOnly = true
+            });
+        }
+
+        private void CargarCategorias()
+        {
+            cboCategoria.Items.Clear();
+            cboCategoria.Items.Add(new ComboItem { Text = "Todas las categorías", Value = null });
+            
+            foreach (var categoria in Repository.ListarCategorias())
+            {
+                cboCategoria.Items.Add(new ComboItem { Text = categoria.Nombre, Value = categoria.Id });
+            }
+            
+            cboCategoria.SelectedIndex = 0;
+        }
+
+        private void CargarProductos()
+        {
+            _productosOriginal = Repository.ListarProductos(false);
+            bs.DataSource = _productosOriginal;
+            grid.DataSource = bs;
+        }
+
+        private void FiltrarProductos()
+        {
+            var busqueda = txtBuscar.Text?.Trim() ?? "";
+            var categoriaSeleccionada = (cboCategoria.SelectedItem as ComboItem)?.Value;
+            
+            var filtrados = _productosOriginal.AsEnumerable();
+
+            // Filtrar por búsqueda de texto
+            if (!string.IsNullOrWhiteSpace(busqueda))
+            {
+                filtrados = filtrados.Where(p => 
+                    (p.Nombre ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (p.Descripcion ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (p.CategoriaNombre ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (p.SubcategoriaNombre ?? "").IndexOf(busqueda, StringComparison.OrdinalIgnoreCase) >= 0
+                );
+            }
+
+            // Filtrar por categoría
+            if (categoriaSeleccionada.HasValue)
+            {
+                filtrados = filtrados.Where(p => p.CategoriaId == categoriaSeleccionada.Value);
+            }
+            
+            bs.DataSource = filtrados.ToList();
+            bs.ResetBindings(false);
+        }
+
+        private void SeleccionarProducto()
+        {
+            if (grid.CurrentRow?.DataBoundItem is Producto producto)
+            {
+                if (producto.Stock <= 0)
+                {
+                    var result = MessageBox.Show($"El producto \"{producto.Nombre}\" no tiene stock disponible.\n¿Desea seleccionarlo de todas formas?", 
+                        "Sin stock", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    
+                    if (result != DialogResult.Yes)
+                        return;
+                }
+
+                ProductoSeleccionado = producto;
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            else
+            {
+                MessageBox.Show("Por favor, seleccione un producto.", "Selección requerida", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private class ComboItem
+        {
+            public string Text { get; set; } = "";
+            public int? Value { get; set; }
+            public override string ToString() => Text;
+        }
     }
 }
