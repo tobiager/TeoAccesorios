@@ -30,7 +30,8 @@ namespace TeoAccesorios.Desktop
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false;
 
-            cboRol.Items.AddRange(new object[] { "Gerente", "Admin", "Vendedor" });
+            // Configurar roles disponibles basado en si ya existe un gerente
+            ConfigurarRolesDisponibles();
 
             var grid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(12) };
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
@@ -153,6 +154,29 @@ namespace TeoAccesorios.Desktop
             };
 
             btnGuardar.Enabled = Validar();
+        }
+
+        private void ConfigurarRolesDisponibles()
+        {
+            var rolesDisponibles = new List<string>();
+            
+            // Verificar si ya existe un gerente activo
+            var existeGerente = Repository.ListarUsuarios()
+                .Any(usr => usr.Activo && usr.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) == true);
+            
+            // Si se está editando un usuario existente que es gerente, permitir mantener el rol
+            var esGerenteExistente = !esNuevoUsuario && model.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) == true;
+            
+            // Agregar "Gerente" solo si no existe uno O si estamos editando al gerente existente
+            if (!existeGerente || esGerenteExistente)
+            {
+                rolesDisponibles.Add("Gerente");
+            }
+            
+            rolesDisponibles.Add("Admin");
+            rolesDisponibles.Add("Vendedor");
+            
+            cboRol.Items.AddRange(rolesDisponibles.ToArray());
         }
 
         private bool Validar()
