@@ -38,10 +38,10 @@ private readonly DateTimePicker dpHasta = new() {
 
         private readonly TextBox txtBuscar = new() { Width = 220, PlaceholderText = "Buscar (Id, cliente, vendedor...)" };
 
-        private readonly Button btnNueva = new() { Text = "Nueva" };
-        private readonly Button btnAnular = new() { Text = "Anular" };
-        private readonly Button btnLimpiar = new() { Text = "Limpiar filtros" };
-        private readonly Button btnVerAnuladas = new() { Text = "Ver anuladas" };
+        private readonly Button btnNueva = new() { Text = "Nueva", Width = 75, Height = 26 };
+        private readonly Button btnAnular = new() { Text = "Anular", Width = 75, Height = 26 };
+        private readonly Button btnLimpiar = new() { Text = "Limpiar filtros", Width = 100, Height = 26 };
+        private readonly Button btnVerAnuladas = new(){ Text = "Ver anuladas", Width = 110,   Height = 26 };
 
         // ⚙ Selector de columnas
         private readonly Button btnColumnas = new() { Text = "⚙", Width = 32, Height = 26, Padding = new Padding(0) };
