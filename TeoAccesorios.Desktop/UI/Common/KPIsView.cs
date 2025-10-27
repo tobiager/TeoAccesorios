@@ -36,15 +36,15 @@ namespace TeoAccesorios.Desktop
 
             stats.Controls.Add(Card("Ventas hoy", out lblVentasHoy), 0, 0);
             stats.Controls.Add(Card("Ingresos hoy", out lblIngresosHoy), 1, 0);
-            stats.Controls.Add(Card("Clientes", out lblClientes), 2, 0);
-            stats.Controls.Add(Card("Productos", out lblProductos), 3, 0);
+            stats.Controls.Add(Card("Clientes activos", out lblClientes), 2, 0);
+            stats.Controls.Add(Card("Productos activos", out lblProductos), 3, 0);
             var btnRefrescar = new Button { Text = "Refrescar", Dock = DockStyle.Fill, Height = 36, BackColor = Color.FromArgb(14, 165, 233), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnRefrescar.FlatAppearance.BorderSize = 0;
             btnRefrescar.Click += (_, __) => LoadFromDb();
             stats.Controls.Add(btnRefrescar, 4, 0);
 
             // Top productos
-            var topBox = new GroupBox { Text = "Top productos vendidos (últimas 50 ventas)", Dock = DockStyle.Fill };
+            var topBox = new GroupBox { Text = "Top productos vendidos (últimas 50 ventas activas)", Dock = DockStyle.Fill };
             topBox.ForeColor = Color.White;
             topBox.Font = new Font("Segoe UI", 11, FontStyle.Bold);
             topGrid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
@@ -56,14 +56,14 @@ namespace TeoAccesorios.Desktop
             bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
 
             // Últimas ventas
-            var ultBox = new GroupBox { Text = "Últimas ventas", Dock = DockStyle.Fill };
+            var ultBox = new GroupBox { Text = "Últimas ventas activas", Dock = DockStyle.Fill };
             ultBox.ForeColor = Color.White;
             ultBox.Font = new Font("Segoe UI", 11, FontStyle.Bold);
             ultGrid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
             ultBox.Controls.Add(ultGrid);
 
             // Bajo stock
-            var stockBox = new GroupBox { Text = "Bajo stock", Dock = DockStyle.Fill };
+            var stockBox = new GroupBox { Text = "Productos activos con bajo stock", Dock = DockStyle.Fill };
             stockBox.ForeColor = Color.White;
             stockBox.Font = new Font("Segoe UI", 11, FontStyle.Bold);
             stockGrid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
@@ -125,71 +125,81 @@ namespace TeoAccesorios.Desktop
 
         private void LoadFromDb()
         {
-           
-            var ventasHoy = Db.Scalar<int>(
-                "SELECT COUNT(*) FROM cabeceraventa WHERE CAST(fechaVenta AS date) = CAST(GETDATE() AS date)");
-            var ingresosHoy = Db.Scalar<decimal>(@"
-                SELECT COALESCE(SUM(d.cantidad * d.precioUnitario),0)
-                FROM cabeceraventa v
-                JOIN detalleventa_ext d ON d.id_venta = v.id_venta
-                WHERE CAST(v.fechaVenta AS date) = CAST(GETDATE() AS date)");
-            var totalClientes = Db.Scalar<int>("SELECT COUNT(*) FROM cliente");
-            var totalProductos = Db.Scalar<int>("SELECT COUNT(*) FROM producto");
+            // Usar el Repository para obtener solo datos activos
+            var ventasActivas = Repository.ListarVentas(incluirAnuladas: false); // Solo ventas no anuladas
+            var clientesActivos = Repository.ListarClientes(incluirInactivos: false); // Solo clientes activos
+            var productosActivos = Repository.ListarProductos(incluirInactivos: false); // Solo productos activos
+            
+            var hoy = DateTime.Today;
+            
+            // KPIs basados en datos activos
+            var ventasHoy = ventasActivas.Where(v => v.FechaVenta.Date == hoy).Count();
+            var ingresosHoy = ventasActivas.Where(v => v.FechaVenta.Date == hoy).Sum(v => v.Total);
+            var totalClientesActivos = clientesActivos.Count;
+            var totalProductosActivos = productosActivos.Count;
 
             lblVentasHoy.Text = ventasHoy.ToString();
             lblIngresosHoy.Text = "$ " + Math.Round(ingresosHoy, 0).ToString("N0");
-            lblClientes.Text = totalClientes.ToString();
-            lblProductos.Text = totalProductos.ToString();
+            lblClientes.Text = totalClientesActivos.ToString();
+            lblProductos.Text = totalProductosActivos.ToString();
 
-            // Top productos (últimas 50 ventas)
-            var dtTop = Db.Query(@"
-                WITH ult AS (
-                    SELECT TOP (50) v.id_venta
-                    FROM cabeceraventa v
-                    ORDER BY v.fechaVenta DESC
-                )
-                SELECT d.id_producto,
-                       p.nombre AS Producto,
-                       SUM(d.cantidad) AS Cantidad,
-                       SUM(d.cantidad * d.precioUnitario) AS Recaudado
-                FROM ult u
-                JOIN detalleventa_ext d ON d.id_venta = u.id_venta
-                JOIN producto p ON p.id_producto = d.id_producto
-                GROUP BY d.id_producto, p.nombre
-                ORDER BY Cantidad DESC;",
-                Array.Empty<SqlParameter>());
-            topGrid.DataSource = dtTop;
+            // Top productos de las últimas 50 ventas activas (no anuladas)
+            var ultimasVentas = ventasActivas
+                .OrderByDescending(v => v.FechaVenta)
+                .Take(50)
+                .ToList();
 
-            if (topGrid.Columns.Contains("id_producto"))
-                topGrid.Columns["id_producto"].HeaderText = "Id";
+            var topProductos = ultimasVentas
+                .SelectMany(v => v.Detalles)
+                .Where(d => productosActivos.Any(p => p.Id == d.ProductoId)) // Solo productos activos
+                .GroupBy(d => new { d.ProductoId, d.ProductoNombre })
+                .Select(g => new
+                {
+                    Id = g.Key.ProductoId,
+                    Producto = g.Key.ProductoNombre,
+                    Cantidad = g.Sum(d => d.Cantidad),
+                    Recaudado = g.Sum(d => d.Subtotal)
+                })
+                .OrderByDescending(x => x.Cantidad)
+                .ToList();
 
-            // Últimas ventas
-            var dtUlt = Db.Query(@"
-                SELECT TOP (12)
-                       v.Id AS Id,
-                       FORMAT(v.Fecha, 'dd/MM HH:mm') AS Fecha,
-                       COALESCE(NULLIF(LTRIM(RTRIM(c.Nombre)), ''), LTRIM(RTRIM(CAST(v.ClienteId AS nvarchar(20))))) AS Cliente,
-                       v.Vendedor AS Usuario,
-                       SUM(d.Cantidad * d.PrecioUnitario) AS Total
-                FROM dbo.Ventas v
-                LEFT JOIN dbo.Clientes c   ON c.Id = v.ClienteId
-                LEFT JOIN dbo.DetalleVenta d ON d.VentaId = v.Id
-                WHERE ISNULL(v.Anulada,0)=0
-                GROUP BY v.Id, v.Fecha, c.Nombre, v.ClienteId, v.Vendedor
-                ORDER BY v.Fecha DESC;",
-             Array.Empty<SqlParameter>());
-            ultGrid.DataSource = dtUlt;
+            topGrid.DataSource = topProductos;
 
-            // Bajo stock
-            var dtStock = Db.Query(@"
-                SELECT p.nombre AS Producto, s.descripcion AS Subcategoria, c.nombre AS Categoria, p.stock, p.stockMinimo
-                FROM producto p
-                JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
-                JOIN categoria c ON c.id_categoria = s.id_categoria
-                WHERE p.activo = 1 AND p.stock <= p.stockMinimo
-                ORDER BY p.stock ASC;",
-                Array.Empty<SqlParameter>());
-            stockGrid.DataSource = dtStock;
+            // Ajustar encabezados
+            if (topGrid.Columns.Contains("Id"))
+                topGrid.Columns["Id"].HeaderText = "Id";
+
+            // Últimas ventas activas (no anuladas)
+            var ultimasVentasDetalle = ventasActivas
+                .OrderByDescending(v => v.FechaVenta)
+                .Take(12)
+                .Select(v => new
+                {
+                    Id = v.Id,
+                    Fecha = v.FechaVenta.ToString("dd/MM HH:mm"),
+                    Cliente = v.ClienteNombre,
+                    Usuario = v.Vendedor,
+                    Total = v.Total
+                })
+                .ToList();
+
+            ultGrid.DataSource = ultimasVentasDetalle;
+
+            // Productos activos con bajo stock
+            var productosStock = productosActivos
+                .Where(p => p.Stock <= p.StockMinimo)
+                .OrderBy(p => p.Stock)
+                .Select(p => new
+                {
+                    Producto = p.Nombre,
+                    Categoria = p.CategoriaNombre,
+                    Subcategoria = p.SubcategoriaNombre,
+                    Stock = p.Stock,
+                    StockMinimo = p.StockMinimo
+                })
+                .ToList();
+
+            stockGrid.DataSource = productosStock;
         }
 
         private void WireWhiteSortGlyph(DataGridView g)
