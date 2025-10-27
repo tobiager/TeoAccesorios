@@ -59,28 +59,21 @@ namespace TeoAccesorios.Desktop
             filtros.Controls.Add(dpDesde);
             filtros.Controls.Add(new Label { Text = "Hasta:", AutoSize = true, Padding = new Padding(6, 8, 0, 0) });
             filtros.Controls.Add(dpHasta);
-            filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) }); filtros.Controls.Add(cboVendedor);
-            filtros.Controls.Add(new Label { Text = "Cliente:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) }); filtros.Controls.Add(cboCliente);
+            
+            // Solo mostrar el filtro de vendedor si NO es un vendedor (Gerente o Admin pueden ver todos)
+            if (Sesion.Rol != RolUsuario.Vendedor)
+            {
+                filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) }); 
+                filtros.Controls.Add(cboVendedor);
+            }
+            
+            filtros.Controls.Add(new Label { Text = "Cliente:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) }); 
+            filtros.Controls.Add(cboCliente);
             filtros.Controls.Add(chkExcluirAnuladas);
             filtros.Controls.Add(btnExport);
 
-            // Combos
-            cboVendedor.Items.Add("Todos");
-            IEnumerable<string> vendedores;
-            try
-            {
-                vendedores = Repository.ListarUsuarios().Where(u => u.Activo).Select(u => u.NombreUsuario).Distinct();
-            }
-            catch
-            {
-                vendedores = Repository.ListarVentas(true).Select(v => v.Vendedor).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct();
-            }
-            foreach (var nombre in vendedores) cboVendedor.Items.Add(nombre);
-            cboVendedor.SelectedIndex = 0;
-
-            cboCliente.Items.Add("Todos");
-            foreach (var c in Repository.Clientes) cboCliente.Items.Add(c.Nombre);
-            cboCliente.SelectedIndex = 0;
+            // Configurar combos según el rol del usuario
+            ConfigurarCombos();
 
             var kpis = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, Padding = new Padding(12) };
             for (int i = 0; i < 4; i++) kpis.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
@@ -118,7 +111,13 @@ namespace TeoAccesorios.Desktop
             // Eventos para aplicar filtros automáticamente
             dpDesde.ValueChanged += (_, __) => LoadData();
             dpHasta.ValueChanged += (_, __) => LoadData();
-            cboVendedor.SelectedIndexChanged += (_, __) => LoadData();
+            
+            // Solo suscribirse al evento si el combo de vendedor está visible
+            if (Sesion.Rol != RolUsuario.Vendedor)
+            {
+                cboVendedor.SelectedIndexChanged += (_, __) => LoadData();
+            }
+            
             cboCliente.SelectedIndexChanged += (_, __) => LoadData();
             chkExcluirAnuladas.CheckedChanged += (_, __) => LoadData();
 
@@ -130,6 +129,31 @@ namespace TeoAccesorios.Desktop
             LoadData();
 
             QuestPDF.Settings.License = LicenseType.Community;
+        }
+
+        private void ConfigurarCombos()
+        {
+            // Configurar combo de vendedores solo para Gerente y Admin
+            if (Sesion.Rol != RolUsuario.Vendedor)
+            {
+                cboVendedor.Items.Add("Todos");
+                IEnumerable<string> vendedores;
+                try
+                {
+                    vendedores = Repository.ListarUsuarios().Where(u => u.Activo).Select(u => u.NombreUsuario).Distinct();
+                }
+                catch
+                {
+                    vendedores = Repository.ListarVentas(true).Select(v => v.Vendedor).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct();
+                }
+                foreach (var nombre in vendedores) cboVendedor.Items.Add(nombre);
+                cboVendedor.SelectedIndex = 0;
+            }
+
+            // Configurar combo de clientes
+            cboCliente.Items.Add("Todos");
+            foreach (var c in Repository.Clientes) cboCliente.Items.Add(c.Nombre);
+            cboCliente.SelectedIndex = 0;
         }
 
         private Control Card(string titulo, Label valueLabel)
@@ -167,14 +191,22 @@ namespace TeoAccesorios.Desktop
             var q = Repository.ListarVentas(true)
                 .Where(v => v.FechaVenta >= start && v.FechaVenta < end);
 
+            // RESTRICCIÓN POR ROL: Si es vendedor, solo mostrar sus propias ventas
+            if (Sesion.Rol == RolUsuario.Vendedor)
+            {
+                q = q.Where(v => string.Equals(v.Vendedor, Sesion.Usuario, StringComparison.OrdinalIgnoreCase));
+            }
+
             if (chkExcluirAnuladas.Checked)
                 q = q.Where(v => !v.Anulada);
 
-            if (cboVendedor.SelectedIndex > 0)
+            // Solo aplicar filtro de vendedor si NO es un vendedor (es decir, si el combo está visible)
+            if (Sesion.Rol != RolUsuario.Vendedor && cboVendedor.SelectedIndex > 0)
             {
                 var vend = cboVendedor.SelectedItem!.ToString()!;
                 q = q.Where(v => string.Equals(v.Vendedor, vend, StringComparison.OrdinalIgnoreCase));
             }
+            
             if (cboCliente.SelectedIndex > 0)
             {
                 var cli = cboCliente.SelectedItem!.ToString()!;
