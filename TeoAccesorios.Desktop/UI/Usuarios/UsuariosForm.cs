@@ -108,20 +108,51 @@ namespace TeoAccesorios.Desktop
                     {
                         var res = f.Result;
 
-                        using (var cn = new SqlConnection(Db.ConnectionString))
-                        using (var cmd = new SqlCommand(@"
-                            INSERT INTO dbo.Usuarios (NombreUsuario, correo, contrasenia, rol, Activo)
-                            VALUES (@n,@c,@p,@r,@a);", cn))
+                        try
                         {
-                            cmd.Parameters.AddWithValue("@n", res.NombreUsuario ?? "");
-                            cmd.Parameters.AddWithValue("@c", res.Correo ?? "");
-                            cmd.Parameters.AddWithValue("@p", res.Contrasenia ?? "");
-                            cmd.Parameters.AddWithValue("@r", string.IsNullOrWhiteSpace(res.Rol) ? "Vendedor" : res.Rol);
-                            cmd.Parameters.AddWithValue("@a", res.Activo);
-                            cn.Open();
-                            cmd.ExecuteNonQuery();
+                            // Verificar si ya existe un usuario con el mismo nombre (insensible a mayúsculas/minúsculas)
+                            using (var cnCheck = new SqlConnection(Db.ConnectionString))
+                            using (var cmdCheck = new SqlCommand(@"
+                                SELECT COUNT(*) FROM dbo.Usuarios 
+                                WHERE LOWER(NombreUsuario) = LOWER(@nombre) AND Activo = 1", cnCheck))
+                            {
+                                cmdCheck.Parameters.AddWithValue("@nombre", res.NombreUsuario ?? "");
+                                cnCheck.Open();
+                                var count = (int)cmdCheck.ExecuteScalar();
+                                
+                                if (count > 0)
+                                {
+                                    MessageBox.Show("El nombre de usuario ya está en uso. Por favor, elige otro nombre de usuario.", 
+                                        "Usuario en uso", 
+                                        MessageBoxButtons.OK, 
+                                        MessageBoxIcon.Warning);
+                                    return;
+                                }
+                            }
+
+                            // Si no existe, proceder con la inserción
+                            using (var cn = new SqlConnection(Db.ConnectionString))
+                            using (var cmd = new SqlCommand(@"
+                                INSERT INTO dbo.Usuarios (NombreUsuario, correo, contrasenia, rol, Activo)
+                                VALUES (@n,@c,@p,@r,@a);", cn))
+                            {
+                                cmd.Parameters.AddWithValue("@n", res.NombreUsuario ?? "");
+                                cmd.Parameters.AddWithValue("@c", res.Correo ?? "");
+                                cmd.Parameters.AddWithValue("@p", res.Contrasenia ?? "");
+                                cmd.Parameters.AddWithValue("@r", string.IsNullOrWhiteSpace(res.Rol) ? "Vendedor" : res.Rol);
+                                cmd.Parameters.AddWithValue("@a", res.Activo);
+                                cn.Open();
+                                cmd.ExecuteNonQuery();
+                            }
+                            LoadData();
                         }
-                        LoadData();
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error al crear el usuario: {ex.Message}", 
+                                "Error", 
+                                MessageBoxButtons.OK, 
+                                MessageBoxIcon.Error);
+                        }
                     }
                 }
             };
@@ -257,25 +288,59 @@ namespace TeoAccesorios.Desktop
                     {
                         var u = f.Result;
 
-                        Db.Exec(@"
-                            UPDATE dbo.Usuarios
-                               SET NombreUsuario=@n,
-                                   correo=@c,
-                                   contrasenia=@p,
-                                   rol=@r,
-                                   Activo=@a
-                             WHERE Id=@id;",
-                            new SqlParameter("@id", u.Id),
-                            new SqlParameter("@n", u.NombreUsuario ?? ""),
-                            new SqlParameter("@c", u.Correo ?? ""),
-                            new SqlParameter("@p", u.Contrasenia ?? ""),
-                            new SqlParameter("@r", string.IsNullOrWhiteSpace(u.Rol) ? "Vendedor" : u.Rol),
-                            new SqlParameter("@a", u.Activo)
-                        );
+                        try
+                        {
+                            // Verificar si el nuevo nombre de usuario ya existe (solo si se cambió)
+                            if (!string.Equals(tmp.NombreUsuario, u.NombreUsuario, StringComparison.OrdinalIgnoreCase))
+                            {
+                                using (var cnCheck = new SqlConnection(Db.ConnectionString))
+                                using (var cmdCheck = new SqlCommand(@"
+                                    SELECT COUNT(*) FROM dbo.Usuarios 
+                                    WHERE LOWER(NombreUsuario) = LOWER(@nombre) AND Activo = 1 AND Id != @id", cnCheck))
+                                {
+                                    cmdCheck.Parameters.AddWithValue("@nombre", u.NombreUsuario ?? "");
+                                    cmdCheck.Parameters.AddWithValue("@id", u.Id);
+                                    cnCheck.Open();
+                                    var count = (int)cmdCheck.ExecuteScalar();
+                                    
+                                    if (count > 0)
+                                    {
+                                        MessageBox.Show("El nombre de usuario ya está en uso. Por favor, elige otro nombre de usuario.", 
+                                            "Usuario en uso", 
+                                            MessageBoxButtons.OK, 
+                                            MessageBoxIcon.Warning);
+                                        return;
+                                    }
+                                }
+                            }
 
-                        LoadData();
-                        
-                        TrySelectRowById(u.Id);
+                            // Si no hay conflictos, proceder con la actualización
+                            Db.Exec(@"
+                                UPDATE dbo.Usuarios
+                                   SET NombreUsuario=@n,
+                                       correo=@c,
+                                       contrasenia=@p,
+                                       rol=@r,
+                                       Activo=@a
+                                 WHERE Id=@id;",
+                                new SqlParameter("@id", u.Id),
+                                new SqlParameter("@n", u.NombreUsuario ?? ""),
+                                new SqlParameter("@c", u.Correo ?? ""),
+                                new SqlParameter("@p", u.Contrasenia ?? ""),
+                                new SqlParameter("@r", string.IsNullOrWhiteSpace(u.Rol) ? "Vendedor" : u.Rol),
+                                new SqlParameter("@a", u.Activo)
+                            );
+
+                            LoadData();
+                            TrySelectRowById(u.Id);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error al actualizar el usuario: {ex.Message}", 
+                                "Error", 
+                                MessageBoxButtons.OK, 
+                                MessageBoxIcon.Error);
+                        }
                     }
                 }
             };
