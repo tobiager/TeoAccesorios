@@ -16,8 +16,6 @@ namespace TeoAccesorios.Desktop
             Dock = DockStyle.Fill,
             ReadOnly = true,
             AutoGenerateColumns = true,
-
-           
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,        
             AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells,    
 

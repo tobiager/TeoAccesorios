@@ -16,11 +16,13 @@ namespace TeoAccesorios.Desktop
         private readonly ErrorProvider ep = new();
 
         private readonly Usuario model;
-        public Usuario Result => model; // lo usa tu UsuariosForm
+        private readonly bool esNuevoUsuario;
+        public Usuario Result => model;
 
         public UsuarioEditForm(Usuario u)
         {
             model = u ?? new Usuario();
+            esNuevoUsuario = model.Id == 0;
 
             Text = "Usuario";
             Width = 480; Height = 300;
@@ -51,14 +53,29 @@ namespace TeoAccesorios.Desktop
             // Prefill
             txtUser.Text = u?.NombreUsuario ?? "";
             txtMail.Text = u?.Correo ?? "";
-            txtPass.Text = u?.Contrasenia ?? "";
+            
+            // DESHABILITAR COMPLETAMENTE EL CAMPO DE CONTRASEÑA
+            if (esNuevoUsuario)
+            {
+                txtPass.Text = "default123";
+            }
+            else
+            {
+                txtPass.Text = "********"; // Mostrar asteriscos para usuarios existentes
+            }
+            
+            // Configurar el campo como no editable SIEMPRE
+            txtPass.ReadOnly = true;
+            txtPass.BackColor = System.Drawing.SystemColors.Control;
+            txtPass.TabStop = false;
+            txtPass.Cursor = Cursors.No; // Cursor que indica que no se puede editar
+            
             cboRol.SelectedItem = string.IsNullOrWhiteSpace(u?.Rol) ? "Vendedor" : u.Rol;
             chkActivo.Checked = u?.Activo ?? true;
 
-            // Eventos
+            // Eventos - REMOVER completamente el evento TextChanged de contraseña
             txtUser.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
             txtMail.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
-            txtPass.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
             cboRol.SelectedIndexChanged += (_, __) => btnGuardar.Enabled = Validar();
 
             btnCancelar.Click += (_, __) => DialogResult = DialogResult.Cancel;
@@ -103,7 +120,15 @@ namespace TeoAccesorios.Desktop
 
                 model.NombreUsuario = txtUser.Text.Trim();
                 model.Correo = string.IsNullOrWhiteSpace(txtMail.Text) ? null : txtMail.Text.Trim();
-                model.Contrasenia = txtPass.Text; // (sin hash por ahora)
+                
+                // LÓGICA DE CONTRASEÑA: No modificar la contraseña existente en edición
+                if (esNuevoUsuario)
+                {
+                    model.Contrasenia = "default123";
+                }
+                // Para usuarios existentes, NO modificar la contraseña
+                // (mantener la contraseña actual sin cambios)
+                
                 model.Rol = (string)cboRol.SelectedItem;
                 model.Activo = chkActivo.Checked;
 
@@ -127,7 +152,10 @@ namespace TeoAccesorios.Desktop
         {
             bool ok = true;
             ok &= FormValidator.Require(txtUser, ep, "Usuario requerido (3–40)", 3, 40);
-            ok &= FormValidator.Require(txtPass, ep, "Contraseña requerida (≥6)", 6, 128);
+            
+            // NO VALIDAR CONTRASEÑA - Se maneja por separado con el botón Restablecer
+            ep.SetError(txtPass, ""); // Limpiar cualquier error del campo contraseña
+            
             ok &= FormValidator.OptionalEmail(txtMail, ep, "Email inválido");
             if (cboRol.SelectedIndex < 0) { ep.SetError(cboRol, "Seleccioná un rol"); ok = false; } else ep.SetError(cboRol, "");
             return ok;
