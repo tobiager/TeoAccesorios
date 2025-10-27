@@ -307,6 +307,9 @@ namespace TeoAccesorios.Desktop
 
             ws.Columns().AdjustToContents();
 
+            // Proteger la hoja para que sea de solo lectura
+            ws.Protect();
+
             wb.SaveAs(sfd.FileName);
             MessageBox.Show("Excel generado correctamente.", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }

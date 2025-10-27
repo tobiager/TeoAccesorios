@@ -877,6 +877,9 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             }
 
             ws.Columns().AdjustToContents();
+
+            // Proteger la hoja para que sea de solo lectura
+            ws.Protect();
             wb.SaveAs(filePath);
         }
 

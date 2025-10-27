@@ -1154,6 +1154,9 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             ws.PageSetup.PrintAreas.Add($"A1:C{row}");
             ws.SheetView.ZoomScale = 90;
 
+            // Proteger la hoja para que sea de solo lectura
+            ws.Protect();
+
             wb.SaveAs(filePath);
         }
 
