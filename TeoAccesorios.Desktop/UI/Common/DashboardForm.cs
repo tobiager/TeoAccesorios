@@ -9,6 +9,7 @@ using Microsoft.Data.SqlClient;
 using ProvsUI = TeoAccesorios.Desktop.UI.Provincias;
 using UserUI = TeoAccesorios.Desktop.UI.Usuarios;
 using StatsUI = TeoAccesorios.Desktop.UI.Estadisticas;
+using AdminUI = TeoAccesorios.Desktop.UI.Common; 
 
 namespace TeoAccesorios.Desktop
 {
@@ -53,7 +54,7 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(_indicador);
             _anim.Tick += (_, __) => AnimarIndicador();
 
-            Button Btn(string txt)
+            Button Btn(string txt, bool esRestringido = false)
             {
                 var b = new Button
                 {
@@ -64,21 +65,37 @@ namespace TeoAccesorios.Desktop
                     TextAlign = ContentAlignment.MiddleLeft,
                     Padding = new Padding(16, 0, 0, 0),
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(14, 165, 233),
-                    ForeColor = Color.White
+                    BackColor = esRestringido ? Color.FromArgb(128, 128, 128) : Color.FromArgb(14, 165, 233),
+                    ForeColor = esRestringido ? Color.FromArgb(180, 180, 180) : Color.White,
+                    Enabled = !esRestringido
                 };
-                b.FlatAppearance.BorderSize = 0;
-                b.FlatAppearance.MouseOverBackColor = Color.FromArgb(56, 189, 248);
-                b.FlatAppearance.MouseDownBackColor = Color.FromArgb(2, 132, 199);
+                
+                if (!esRestringido)
+                {
+                    b.FlatAppearance.BorderSize = 0;
+                    b.FlatAppearance.MouseOverBackColor = Color.FromArgb(56, 189, 248);
+                    b.FlatAppearance.MouseDownBackColor = Color.FromArgb(2, 132, 199);
+                }
+                else
+                {
+                    b.FlatAppearance.BorderSize = 0;
+                    b.Cursor = Cursors.No;
+                }
+                
                 return b;
             }
+
+            // Determinar permisos basados en roles
+            bool puedeAccederEmpleados = Sesion.Rol == RolUsuario.Gerente || Sesion.Rol == RolUsuario.Admin;
+            bool puedeAccederEstadisticas = Sesion.Rol == RolUsuario.Gerente; // Solo Gerente puede acceder a estadísticas
+            bool puedeHacerBackup = Sesion.Rol == RolUsuario.Gerente || Sesion.Rol == RolUsuario.Admin; // Admin y Gerente pueden hacer backup
 
             var btnCambiarContrasenia = Btn("Cambiar contraseña");
             var btnCerrarSesion = Btn("Cerrar sesión");
             var btnInicio = Btn("Inicio (Dashboard)");
             var btnReportes = Btn("Reportes");
-            var btnEstadisticas = Btn("Estadísticas");
-            var btnEmpleados = Btn("Empleados");
+            var btnEstadisticas = Btn("Estadísticas", !puedeAccederEstadisticas);
+            var btnEmpleados = Btn("Empleados", !puedeAccederEmpleados);
             var btnClientes = Btn("Clientes");
             var btnCategorias = Btn("Categorías");
 
@@ -89,12 +106,24 @@ namespace TeoAccesorios.Desktop
             var btnVerVentas = Btn("Ver Ventas");
             var btnNuevaVenta = Btn("Nueva Venta");
             Button? btnBackup = null;
-            if (Sesion.Rol == RolUsuario.Admin) btnBackup = Btn("Backup BD");
+            if (puedeHacerBackup) btnBackup = Btn("Backup BD");
 
             void Nav(Button btn, Action action)
             {
+                if (!btn.Enabled)
+                {
+                    MessageBox.Show("No tiene permisos para acceder a este módulo.", "Acceso denegado",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                
                 ActivarBoton(btn);
                 action();
+            }
+
+            void NavRestringido(Button btn, string mensaje)
+            {
+                MessageBox.Show(mensaje, "Acceso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             btnCerrarSesion.Click += (_, __) =>
@@ -104,8 +133,25 @@ namespace TeoAccesorios.Desktop
 
             btnInicio.Click += (_, __) => Nav(btnInicio, ShowKpis);
             btnReportes.Click += (_, __) => Nav(btnReportes, () => ShowInContent(new ReportesForm()));
-            btnEstadisticas.Click += (_, __) => Nav(btnEstadisticas, () => ShowInContent(new StatsUI.EstadisticasForm()));
-            btnEmpleados.Click += (_, __) => Nav(btnEmpleados, () => ShowInContent(new UsuariosForm()));
+            
+            // Estadísticas: Solo Gerente puede acceder
+            btnEstadisticas.Click += (_, __) =>
+            {
+                if (puedeAccederEstadisticas)
+                    Nav(btnEstadisticas, () => ShowInContent(new StatsUI.EstadisticasForm()));
+                else
+                    NavRestringido(btnEstadisticas, "Solo el Gerente puede acceder al módulo de Estadísticas.");
+            };
+            
+            // Empleados: Solo Gerente y Admin pueden acceder
+            btnEmpleados.Click += (_, __) =>
+            {
+                if (puedeAccederEmpleados)
+                    Nav(btnEmpleados, () => ShowInContent(new UsuariosForm()));
+                else
+                    NavRestringido(btnEmpleados, "Solo el Gerente y Administradores pueden acceder al módulo de Empleados.");
+            };
+            
             btnClientes.Click += (_, __) => Nav(btnClientes, () => ShowInContent(new ClientesForm()));
             btnCategorias.Click += (_, __) => Nav(btnCategorias, () => ShowInContent(new CategoriasForm()));
 
@@ -116,8 +162,17 @@ namespace TeoAccesorios.Desktop
             btnProductos.Click += (_, __) => Nav(btnProductos, () => ShowInContent(new ProductosForm()));
             btnVerVentas.Click += (_, __) => Nav(btnVerVentas, () => ShowInContent(new VentasForm()));
             btnNuevaVenta.Click += (_, __) => Nav(btnNuevaVenta, () => ShowInContent(new NuevaVentaForm()));
-            // MOVIDO AL HEADER: btnCambiarContrasenia.Click += (_, __) => Nav(btnCambiarContrasenia, () => { using var f = new UserUI.CambiarContraseniaForm(); f.ShowDialog(this); });
-            if (btnBackup != null) btnBackup.Click += (_, __) => DoBackup();
+
+            // Backup: Admin y Gerente pueden acceder al formulario profesional
+            if (btnBackup != null) 
+            {
+                btnBackup.Click += (_, __) =>
+                {
+                    // Abrir el nuevo formulario de backup como diálogo modal
+                    using var backupForm = new AdminUI.BackupForm();
+                    backupForm.ShowDialog(this);
+                };
+            }
 
             // IMPORTANTE: el orden de Add con Dock=Top es inverso en pantalla (el último va más arriba).
             side.Controls.Add(btnNuevaVenta);
@@ -126,8 +181,8 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(btnProvinciasLocalidades); // <— queda entre Categorías y Productos
             side.Controls.Add(btnCategorias);
             side.Controls.Add(btnClientes);
-            if (Sesion.Rol == RolUsuario.Admin || Sesion.Rol == RolUsuario.Gerente) side.Controls.Add(btnEmpleados);
-            side.Controls.Add(btnEstadisticas);
+            side.Controls.Add(btnEmpleados); // Siempre agregarlo, se controla visualmente
+            side.Controls.Add(btnEstadisticas); // Siempre agregarlo, se controla visualmente
             side.Controls.Add(btnReportes);
             side.Controls.Add(btnInicio);
             // REMOVIDO: side.Controls.Add(btnCambiarContrasenia);
@@ -254,12 +309,12 @@ namespace TeoAccesorios.Desktop
             f.Show();
         }
 
-        // BACKUP (automático a C:\Backups) 
+        // BACKUP (método legacy mantenido como fallback) - Admin y Gerente
         private void DoBackup()
         {
-            if (Sesion.Rol != RolUsuario.Admin)
+            if (Sesion.Rol != RolUsuario.Gerente && Sesion.Rol != RolUsuario.Admin)
             {
-                MessageBox.Show("Sólo un administrador puede realizar backups.", "Acceso denegado",
+                MessageBox.Show("Solo el Gerente y Administradores pueden realizar backups.", "Acceso denegado",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }

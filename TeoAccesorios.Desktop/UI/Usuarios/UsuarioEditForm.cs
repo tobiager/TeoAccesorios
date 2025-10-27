@@ -73,7 +73,7 @@ namespace TeoAccesorios.Desktop
             cboRol.SelectedItem = string.IsNullOrWhiteSpace(u?.Rol) ? "Vendedor" : u.Rol;
             chkActivo.Checked = u?.Activo ?? true;
 
-            // Eventos - REMOVER completamente el evento TextChanged de contraseña
+            
             txtUser.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
             txtMail.TextChanged += (_, __) => btnGuardar.Enabled = Validar();
             cboRol.SelectedIndexChanged += (_, __) => btnGuardar.Enabled = Validar();
@@ -86,21 +86,28 @@ namespace TeoAccesorios.Desktop
                 var rolSeleccionado = (string)cboRol.SelectedItem;
                 var esGerente = model.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) ?? false;
 
-                // Un Admin no puede crear/editar otros Admins o Gerentes.
+                // Un Admin no puede crear/editar otros Admins o Gerentes
                 if (Sesion.Rol == RolUsuario.Admin && (rolSeleccionado == "Admin" || rolSeleccionado == "Gerente"))
                 {
                     MessageBox.Show("Un Administrador no puede crear o modificar usuarios de tipo Administrador o Gerente.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                // Solo un Gerente puede crear/editar a otro Gerente.
+                
                 if (rolSeleccionado == "Gerente" && Sesion.Rol != RolUsuario.Gerente)
                 {
                     MessageBox.Show("Solo un Gerente puede crear o modificar a otro Gerente.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                // NUEVA RESTRICCIÓN: No se puede agregar otro gerente si ya existe uno
+                // Vendedores no pueden crear/editar usuarios
+                if (Sesion.Rol == RolUsuario.Vendedor)
+                {
+                    MessageBox.Show("No tiene permisos para crear o modificar usuarios.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // No se puede agregar otro gerente si ya existe uno
                 if (rolSeleccionado == "Gerente" && model.Id == 0) // Es creación, no edición
                 {
                     var gerentesExistentes = Repository.ListarUsuarios()
@@ -132,12 +139,12 @@ namespace TeoAccesorios.Desktop
                 model.Rol = (string)cboRol.SelectedItem;
                 model.Activo = chkActivo.Checked;
 
-                // El Gerente no puede ser desactivado.
+                // El Gerente no puede ser desactivado
                 if (esGerente && !model.Activo)
                 {
                     MessageBox.Show("El usuario con rol Gerente no puede ser desactivado.", "Acción no permitida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    model.Activo = true; // Revertir cambio
-                    chkActivo.Checked = true; // Actualizar UI
+                    model.Activo = true; 
+                    chkActivo.Checked = true; 
                     return;
                 }
 
@@ -154,7 +161,7 @@ namespace TeoAccesorios.Desktop
             ok &= FormValidator.Require(txtUser, ep, "Usuario requerido (3–40)", 3, 40);
             
             // NO VALIDAR CONTRASEÑA - Se maneja por separado con el botón Restablecer
-            ep.SetError(txtPass, ""); // Limpiar cualquier error del campo contraseña
+            ep.SetError(txtPass, ""); 
             
             ok &= FormValidator.OptionalEmail(txtMail, ep, "Email inválido");
             if (cboRol.SelectedIndex < 0) { ep.SetError(cboRol, "Seleccioná un rol"); ok = false; } else ep.SetError(cboRol, "");

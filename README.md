@@ -36,10 +36,14 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 ## Características principales
 
 - Gestión de clientes, productos, usuarios y ventas en una única interfaz.
+- **Personalización de interfaz:** los usuarios pueden guardar sus preferencias de visualización en las grillas (columnas visibles).
+- **Impresión de comprobantes:** generación de facturas de venta en formato PDF con logo, listas para imprimir.
 - Reportes con KPIs (ingresos, ventas, clientes únicos y productos vendidos).
 - Exportación de reportes en **PDF** y **XLSX**.
-- Roles diferenciados (**Administrador** y **Vendedor**) con permisos específicos.
+- Roles diferenciados (**Gerente**, **Administrador** y **Vendedor**) con permisos específicos.
 - Interfaz en español con navegación desde un panel lateral.
+- **Gestión geográfica:** ABM completo de provincias y localidades.
+- **Búsqueda avanzada:** selectores modales para buscar clientes y productos fácilmente al crear una venta.
 
 ## Arquitectura y tecnologías
 
@@ -64,6 +68,7 @@ TeoAccesorios.Desktop/
     ├── Clientes/
     ├── Common/         # Dashboard, Login, Main, Reportes
     ├── Productos/
+    ├── Provincias/
     ├── Subcategorias/
     ├── Usuarios/
     └── Ventas/
@@ -80,10 +85,10 @@ SET IDENTITY_INSERT [dbo].[Categorias] ON
 INSERT [dbo].[Categorias] ([Id], [Nombre], [Descripcion], [Activo]) VALUES (1, N'Carteras', N'Carteras de cuero y eco cuero', 1)
 ...
 SET IDENTITY_INSERT [dbo].[Clientes] ON
-INSERT [dbo].[Clientes] ([Id], [Nombre], [Email], [Telefono], [Direccion], [Localidad], [Provincia], [Activo]) VALUES (1, N'Juan Pérez', N'juan@example.com', N'+54 9 379 555-1234', N'Junín 123', N'Corrientes', N'Corrientes', 1)
+INSERT [dbo].[Clientes] ([Id], [Nombre], [Email], [Telefono], [Direccion], [Activo], [ProvinciaId], [LocalidadId]) VALUES (1, N'Juan Pérez', N'juan@example.com', N'+54 9 379 555-1234', N'Junín 123', 1, 7, 2)
 
 SET IDENTITY_INSERT [dbo].[Usuarios] ON
-INSERT [dbo].[Usuarios] ([Id], [NombreUsuario], [Rol], [Activo], [correo], [contrasenia]) VALUES (1, N'admin', N'Admin', 1, N'', N'admin123')
+INSERT [dbo].[Usuarios] ([Id], [NombreUsuario], [Rol], [Activo], [correo], [contrasenia]) VALUES (1, N'admin', N'Admin', 1, N'admin@teo.com', N'admin123')
 ```
 
 La cadena de conexión por defecto se define en `Db.cs` y puede ajustarse según la instancia local:
@@ -255,4 +260,3 @@ La última iteración incorporó un **pipeline de exportación multi-formato** q
 ## Autores
 
 <p align="center"><b>Proyecto desarrollado por Tobias Orban y Ivana Azcona (UNNE - FaCENA, 2025)</b></p>
-

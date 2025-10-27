@@ -53,8 +53,8 @@ namespace TeoAccesorios.Desktop
             };
             top.Controls.Add(btnColumnas);
 
-            // ABM solo Admin
-            if (Sesion.Rol == RolUsuario.Admin)
+            // ABM para Admin y Gerente (Gerente tiene todos los permisos)
+            if (Sesion.Rol == RolUsuario.Admin || Sesion.Rol == RolUsuario.Gerente)
             {
                 var btnNuevo = new Button { Text = "Nuevo", AutoSize = true };
                 var btnEditar = new Button { Text = "Editar", AutoSize = true };

@@ -42,6 +42,7 @@ namespace TeoAccesorios.Desktop
 
             top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnRestablecerPass, btnVerInactivos });
 
+            // Solo el Gerente puede restablecer contraseñas
             btnRestablecerPass.Visible = Sesion.Rol == RolUsuario.Gerente;
 
             Controls.Add(grid);
@@ -147,11 +148,22 @@ namespace TeoAccesorios.Desktop
                     return;
                 }
 
-                // Verificar permisos para eliminar
-                if (Sesion.Rol != RolUsuario.Gerente && Sesion.Rol != RolUsuario.Admin)
+                // Verificar permisos para eliminar - Gerente puede eliminar todos (excepto otros gerentes), Admin puede eliminar solo vendedores
+                if (Sesion.Rol == RolUsuario.Vendedor)
                 {
                     MessageBox.Show("No tiene permisos para eliminar usuarios.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
+                }
+
+                if (Sesion.Rol == RolUsuario.Admin)
+                {
+                    bool esAdminOGerente = sel.Rol?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true ||
+                                          sel.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) == true;
+                    if (esAdminOGerente)
+                    {
+                        MessageBox.Show("Un Administrador no puede eliminar a otros Administradores o Gerentes.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
                 }
 
                 // Confirmación
@@ -206,9 +218,26 @@ namespace TeoAccesorios.Desktop
 
                 // --- Validaciones de permisos por rol ---
                 bool esGerente = sel.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) ?? false;
+                bool esAdmin = sel.Rol?.Equals("Admin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+                // Solo un Gerente puede editar a otro Gerente
                 if (esGerente && Sesion.Rol != RolUsuario.Gerente)
                 {
                     MessageBox.Show("Solo un Gerente puede editar a otro usuario con rol Gerente.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Un Admin no puede editar a otro Admin (solo el Gerente puede)
+                if (esAdmin && Sesion.Rol == RolUsuario.Admin)
+                {
+                    MessageBox.Show("Un Administrador no puede editar a otro Administrador. Solo el Gerente puede hacerlo.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Vendedores no pueden editar usuarios
+                if (Sesion.Rol == RolUsuario.Vendedor)
+                {
+                    MessageBox.Show("No tiene permisos para editar usuarios.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
