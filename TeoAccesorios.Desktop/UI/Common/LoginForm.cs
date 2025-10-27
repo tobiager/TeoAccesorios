@@ -162,7 +162,7 @@ namespace TeoAccesorios.Desktop
                 return;
             }
 
-            Sesion.Usuario = string.IsNullOrWhiteSpace(usuario) ? "Invitado" : usuario;
+            
             Sesion.Rol = rol;
 
             Hide();
