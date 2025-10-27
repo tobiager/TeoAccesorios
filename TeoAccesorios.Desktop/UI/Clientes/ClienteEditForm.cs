@@ -13,8 +13,8 @@ namespace TeoAccesorios.Desktop
         private readonly TextBox txtEmail = new();
         private readonly TextBox txtTel = new();
         private readonly TextBox txtDir = new();
-        private readonly ComboBox cmbProv = new();
-        private readonly ComboBox cmbLoc = new();
+        private readonly ComboBox cmbProv = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+        private readonly ComboBox cmbLoc = new() { DropDownStyle = ComboBoxStyle.DropDownList };
         private readonly CheckBox chkActivo = new() { Text = "Activo" };
         private readonly Button btnGuardar = new() { Text = "Guardar", Width = 100, Height = 30 };
         private readonly Button btnCancel = new() { Text = "Cancelar", Width = 100, Height = 30 };
@@ -38,7 +38,7 @@ namespace TeoAccesorios.Desktop
             for (int i = 0; i < 7; i++) grid.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 6 ? 46 : 36));
 
             grid.Controls.Add(new Label { Text = "Nombre *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 0); grid.Controls.Add(txtNombre, 1, 0); txtNombre.Dock = DockStyle.Fill;
-            grid.Controls.Add(new Label { Text = "Email", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 1); grid.Controls.Add(txtEmail, 1, 1); txtEmail.Dock = DockStyle.Fill;
+            grid.Controls.Add(new Label { Text = "Email *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 1); grid.Controls.Add(txtEmail, 1, 1); txtEmail.Dock = DockStyle.Fill;
             grid.Controls.Add(new Label { Text = "Teléfono", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 2); grid.Controls.Add(txtTel, 1, 2); txtTel.Dock = DockStyle.Fill;
             grid.Controls.Add(new Label { Text = "Dirección *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 3); grid.Controls.Add(txtDir, 1, 3); txtDir.Dock = DockStyle.Fill;
             grid.Controls.Add(new Label { Text = "Provincia *", TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Fill }, 0, 4); grid.Controls.Add(cmbProv, 1, 4); cmbProv.Dock = DockStyle.Fill;
@@ -70,7 +70,7 @@ namespace TeoAccesorios.Desktop
                 if (!Validar()) return;
 
                 model.Nombre = txtNombre.Text.Trim();
-                model.Email = string.IsNullOrWhiteSpace(txtEmail.Text) ? null : txtEmail.Text.Trim();
+                model.Email = txtEmail.Text.Trim(); // Ya no puede ser null porque es obligatorio
                 model.Telefono = string.IsNullOrWhiteSpace(txtTel.Text) ? null : txtTel.Text.Trim();
                 model.Direccion = txtDir.Text.Trim();
                 model.LocalidadId = (int?)cmbLoc.SelectedValue;
@@ -151,11 +151,32 @@ namespace TeoAccesorios.Desktop
             bool ok = true;
             ok &= FormValidator.Require(txtNombre, ep, "Nombre requerido", 2, 120);
             ok &= FormValidator.Require(txtDir, ep, "Dirección requerida", 3, 120);
-            ok &= FormValidator.OptionalEmail(txtEmail, ep, "Email inválido");
+            ok &= RequireEmail(txtEmail, ep, "Email requerido y válido");
             ok &= FormValidator.OptionalPhone(txtTel, ep, "Teléfono inválido");
             if (cmbProv.SelectedValue == null) { ep.SetError(cmbProv, "Provincia requerida"); ok = false; } else { ep.SetError(cmbProv, ""); }
             if (cmbLoc.SelectedValue == null) { ep.SetError(cmbLoc, "Localidad requerida"); ok = false; } else { ep.SetError(cmbLoc, ""); }
             return ok;
+        }
+
+        private bool RequireEmail(TextBox tb, ErrorProvider ep, string msg)
+        {
+            string v = tb.Text?.Trim() ?? "";
+            if (string.IsNullOrEmpty(v))
+            {
+                ep.SetError(tb, msg);
+                return false;
+            }
+
+            // Validar formato de email
+            var emailValid = System.Text.RegularExpressions.Regex.IsMatch(v, @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+            if (!emailValid)
+            {
+                ep.SetError(tb, "Email inválido");
+                return false;
+            }
+
+            ep.SetError(tb, "");
+            return true;
         }
 
         private void AssignValidationHandlers()
