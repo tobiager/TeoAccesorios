@@ -5,7 +5,8 @@ using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 using TeoAccesorios.Desktop.UI.Common;
-using TeoAccesorios.Desktop.Models; 
+using TeoAccesorios.Desktop.Models;
+using TeoAccesorios.Desktop.UI;
 using System.Drawing;
 using System.Reflection;
 
@@ -234,8 +235,12 @@ namespace TeoAccesorios.Desktop
                 {
                     // Si el cliente no está en la lista actual, lo agregamos temporalmente
                     _clientes.Add(cliente);
-                    var bindingSource = (BindingSource)cboCliente.DataSource;
-                    bindingSource.ResetBindings(false);
+                    
+                    // Recrear el datasource con la nueva lista
+                    cboCliente.DataSource = null;
+                    cboCliente.ValueMember = nameof(Cliente.Id);
+                    cboCliente.DisplayMember = nameof(Cliente.Nombre);
+                    cboCliente.DataSource = _clientes;
                     cboCliente.SelectedValue = cliente.Id;
                 }
             }
@@ -258,8 +263,12 @@ namespace TeoAccesorios.Desktop
                 {
                     // Si el producto no está en la lista actual, lo agregamos temporalmente
                     _productos.Add(producto);
-                    var bindingSource = (BindingSource)cboProducto.DataSource;
-                    bindingSource.ResetBindings(false);
+                    
+                    // Recrear el datasource con la nueva lista
+                    cboProducto.DataSource = null;
+                    cboProducto.ValueMember = nameof(Producto.Id);
+                    cboProducto.DisplayMember = nameof(Producto.Nombre);
+                    cboProducto.DataSource = _productos;
                     cboProducto.SelectedValue = producto.Id;
                 }
             }
@@ -340,7 +349,7 @@ namespace TeoAccesorios.Desktop
             }
             else
             {
-                FormUtils.BindCombo<Localidad>(cboLocalidadVenta, null);
+                FormUtils.BindCombo(cboLocalidadVenta, new List<Localidad>());
             }
         }
 
@@ -531,6 +540,7 @@ namespace TeoAccesorios.Desktop
         private readonly TextBox txtBuscar = new() { PlaceholderText = "Buscar cliente por nombre, email, teléfono o dirección...", Width = 400 };  // Aumentado el ancho y texto más descriptivo
         private readonly Button btnSeleccionar = new() { Text = "Seleccionar", Width = 100 };
         private readonly Button btnCancelar = new() { Text = "Cancelar", Width = 100 };
+        private readonly Button btnNuevoCliente = new() { Text = "Nuevo Cliente", Width = 120 };
 
         private readonly BindingSource bs = new();
         private List<Cliente> _clientesOriginal = new();
@@ -568,6 +578,7 @@ namespace TeoAccesorios.Desktop
                 FlowDirection = FlowDirection.RightToLeft
             };
             panelBotones.Controls.Add(btnCancelar);
+            panelBotones.Controls.Add(btnNuevoCliente);
             panelBotones.Controls.Add(btnSeleccionar);
 
             // Layout principal
@@ -582,6 +593,7 @@ namespace TeoAccesorios.Desktop
             txtBuscar.TextChanged += (_, __) => FiltrarClientes();
             btnSeleccionar.Click += (_, __) => SeleccionarCliente();
             btnCancelar.Click += (_, __) => { DialogResult = DialogResult.Cancel; Close(); };
+            btnNuevoCliente.Click += (_, __) => CrearNuevoCliente();
             grid.DoubleClick += (_, __) => SeleccionarCliente();
             grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) SeleccionarCliente(); };
 
@@ -692,6 +704,46 @@ namespace TeoAccesorios.Desktop
             {
                 MessageBox.Show("Por favor, seleccione un cliente.", "Selección requerida", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void CrearNuevoCliente()
+        {
+            var nuevoCliente = new Cliente { Activo = true };
+            using var form = new ClienteEditForm(nuevoCliente);
+
+            if (form.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    var id = Repository.InsertarCliente(nuevoCliente);
+                    nuevoCliente.Id = id;
+                    
+                    // Recargar la lista completa de clientes
+                    CargarClientes();
+                    
+                    // Seleccionar automáticamente el nuevo cliente en la grilla
+                    var fila = _clientesOriginal.FirstOrDefault(c => c.Id == id);
+                    if (fila != null)
+                    {
+                        grid.ClearSelection();
+                        foreach (DataGridViewRow row in grid.Rows)
+                        {
+                            if (row.DataBoundItem is Cliente cli && cli.Id == id)
+                            {
+                                row.Selected = true;
+                                grid.FirstDisplayedScrollingRowIndex = row.Index;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    MessageBox.Show("Cliente creado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"No se pudo crear el cliente.\n\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
     }
