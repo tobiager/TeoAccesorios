@@ -8,6 +8,6 @@ public class Usuario
     public string Rol { get; set; } = "Vendedor";
     public bool Activo { get; set; } = true;
     
-    // Nueva propiedad calculada para mostrar en la grilla
-    public string ContraseniaEstado => Contrasenia == "default123" ? "Por defecto" : "Personalizada";
+    // La columna ContraseniaEstado se calcula en SQL, esta propiedad es solo placeholder
+    public string ContraseniaEstado { get; set; } = "Personalizada";
 }

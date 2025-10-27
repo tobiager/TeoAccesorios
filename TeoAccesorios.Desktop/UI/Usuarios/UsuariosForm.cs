@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 using TeoAccesorios.Desktop.Models;
+using TeoAccesorios.Desktop.Infra.Auth;
 
 namespace TeoAccesorios.Desktop
 {
@@ -85,10 +86,13 @@ namespace TeoAccesorios.Desktop
                     {
                         if (row.DataBoundItem is Usuario usuario)
                         {
-                            row.Cells["ContraseniaEstado"].Value = usuario.ContraseniaEstado;
+                            var estado = Repository.ListarUsuarios()
+                                .FirstOrDefault(x => x.Id == usuario.Id)?.ContraseniaEstado ?? "Personalizada";
                             
-                            // Opcional: cambiar el color de fondo para usuarios con contraseña por defecto
-                            if (usuario.Contrasenia == "default123")
+                            row.Cells["ContraseniaEstado"].Value = estado;
+                            
+                            // Resaltar contraseñas por defecto
+                            if (estado == "Por defecto")
                             {
                                 row.Cells["ContraseniaEstado"].Style.BackColor = Color.LightYellow;
                                 row.Cells["ContraseniaEstado"].Style.ForeColor = Color.DarkOrange;
@@ -138,7 +142,7 @@ namespace TeoAccesorios.Desktop
                             {
                                 cmd.Parameters.AddWithValue("@n", res.NombreUsuario ?? "");
                                 cmd.Parameters.AddWithValue("@c", res.Correo ?? "");
-                                cmd.Parameters.AddWithValue("@p", res.Contrasenia ?? "");
+                                cmd.Parameters.Add("@p", System.Data.SqlDbType.VarBinary, 32).Value = PasswordHelper.HashPassword(res.Contrasenia ?? "default123");
                                 cmd.Parameters.AddWithValue("@r", string.IsNullOrWhiteSpace(res.Rol) ? "Vendedor" : res.Rol);
                                 cmd.Parameters.AddWithValue("@a", res.Activo);
                                 cn.Open();
@@ -231,9 +235,10 @@ namespace TeoAccesorios.Desktop
 
                 if (confirm == DialogResult.Yes)
                 {
+                    byte[] defaultPasswordHash = PasswordHelper.HashPassword("default123");
                     Db.Exec(@"
                         UPDATE dbo.Usuarios SET contrasenia = @p WHERE Id = @id;",
-                        new SqlParameter("@p", "default123"),
+                        new SqlParameter("@p", System.Data.SqlDbType.VarBinary) { Value = defaultPasswordHash },
                         new SqlParameter("@id", sel.Id)
                     );
 
@@ -315,18 +320,17 @@ namespace TeoAccesorios.Desktop
                             }
 
                             // Si no hay conflictos, proceder con la actualización
+                            // NO actualizar la contraseña en edición, solo otros campos
                             Db.Exec(@"
                                 UPDATE dbo.Usuarios
                                    SET NombreUsuario=@n,
                                        correo=@c,
-                                       contrasenia=@p,
                                        rol=@r,
                                        Activo=@a
                                  WHERE Id=@id;",
                                 new SqlParameter("@id", u.Id),
                                 new SqlParameter("@n", u.NombreUsuario ?? ""),
                                 new SqlParameter("@c", u.Correo ?? ""),
-                                new SqlParameter("@p", u.Contrasenia ?? ""),
                                 new SqlParameter("@r", string.IsNullOrWhiteSpace(u.Rol) ? "Vendedor" : u.Rol),
                                 new SqlParameter("@a", u.Activo)
                             );

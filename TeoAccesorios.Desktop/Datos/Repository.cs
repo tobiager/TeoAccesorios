@@ -160,13 +160,16 @@ namespace TeoAccesorios.Desktop
         public static List<Usuario> ListarUsuarios()
         {
             var dt = Db.Query(@"
-                SELECT  u.Id              AS Id,
-                        u.NombreUsuario   AS NombreUsuario,
-                        u.correo          AS Correo,
-                        u.contrasenia     AS Contrasenia,
-                        u.Rol             AS Rol,
-                        u.Activo          AS Activo
-                FROM dbo.Usuarios u;",
+        SELECT  u.Id              AS Id,
+                u.NombreUsuario   AS NombreUsuario,
+                u.correo          AS Correo,
+                u.Rol             AS Rol,
+                u.Activo          AS Activo,
+                CASE 
+                    WHEN u.contrasenia = HASHBYTES('SHA2_256', 'default123') THEN 'Por defecto'
+                    ELSE 'Personalizada'
+                END AS ContraseniaEstado
+        FROM dbo.Usuarios u;",
                 Array.Empty<SqlParameter>());
 
             return dt.AsEnumerable().Select(r => new Usuario
@@ -174,9 +177,10 @@ namespace TeoAccesorios.Desktop
                 Id = r.Field<int>("Id"),
                 NombreUsuario = r.Field<string?>("NombreUsuario") ?? "",
                 Correo = r.Field<string?>("Correo") ?? "",
-                Contrasenia = r.Field<string?>("Contrasenia") ?? "",
+                Contrasenia = "",  // No cargar contraseña hasheada
                 Rol = r.Field<string?>("Rol") ?? "",
-                Activo = r.Field<bool>("Activo")
+                Activo = r.Field<bool>("Activo"),
+                ContraseniaEstado = r.Field<string?>("ContraseniaEstado") ?? "Personalizada"
             }).ToList();
         }
 

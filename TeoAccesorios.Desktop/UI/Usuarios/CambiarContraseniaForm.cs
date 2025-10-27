@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
+using TeoAccesorios.Desktop.Infra.Auth;
 
 namespace TeoAccesorios.Desktop.UI.Usuarios
 {
@@ -77,10 +78,14 @@ namespace TeoAccesorios.Desktop.UI.Usuarios
             // Validar contraseña actual contra la BD
             try
             {
+                // Hashear las contraseñas
+                byte[] passwordActualHash = PasswordHelper.HashPassword(txtActual.Text);
+                byte[] passwordNuevaHash = PasswordHelper.HashPassword(txtNueva.Text);
+
                 using var cn = new SqlConnection(Db.ConnectionString);
                 using var cmd = new SqlCommand("SELECT 1 FROM dbo.Usuarios WHERE Id = @id AND contrasenia = @p", cn);
                 cmd.Parameters.AddWithValue("@id", Sesion.UsuarioId);
-                cmd.Parameters.AddWithValue("@p", txtActual.Text);
+                cmd.Parameters.Add("@p", System.Data.SqlDbType.VarBinary, 32).Value = passwordActualHash;
 
                 cn.Open();
                 var result = cmd.ExecuteScalar();
@@ -91,9 +96,9 @@ namespace TeoAccesorios.Desktop.UI.Usuarios
                     return;
                 }
 
-                // Actualizar contraseña
+                // Actualizar contraseña con hash
                 Db.Exec("UPDATE dbo.Usuarios SET contrasenia = @p WHERE Id = @id",
-                    new SqlParameter("@p", txtNueva.Text),
+                    new SqlParameter("@p", System.Data.SqlDbType.VarBinary) { Value = passwordNuevaHash },
                     new SqlParameter("@id", Sesion.UsuarioId)
                 );
 

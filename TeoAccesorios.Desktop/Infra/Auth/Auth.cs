@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using Microsoft.Data.SqlClient;
+using TeoAccesorios.Desktop.Infra.Auth;
 
 namespace TeoAccesorios.Desktop
 {
@@ -24,6 +25,19 @@ namespace TeoAccesorios.Desktop
         {
             rol = RolUsuario.Vendedor;
 
+            // Hashear la contraseña ingresada
+            byte[] passwordHash = PasswordHelper.HashPassword(password);
+
+            /*
+            string hashHex = PasswordHelper.HashToHex(passwordHash);
+            System.Windows.Forms.MessageBox.Show(
+                $"Usuario: {usuario}\n" +
+                $"Password: {password}\n" +
+                $"Hash generado: {hashHex}",
+                "Debug Hash"
+            )
+            */
+
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(@"
                 SELECT TOP 1 Id, nombreUsuario, rol, activo
@@ -31,7 +45,7 @@ namespace TeoAccesorios.Desktop
                 WHERE nombreUsuario = @u AND contrasenia = @p;", cn);
 
             cmd.Parameters.AddWithValue("@u", usuario);
-            cmd.Parameters.AddWithValue("@p", password);
+            cmd.Parameters.Add("@p", System.Data.SqlDbType.VarBinary, 32).Value = passwordHash;
 
             cn.Open();
             using var rd = cmd.ExecuteReader();
