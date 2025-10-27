@@ -26,11 +26,11 @@ namespace TeoAccesorios.Desktop
             StartPosition = FormStartPosition.CenterParent;
 
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 44, Padding = new Padding(8) };
-            var btnNuevo = new Button { Text = "Nuevo" };
-            var btnEditar = new Button { Text = "Editar" };
-            var btnEliminar = new Button { Text = "Eliminar" };
-            var btnRestaurar = new Button { Text = "Restaurar" };
-            var btnVerInactivos = new Button { Text = "Ver inactivos" };
+            var btnNuevo = new Button { Text = "Nuevo", AutoSize = true };
+            var btnEditar = new Button { Text = "Editar", AutoSize = true };
+            var btnEliminar = new Button { Text = "Eliminar", AutoSize = true };
+            var btnRestaurar = new Button { Text = "Restaurar", AutoSize = true };
+            var btnVerInactivos = new Button { Text = "Ver Clientes Inactivos", AutoSize = true };
 
             // === Handlers ===
             btnNuevo.Click += (s, e) =>
@@ -95,7 +95,7 @@ namespace TeoAccesorios.Desktop
                 var sel = GetSeleccionado();
                 if (sel == null) return;
 
-                if (MessageBox.Show(this, "�Inactivar al cliente \"" + sel.Nombre + "\"?",
+                if (MessageBox.Show(this, "¿Inactivar al cliente \"" + sel.Nombre + "\"?",
                         "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
 
                 try
@@ -109,8 +109,6 @@ namespace TeoAccesorios.Desktop
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
-
-            
 
             btnVerInactivos.Click += (s, e) =>
             {

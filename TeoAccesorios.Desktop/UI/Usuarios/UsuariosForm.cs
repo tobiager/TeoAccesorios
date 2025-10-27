@@ -18,7 +18,6 @@ namespace TeoAccesorios.Desktop
             AutoGenerateColumns = true,
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,        
             AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells,    
-
             RowHeadersVisible = false,          
             AllowUserToAddRows = false,        
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -35,11 +34,11 @@ namespace TeoAccesorios.Desktop
             StartPosition = FormStartPosition.CenterParent;
 
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8) };
-            var btnNuevo = new Button { Text = "Nuevo" };
-            var btnEditar = new Button { Text = "Editar" };
-            var btnEliminar = new Button { Text = "Eliminar" }; // Agregar botón eliminar
-            var btnRestablecerPass = new Button { Text = "Restablecer contraseña" };
-            var btnVerInactivos = new Button { Text = "Ver inactivos" };
+            var btnNuevo = new Button { Text = "Nuevo", AutoSize = true };
+            var btnEditar = new Button { Text = "Editar", AutoSize = true };
+            var btnEliminar = new Button { Text = "Eliminar", AutoSize = true };
+            var btnRestablecerPass = new Button { Text = "Restablecer Contraseña", AutoSize = true }; 
+            var btnVerInactivos = new Button { Text = "Ver Usuarios Inactivos", AutoSize = true }; 
 
             top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnRestablecerPass, btnVerInactivos });
 

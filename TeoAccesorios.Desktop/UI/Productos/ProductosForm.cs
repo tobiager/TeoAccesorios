@@ -56,10 +56,10 @@ namespace TeoAccesorios.Desktop
             // ABM solo Admin
             if (Sesion.Rol == RolUsuario.Admin)
             {
-                var btnNuevo = new Button { Text = "Nuevo" };
-                var btnEditar = new Button { Text = "Editar" };
-                var btnEliminar = new Button { Text = "Eliminar" };
-                var btnVerInactivos = new Button { Text = "Ver inactivos" };
+                var btnNuevo = new Button { Text = "Nuevo", AutoSize = true };
+                var btnEditar = new Button { Text = "Editar", AutoSize = true };
+                var btnEliminar = new Button { Text = "Eliminar", AutoSize = true };
+                var btnVerInactivos = new Button { Text = "Ver Productos Inactivos", AutoSize = true };
                 top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnVerInactivos });
 
                 btnVerInactivos.Click += (s, e) =>
@@ -115,8 +115,6 @@ namespace TeoAccesorios.Desktop
                         LoadData();
                     }
                 };
-
-               
             }
             else
             {
