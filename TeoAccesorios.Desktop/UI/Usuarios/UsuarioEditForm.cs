@@ -28,7 +28,7 @@ namespace TeoAccesorios.Desktop
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false;
 
-            cboRol.Items.AddRange(new object[] { "Admin", "Vendedor" });
+            cboRol.Items.AddRange(new object[] { "Gerente", "Admin", "Vendedor" });
 
             var grid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(12) };
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
@@ -65,6 +65,40 @@ namespace TeoAccesorios.Desktop
 
             btnGuardar.Click += (_, __) =>
             {
+                // --- Validaciones de permisos por rol ---
+                var rolSeleccionado = (string)cboRol.SelectedItem;
+                var esGerente = model.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) ?? false;
+
+                // Un Admin no puede crear/editar otros Admins o Gerentes.
+                if (Sesion.Rol == RolUsuario.Admin && (rolSeleccionado == "Admin" || rolSeleccionado == "Gerente"))
+                {
+                    MessageBox.Show("Un Administrador no puede crear o modificar usuarios de tipo Administrador o Gerente.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Solo un Gerente puede crear/editar a otro Gerente.
+                if (rolSeleccionado == "Gerente" && Sesion.Rol != RolUsuario.Gerente)
+                {
+                    MessageBox.Show("Solo un Gerente puede crear o modificar a otro Gerente.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // NUEVA RESTRICCIÓN: No se puede agregar otro gerente si ya existe uno
+                if (rolSeleccionado == "Gerente" && model.Id == 0) // Es creación, no edición
+                {
+                    var gerentesExistentes = Repository.ListarUsuarios()
+                        .Where(usr => usr.Activo && usr.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) == true)
+                        .ToList();
+
+                    if (gerentesExistentes.Any())
+                    {
+                        MessageBox.Show("Ya existe un usuario con rol Gerente en el sistema. No se puede agregar otro.", "Restricción de gerente", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
+                // --- Fin validaciones de permisos ---
+
                 if (!Validar()) return;
 
                 model.NombreUsuario = txtUser.Text.Trim();
@@ -72,6 +106,15 @@ namespace TeoAccesorios.Desktop
                 model.Contrasenia = txtPass.Text; // (sin hash por ahora)
                 model.Rol = (string)cboRol.SelectedItem;
                 model.Activo = chkActivo.Checked;
+
+                // El Gerente no puede ser desactivado.
+                if (esGerente && !model.Activo)
+                {
+                    MessageBox.Show("El usuario con rol Gerente no puede ser desactivado.", "Acción no permitida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    model.Activo = true; // Revertir cambio
+                    chkActivo.Checked = true; // Actualizar UI
+                    return;
+                }
 
                 DialogResult = DialogResult.OK;
                 Close();

@@ -156,12 +156,14 @@ namespace TeoAccesorios.Desktop
         }
 
         // ============================ USUARIOS ============================
+        // Actualizar el método ListarUsuarios existente para incluir la lógica del estado
         public static List<Usuario> ListarUsuarios()
         {
             var dt = Db.Query(@"
                 SELECT  u.Id              AS Id,
                         u.NombreUsuario   AS NombreUsuario,
                         u.correo          AS Correo,
+                        u.contrasenia     AS Contrasenia,
                         u.Rol             AS Rol,
                         u.Activo          AS Activo
                 FROM dbo.Usuarios u;",
@@ -172,6 +174,7 @@ namespace TeoAccesorios.Desktop
                 Id = r.Field<int>("Id"),
                 NombreUsuario = r.Field<string?>("NombreUsuario") ?? "",
                 Correo = r.Field<string?>("Correo") ?? "",
+                Contrasenia = r.Field<string?>("Contrasenia") ?? "",
                 Rol = r.Field<string?>("Rol") ?? "",
                 Activo = r.Field<bool>("Activo")
             }).ToList();

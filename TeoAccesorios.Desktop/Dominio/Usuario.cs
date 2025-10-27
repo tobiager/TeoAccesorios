@@ -7,4 +7,7 @@ public class Usuario
     public string Contrasenia { get; set; } = "";
     public string Rol { get; set; } = "Vendedor";
     public bool Activo { get; set; } = true;
+    
+    // Nueva propiedad calculada para mostrar en la grilla
+    public string ContraseniaEstado => Contrasenia == "default123" ? "Por defecto" : "Personalizada";
 }

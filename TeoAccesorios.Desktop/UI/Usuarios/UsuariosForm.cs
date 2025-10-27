@@ -39,23 +39,64 @@ namespace TeoAccesorios.Desktop
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8) };
             var btnNuevo = new Button { Text = "Nuevo" };
             var btnEditar = new Button { Text = "Editar" };
+            var btnEliminar = new Button { Text = "Eliminar" }; // Agregar botón eliminar
+            var btnRestablecerPass = new Button { Text = "Restablecer contraseña" };
             var btnVerInactivos = new Button { Text = "Ver inactivos" };
 
-            top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnVerInactivos });
+            top.Controls.AddRange(new Control[] { btnNuevo, btnEditar, btnEliminar, btnRestablecerPass, btnVerInactivos });
+
+            btnRestablecerPass.Visible = Sesion.Rol == RolUsuario.Gerente;
 
             Controls.Add(grid);
             Controls.Add(top);
             grid.DataSource = bs;
-            GridHelper.Estilizar(grid); // Aplicar estilo
+            GridHelper.Estilizar(grid);
             GridHelperLock.Apply(grid);
 
-            // Ocultar columna Activo después de cargar datos
+            // Configurar columnas después de cargar datos
             grid.DataBindingComplete += (s, e) =>
             {
+                // Ocultar la columna Contrasenia original
+                var colContrasenia = grid.Columns["Contrasenia"];
+                if (colContrasenia != null)
+                {
+                    colContrasenia.Visible = false;
+                }
+
+                // Ocultar columna Activo
                 var colActivo = grid.Columns["Activo"];
                 if (colActivo != null)
                 {
                     colActivo.Visible = false;
+                }
+
+                // Agregar columna personalizada para el estado de contraseña
+                if (grid.Columns["ContraseniaEstado"] == null)
+                {
+                    var colEstado = new DataGridViewTextBoxColumn
+                    {
+                        Name = "ContraseniaEstado",
+                        HeaderText = "Estado Contraseña",
+                        ReadOnly = true,
+                        AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+                    };
+                    grid.Columns.Add(colEstado);
+
+                    // Llenar los valores de la nueva columna
+                    foreach (DataGridViewRow row in grid.Rows)
+                    {
+                        if (row.DataBoundItem is Usuario usuario)
+                        {
+                            row.Cells["ContraseniaEstado"].Value = usuario.ContraseniaEstado;
+                            
+                            // Opcional: cambiar el color de fondo para usuarios con contraseña por defecto
+                            if (usuario.Contrasenia == "default123")
+                            {
+                                row.Cells["ContraseniaEstado"].Style.BackColor = Color.LightYellow;
+                                row.Cells["ContraseniaEstado"].Style.ForeColor = Color.DarkOrange;
+                            }
+                        }
+                    }
                 }
             };
 
@@ -96,10 +137,83 @@ namespace TeoAccesorios.Desktop
                 }
             };
 
+            // NUEVO: Implementar eliminación con restricciones
+            btnEliminar.Click += (s, e) =>
+            {
+                if (grid.CurrentRow == null || !(grid.CurrentRow.DataBoundItem is Usuario sel)) return;
+
+                // Verificar si es gerente
+                bool esGerente = sel.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) ?? false;
+                if (esGerente)
+                {
+                    MessageBox.Show("No se puede eliminar al usuario con rol Gerente.", "Restricción de gerente", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Verificar permisos para eliminar
+                if (Sesion.Rol != RolUsuario.Gerente && Sesion.Rol != RolUsuario.Admin)
+                {
+                    MessageBox.Show("No tiene permisos para eliminar usuarios.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Confirmación
+                var confirm = MessageBox.Show(
+                    $"¿Está seguro de que desea eliminar al usuario '{sel.NombreUsuario}'?",
+                    "Confirmar eliminación",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    // Realizar soft delete (desactivar usuario)
+                    Repository.SetUsuarioActivo(sel.Id, false);
+                    MessageBox.Show("Usuario eliminado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    LoadData();
+                }
+            };
+
+            btnRestablecerPass.Click += (s, e) =>
+            {
+                if (grid.CurrentRow == null || !(grid.CurrentRow.DataBoundItem is Usuario sel)) return;
+
+                if (sel.Id == Sesion.UsuarioId)
+                {
+                    MessageBox.Show("No puede restablecer su propia contraseña desde esta pantalla. Use la opción 'Cambiar contraseña' en el menú principal.", "Acción no permitida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var confirm = MessageBox.Show(
+                    $"¿Está seguro de que desea restablecer la contraseña del usuario '{sel.NombreUsuario}'?\n\nLa nueva contraseña será: default123",
+                    "Confirmar restablecimiento",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    Db.Exec(@"
+                        UPDATE dbo.Usuarios SET contrasenia = @p WHERE Id = @id;",
+                        new SqlParameter("@p", "default123"),
+                        new SqlParameter("@id", sel.Id)
+                    );
+
+                    MessageBox.Show("La contraseña ha sido restablecida.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    LoadData();
+                }
+            };
+
             // === EDITAR - Actualizar a tabla real dbo.Usuarios, PK = Id
             btnEditar.Click += (s, e) =>
             {
                 if (grid.CurrentRow == null || !(grid.CurrentRow.DataBoundItem is Usuario sel)) return;
+
+                // --- Validaciones de permisos por rol ---
+                bool esGerente = sel.Rol?.Equals("Gerente", StringComparison.OrdinalIgnoreCase) ?? false;
+                if (esGerente && Sesion.Rol != RolUsuario.Gerente)
+                {
+                    MessageBox.Show("Solo un Gerente puede editar a otro usuario con rol Gerente.", "Permiso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
                 var tmp = new Usuario
                 {

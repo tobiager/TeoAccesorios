@@ -4,11 +4,12 @@ using Microsoft.Data.SqlClient;
 
 namespace TeoAccesorios.Desktop
 {
-    public enum RolUsuario { Admin, Vendedor }
+    public enum RolUsuario { Gerente, Admin, Vendedor }
 
     public static class Sesion
     {
         public static string Usuario { get; set; } = "Invitado";
+        public static int? UsuarioId { get; set; }
         public static RolUsuario Rol { get; set; } = RolUsuario.Vendedor;
     }
 
@@ -20,7 +21,7 @@ namespace TeoAccesorios.Desktop
 
             using var cn = new SqlConnection(Db.ConnectionString);
             using var cmd = new SqlCommand(@"
-                SELECT TOP 1 rol, activo
+                SELECT TOP 1 Id, rol, activo
                 FROM dbo.Usuarios
                 WHERE nombreUsuario = @u AND contrasenia = @p;", cn);
 
@@ -35,11 +36,18 @@ namespace TeoAccesorios.Desktop
             if (!activo) return false;
 
             var r = (rd["rol"]?.ToString() ?? "Vendedor");
-            rol = r.Equals("Admin", StringComparison.OrdinalIgnoreCase)
-                ? RolUsuario.Admin
-                : RolUsuario.Vendedor;
+            rol = r switch
+            {
+                _ when r.Equals("Gerente", StringComparison.OrdinalIgnoreCase) => RolUsuario.Gerente,
+                _ when r.Equals("Admin", StringComparison.OrdinalIgnoreCase) => RolUsuario.Admin,
+                _ => RolUsuario.Vendedor
+            };
 
+            var id = Convert.ToInt32(rd["Id"]);
+
+            // Guardar datos en la sesión
             Sesion.Usuario = usuario;
+            Sesion.UsuarioId = id;
             Sesion.Rol = rol;
             return true;
         }

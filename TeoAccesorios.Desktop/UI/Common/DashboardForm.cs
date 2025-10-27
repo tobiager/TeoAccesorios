@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 
 // Alias seguro al namespace de tus forms de provincias
 using ProvsUI = TeoAccesorios.Desktop.UI.Provincias;
+using UserUI = TeoAccesorios.Desktop.UI.Usuarios;
 using StatsUI = TeoAccesorios.Desktop.UI.Estadisticas;
 
 namespace TeoAccesorios.Desktop
@@ -72,6 +73,7 @@ namespace TeoAccesorios.Desktop
                 return b;
             }
 
+            var btnCambiarContrasenia = Btn("Cambiar contraseña");
             var btnCerrarSesion = Btn("Cerrar sesión");
             var btnInicio = Btn("Inicio (Dashboard)");
             var btnReportes = Btn("Reportes");
@@ -114,6 +116,7 @@ namespace TeoAccesorios.Desktop
             btnProductos.Click += (_, __) => Nav(btnProductos, () => ShowInContent(new ProductosForm()));
             btnVerVentas.Click += (_, __) => Nav(btnVerVentas, () => ShowInContent(new VentasForm()));
             btnNuevaVenta.Click += (_, __) => Nav(btnNuevaVenta, () => ShowInContent(new NuevaVentaForm()));
+            // MOVIDO AL HEADER: btnCambiarContrasenia.Click += (_, __) => Nav(btnCambiarContrasenia, () => { using var f = new UserUI.CambiarContraseniaForm(); f.ShowDialog(this); });
             if (btnBackup != null) btnBackup.Click += (_, __) => DoBackup();
 
             // IMPORTANTE: el orden de Add con Dock=Top es inverso en pantalla (el último va más arriba).
@@ -123,23 +126,62 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(btnProvinciasLocalidades); // <— queda entre Categorías y Productos
             side.Controls.Add(btnCategorias);
             side.Controls.Add(btnClientes);
-            if (Sesion.Rol == RolUsuario.Admin) side.Controls.Add(btnEmpleados);
+            if (Sesion.Rol == RolUsuario.Admin || Sesion.Rol == RolUsuario.Gerente) side.Controls.Add(btnEmpleados);
             side.Controls.Add(btnEstadisticas);
             side.Controls.Add(btnReportes);
             side.Controls.Add(btnInicio);
+            // REMOVIDO: side.Controls.Add(btnCambiarContrasenia);
             if (btnBackup != null) side.Controls.Add(btnBackup);
             side.Controls.Add(btnCerrarSesion);
 
+            // HEADER CON FLOWLAYOUTPANEL PARA INCLUIR EL BOTÓN DE CAMBIAR CONTRASEÑA
             header = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(10, 14, 28), Padding = new Padding(12) };
+            
+            var flowPanel = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.LeftToRight,
+                Dock = DockStyle.Fill,
+                AutoSize = true,
+                WrapContents = false,
+                Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Bottom
+            };
+
             var lblUser = new Label
             {
                 Text = $"Usuario: {Sesion.Usuario}  —  Rol: {Sesion.Rol}",
                 ForeColor = Color.White,
-                Dock = DockStyle.Left,
                 AutoSize = true,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 8, 20, 0)
             };
-            header.Controls.Add(lblUser);
+
+            var btnCambiarContraseniaHeader = new Button
+            {
+                Text = "🔑 Cambiar contraseña",
+                AutoSize = true,
+                Height = 32,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(59, 130, 246),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9, FontStyle.Regular),
+                Padding = new Padding(12, 4, 12, 4),
+                Margin = new Padding(0, 4, 0, 0)
+            };
+
+            btnCambiarContraseniaHeader.FlatAppearance.BorderSize = 0;
+            btnCambiarContraseniaHeader.FlatAppearance.MouseOverBackColor = Color.FromArgb(37, 99, 235);
+            btnCambiarContraseniaHeader.FlatAppearance.MouseDownBackColor = Color.FromArgb(29, 78, 216);
+
+            btnCambiarContraseniaHeader.Click += (_, __) =>
+            {
+                using var f = new UserUI.CambiarContraseniaForm();
+                f.ShowDialog(this);
+            };
+
+            flowPanel.Controls.Add(lblUser);
+            flowPanel.Controls.Add(btnCambiarContraseniaHeader);
+            header.Controls.Add(flowPanel);
 
             content = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(24, 28, 44) };
 
