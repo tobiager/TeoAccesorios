@@ -1,4 +1,6 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Linq;
+using System.Windows.Forms;
 using TeoAccesorios.Desktop.Models;
 
 namespace TeoAccesorios.Desktop
@@ -39,7 +41,7 @@ namespace TeoAccesorios.Desktop
             for (int i = 0; i < 5; i++) grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
 
             grid.Controls.Add(new Label { Text = "Usuario *" }, 0, 0); grid.Controls.Add(txtUser, 1, 0);
-            grid.Controls.Add(new Label { Text = "Correo" }, 0, 1); grid.Controls.Add(txtMail, 1, 1);
+            grid.Controls.Add(new Label { Text = "Correo *" }, 0, 1); grid.Controls.Add(txtMail, 1, 1);
             grid.Controls.Add(new Label { Text = "Contraseña *" }, 0, 2); grid.Controls.Add(txtPass, 1, 2);
             grid.Controls.Add(new Label { Text = "Rol *" }, 0, 3); grid.Controls.Add(cboRol, 1, 3);
             grid.Controls.Add(chkActivo, 1, 4);
@@ -127,15 +129,16 @@ namespace TeoAccesorios.Desktop
                 if (!Validar()) return;
 
                 model.NombreUsuario = txtUser.Text.Trim();
-                model.Correo = string.IsNullOrWhiteSpace(txtMail.Text) ? null : txtMail.Text.Trim();
+                model.Correo = txtMail.Text.Trim(); // Ya no puede ser null porque es obligatorio
                 
-                // LÓGICA DE CONTRASEÑA: No modificar la contraseña existente en edición
+                // LÓGICA DE CONTRASEÑA: Asignar solo para nuevos usuarios
                 if (esNuevoUsuario)
                 {
+                    // Para nuevos usuarios, asignar contraseña por defecto
                     model.Contrasenia = "default123";
                 }
-                // Para usuarios existentes, NO modificar la contraseña
-                // (mantener la contraseña actual sin cambios)
+                // Para usuarios existentes, NO tocar model.Contrasenia
+                // La contraseña se maneja por separado (botón Restablecer en UsuariosForm)
                 
                 model.Rol = (string)cboRol.SelectedItem;
                 model.Activo = chkActivo.Checked;
@@ -187,9 +190,34 @@ namespace TeoAccesorios.Desktop
             // NO VALIDAR CONTRASEÑA - Se maneja por separado con el botón Restablecer
             ep.SetError(txtPass, ""); 
             
-            ok &= FormValidator.OptionalEmail(txtMail, ep, "Email inválido");
+            // CAMBIO CRÍTICO: Hacer el correo obligatorio
+            ok &= RequireEmail(txtMail, ep, "Correo requerido y válido");
             if (cboRol.SelectedIndex < 0) { ep.SetError(cboRol, "Seleccioná un rol"); ok = false; } else ep.SetError(cboRol, "");
             return ok;
+        }
+        
+        /// <summary>
+        /// Valida que el correo sea obligatorio y tenga formato válido
+        /// </summary>
+        private bool RequireEmail(TextBox tb, ErrorProvider ep, string msg)
+        {
+            string v = tb.Text?.Trim() ?? "";
+            if (string.IsNullOrEmpty(v))
+            {
+                ep.SetError(tb, msg);
+                return false;
+            }
+
+            // Validar formato de email
+            var emailValid = System.Text.RegularExpressions.Regex.IsMatch(v, @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+            if (!emailValid)
+            {
+                ep.SetError(tb, "Correo inválido");
+                return false;
+            }
+
+            ep.SetError(tb, "");
+            return true;
         }
     }
 }
