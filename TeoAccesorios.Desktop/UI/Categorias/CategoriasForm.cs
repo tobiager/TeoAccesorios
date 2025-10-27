@@ -23,11 +23,12 @@ namespace TeoAccesorios.Desktop
         private readonly Label lblCat = new Label { Text = "Categoría:", AutoSize = true, Padding = new Padding(0, 10, 6, 0), Visible = false };
         private readonly ComboBox cboFiltroCat = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Visible = false };
 
-        private readonly bool esAdmin;
+        private readonly bool tienePermisos;
 
         public CategoriasForm()
         {
-            esAdmin = Sesion.Rol == RolUsuario.Admin;
+            // El Gerente ahora también tiene todos los permisos en categorías
+            tienePermisos = Sesion.Rol == RolUsuario.Admin || Sesion.Rol == RolUsuario.Gerente;
 
             Text = "Categorías";
             Width = 900;
@@ -67,9 +68,9 @@ namespace TeoAccesorios.Desktop
 
             btnSwitch.Click += (s, e) => SwitchMode();
 
-            btnNuevo.Click += (s, e) => { if (esAdmin) OnNuevo(); };
-            btnEditar.Click += (s, e) => { if (esAdmin) OnEditar(); };
-            btnEliminar.Click += (s, e) => { if (esAdmin) OnEliminar(); };
+            btnNuevo.Click += (s, e) => { if (tienePermisos) OnNuevo(); };
+            btnEditar.Click += (s, e) => { if (tienePermisos) OnEditar(); };
+            btnEliminar.Click += (s, e) => { if (tienePermisos) OnEliminar(); };
 
             // ⬇️ Ahora abre el form correcto según el modo actual
             btnVerInactivas.Click += (s, e) =>
@@ -92,7 +93,7 @@ namespace TeoAccesorios.Desktop
             cboFiltroCat.SelectedIndexChanged += (s, e) => { if (_modo == Modo.Subcategorias) LoadData(); };
 
             //  Permisos de vendedor: fuerza modo Subcategorías y oculta acciones 
-            if (!esAdmin)
+            if (!tienePermisos)
             {
                 _modo = Modo.Subcategorias;
                 btnSwitch.Visible = false;
@@ -115,14 +116,14 @@ namespace TeoAccesorios.Desktop
 
         private void SwitchMode()
         {
-            if (!esAdmin) return;
+            if (!tienePermisos) return;
             var nuevo = _modo == Modo.Categorias ? Modo.Subcategorias : Modo.Categorias;
             SetMode(nuevo);
         }
 
         private void SetMode(Modo m)
         {
-            if (!esAdmin && m == Modo.Categorias)
+            if (!tienePermisos && m == Modo.Categorias)
                 m = Modo.Subcategorias;
 
             _modo = m;

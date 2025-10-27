@@ -22,13 +22,14 @@ namespace TeoAccesorios.Desktop
         private readonly Button btnVerInactivas;
 
         private readonly int? _categoriaInicial;
-        private readonly bool esAdmin;
+        private readonly bool tienePermisos;
 
         public SubcategoriasForm() : this(null) { }
 
         public SubcategoriasForm(int? categoriaId)
         {
-            esAdmin = Sesion.Rol == RolUsuario.Admin;
+            // El Gerente ahora también tiene todos los permisos en subcategorías
+            tienePermisos = Sesion.Rol == RolUsuario.Admin || Sesion.Rol == RolUsuario.Gerente;
             _categoriaInicial = categoriaId;
 
             Text = "Subcategorías";
@@ -92,7 +93,7 @@ namespace TeoAccesorios.Desktop
                 LoadSubcategorias();
             };
 
-            if (!esAdmin)
+            if (!tienePermisos)
             {
                 // Solo vista para vendedor
                 btnNuevo.Visible = btnEditar.Visible = btnEliminar.Visible = btnVerInactivas.Visible = false;
@@ -100,7 +101,7 @@ namespace TeoAccesorios.Desktop
             }
             else
             {
-                // Acciones admin
+                // Acciones para admin y gerente
                 btnNuevo.Click += (s, e) =>
                 {
                     int? catId = (cboFiltroCat.SelectedItem as ComboItem)?.Value;
