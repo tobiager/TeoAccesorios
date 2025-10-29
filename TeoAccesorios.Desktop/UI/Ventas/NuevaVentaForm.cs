@@ -25,8 +25,8 @@ namespace TeoAccesorios.Desktop
         
         // Nuevos controles de dirección
         private readonly CheckBox chkCambiarDireccion = new() { Text = "Usar otra dirección de envío", AutoSize = true };
-        private readonly ComboBox cboProvinciaVenta = new() { Width = 200, Visible = false };
-        private readonly ComboBox cboLocalidadVenta = new() { Width = 200, Visible = false };
+        private readonly ComboBox cboProvinciaVenta = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200, Visible = false };
+        private readonly ComboBox cboLocalidadVenta = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200, Visible = false };
         private int? _clienteProvinciaId;
         private int? _clienteLocalidadId;        
         private readonly Button btnAgregar = new() { Text = "Agregar", AutoSize = true };

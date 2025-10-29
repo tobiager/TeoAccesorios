@@ -193,6 +193,42 @@ namespace TeoAccesorios.Desktop
             // CAMBIO CRÍTICO: Hacer el correo obligatorio
             ok &= RequireEmail(txtMail, ep, "Correo requerido y válido");
             if (cboRol.SelectedIndex < 0) { ep.SetError(cboRol, "Seleccioná un rol"); ok = false; } else ep.SetError(cboRol, "");
+
+            // Si los campos básicos no pasaron, no continue con comprobaciones contra BD
+            if (!ok) return false;
+
+            // Validar unicidad de NombreUsuario y Correo (incluye inactivos).
+            var usuarios = Repository.ListarUsuarios();
+
+            var nombreIngresado = txtUser.Text.Trim();
+            var duplicadoNombre = usuarios
+                .Any(u => u.Id != model.Id && !string.IsNullOrWhiteSpace(u.NombreUsuario) &&
+                          string.Equals(u.NombreUsuario.Trim(), nombreIngresado, StringComparison.OrdinalIgnoreCase));
+            if (duplicadoNombre)
+            {
+                ep.SetError(txtUser, "El nombre de usuario ya está en uso");
+                ok = false;
+            }
+            else
+            {
+                ep.SetError(txtUser, "");
+            }
+
+            var correoIngresado = txtMail.Text.Trim();
+            var correoNorm = NormalizeEmailForComparison(correoIngresado);
+            var duplicadoCorreo = usuarios
+                .Any(u => u.Id != model.Id && !string.IsNullOrWhiteSpace(u.Correo) &&
+                          NormalizeEmailForComparison(u.Correo) == correoNorm);
+            if (duplicadoCorreo)
+            {
+                ep.SetError(txtMail, "El correo ya está en uso");
+                ok = false;
+            }
+            else
+            {
+                ep.SetError(txtMail, "");
+            }
+
             return ok;
         }
         
@@ -218,6 +254,34 @@ namespace TeoAccesorios.Desktop
 
             ep.SetError(tb, "");
             return true;
+        }
+
+        /// <summary>
+        /// Normaliza correos para comparación: minusculas, trim.
+        /// Además, para dominios de Gmail elimina puntos en la parte local y todo después de '+'.
+        /// Esto hace que "mi.nombre+tag@gmail.com" se considere igual a "minombre@gmail.com".
+        /// </summary>
+        private static string NormalizeEmailForComparison(string correo)
+        {
+            if (string.IsNullOrWhiteSpace(correo)) return "";
+            correo = correo.Trim().ToLowerInvariant();
+            var at = correo.IndexOf('@');
+            if (at <= 0) return correo;
+
+            var local = correo.Substring(0, at);
+            var domain = correo.Substring(at + 1);
+
+            if (domain == "gmail.com" || domain == "googlemail.com")
+            {
+                // Eliminar todo después de '+'
+                var plusIndex = local.IndexOf('+');
+                if (plusIndex >= 0) local = local.Substring(0, plusIndex);
+                // Eliminar puntos
+                local = local.Replace(".", "");
+                domain = "gmail.com"; // normalizar dominio
+            }
+
+            return $"{local}@{domain}";
         }
     }
 }

@@ -67,7 +67,15 @@ namespace TeoAccesorios.Desktop
             AssignValidationHandlers();
             btnGuardar.Click += (_, __) =>
             {
-                if (!Validar()) return;
+                if (!Validar())
+                {
+                    var dupMsg = GetDuplicateMessage();
+                    if (!string.IsNullOrEmpty(dupMsg))
+                    {
+                        MessageBox.Show(this, dupMsg, "Email / Teléfono duplicado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    return;
+                }
 
                 model.Nombre = txtNombre.Text.Trim();
                 model.Email = txtEmail.Text.Trim(); // Ya no puede ser null porque es obligatorio
@@ -155,6 +163,32 @@ namespace TeoAccesorios.Desktop
             ok &= FormValidator.OptionalPhone(txtTel, ep, "Teléfono inválido");
             if (cmbProv.SelectedValue == null) { ep.SetError(cmbProv, "Provincia requerida"); ok = false; } else { ep.SetError(cmbProv, ""); }
             if (cmbLoc.SelectedValue == null) { ep.SetError(cmbLoc, "Localidad requerida"); ok = false; } else { ep.SetError(cmbLoc, ""); }
+
+            // Comprobación de duplicados: email y teléfono (incluye clientes inactivos)
+            var dupMsg = GetDuplicateMessageSilently(out bool hasEmailDup, out bool hasTelDup);
+            if (hasEmailDup)
+            {
+                ep.SetError(txtEmail, dupMsg.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Email duplicado");
+                ok = false;
+            }
+            else
+            {
+                // Si antes había error por formato u otro, no sobreescribimos; si no, limpiamos
+                if (string.IsNullOrEmpty(ep.GetError(txtEmail))) ep.SetError(txtEmail, "");
+            }
+
+            if (hasTelDup)
+            {
+                // Mostrar sólo el mensaje referente al teléfono en el campo
+                var telLine = dupMsg.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault(l => l.Contains("Teléfono"));
+                ep.SetError(txtTel, telLine ?? "Teléfono duplicado");
+                ok = false;
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(ep.GetError(txtTel))) ep.SetError(txtTel, "");
+            }
+
             return ok;
         }
 
@@ -188,6 +222,77 @@ namespace TeoAccesorios.Desktop
             // La validación de los combos se dispara cuando cambia la selección de provincia
             // y al final de la carga inicial.
             cmbLoc.SelectedValueChanged += (_, __) => btnGuardar.Enabled = Validar();
+        }
+
+        // Devuelve mensaje descriptivo si hay duplicados; usado al intentar guardar para mostrar MessageBox.
+        private string GetDuplicateMessage()
+        {
+            var list = Repository.ListarClientes(true) ?? new System.Collections.Generic.List<Cliente>();
+            var email = (txtEmail.Text ?? "").Trim();
+            var tel = NormalizePhone(txtTel.Text ?? "");
+
+            string msg = "";
+
+            if (!string.IsNullOrEmpty(email))
+            {
+                var other = list.FirstOrDefault(c => c.Id != model.Id && string.Equals((c.Email ?? "").Trim(), email, StringComparison.OrdinalIgnoreCase));
+                if (other != null)
+                {
+                    msg += $"El email \"{email}\" ya pertenece a otro cliente: \"{other.Nombre}\" (Id {other.Id}).\nPor favor verificá antes de crear/modificar para evitar registros duplicados.\n";
+                }
+            }
+
+            if (!string.IsNullOrEmpty(tel))
+            {
+                var otherTel = list.FirstOrDefault(c => c.Id != model.Id && !string.IsNullOrWhiteSpace(c.Telefono) && NormalizePhone(c.Telefono) == tel);
+                if (otherTel != null)
+                {
+                    msg += $"El teléfono \"{txtTel.Text?.Trim()}\" ya está asociado a \"{otherTel.Nombre}\" (Id {otherTel.Id}).\nSi corresponde a la misma persona, considerá editar ese registro; si no, usá otro número.\n";
+                }
+            }
+
+            return msg.TrimEnd();
+        }
+
+        // Igual que arriba pero devuelve booleans para uso en Validar() sin mostrar MessageBox
+        private string GetDuplicateMessageSilently(out bool hasEmailDup, out bool hasTelDup)
+        {
+            hasEmailDup = false;
+            hasTelDup = false;
+            var list = Repository.ListarClientes(true) ?? new System.Collections.Generic.List<Cliente>();
+            var email = (txtEmail.Text ?? "").Trim();
+            var tel = NormalizePhone(txtTel.Text ?? "");
+
+            string msg = "";
+
+            if (!string.IsNullOrEmpty(email))
+            {
+                var other = list.FirstOrDefault(c => c.Id != model.Id && string.Equals((c.Email ?? "").Trim(), email, StringComparison.OrdinalIgnoreCase));
+                if (other != null)
+                {
+                    hasEmailDup = true;
+                    msg += $"Email duplicado: \"{email}\" ya pertenece a \"{other.Nombre}\" (Id {other.Id}).\n";
+                }
+            }
+
+            if (!string.IsNullOrEmpty(tel))
+            {
+                var otherTel = list.FirstOrDefault(c => c.Id != model.Id && !string.IsNullOrWhiteSpace(c.Telefono) && NormalizePhone(c.Telefono) == tel);
+                if (otherTel != null)
+                {
+                    hasTelDup = true;
+                    msg += $"Teléfono duplicado: \"{txtTel.Text?.Trim()}\" ya pertenece a \"{otherTel.Nombre}\" (Id {otherTel.Id}).\n";
+                }
+            }
+
+            return msg.TrimEnd();
+        }
+
+        private static string NormalizePhone(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            var digits = new string(raw.Where(char.IsDigit).ToArray());
+            return digits;
         }
     }
 }
