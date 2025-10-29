@@ -108,19 +108,19 @@ Estas son las próximas mejoras planificadas para **TeoAccesorios**:
   - Cargar tabla con localidades y provincias
   - Permitir cambiar localidad/provincia en la venta
 
-- [ ] **Reportes y métricas**
+- [x] **Reportes y métricas**
   - Agregar gráficos o métricas en el módulo de reportes
 
 - [x] **Gestión de ventas anuladas/inactivas**
   - Quitar columna de “inactivos/anuladas” de la vista principal
   - Crear un formulario independiente para listar anuladas/inactivas
 
-- [ ] **Seguridad de contraseñas**
+- [x] **Seguridad de contraseñas**
   - Hashear contraseñas de usuarios
-  - Permitir que el **admin** restablezca contraseñas a un valor default
+  - Permitir que el **gerente** restablezca contraseñas a un valor default
   - Permitir que cada empleado cambie su propia contraseña
 
-- [ ] **Nueva venta**
+- [x] **Nueva venta**
   - Mejorar la forma de búsqueda de **clientes**
   - Mejorar la forma de búsqueda de **productos**
 
