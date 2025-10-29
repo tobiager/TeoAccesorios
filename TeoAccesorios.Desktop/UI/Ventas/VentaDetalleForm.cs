@@ -441,6 +441,15 @@ namespace TeoAccesorios.Desktop
         // Imprime una factura simple a partir de los datos de la venta
         private void ImprimirFactura()
         {
+            // Detectar si la venta está anulada. Si la propiedad existe la usamos; si no, asumimos false.
+            bool isAnulada = false;
+            try
+            {
+                var prop = _venta.GetType().GetProperty("Anulada", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (prop != null) isAnulada = (prop.GetValue(_venta) as bool?) ?? false;
+            }
+            catch { isAnulada = false; }
+
             // Datos de la empresa / emprendimiento (ajustar según corresponda)
             string companyName = "Teo Accesorios";
             string companyAddress = "Av. Ejemplo 123, Ciudad";
@@ -516,18 +525,23 @@ namespace TeoAccesorios.Desktop
                 g.DrawString($"{companyEmail}", normal, Brushes.Black, infoX, y + 54);
                 g.DrawString(companyCuit, small, Brushes.Black, infoX, y + 72);
 
-                // Título factura y metadata (derecha) - aprovechando más espacio
+                // Título factura / nota de crédito y metadata (derecha)
                 var sfRight = new StringFormat { Alignment = StringAlignment.Far };
                 float rightSectionX = e.MarginBounds.Left + (e.MarginBounds.Width * 0.55f); // Comenzamos en 55% del ancho
                 float rightSectionWidth = e.MarginBounds.Width * 0.45f; // Usamos 45% del ancho para la sección derecha
                 
                 var titleRect = new RectangleF(rightSectionX, y, rightSectionWidth, 24);
-                g.DrawString($"FACTURA", titleFont, Brushes.Black, titleRect, sfRight);
+                // Mostrar diferente título y color si es nota de crédito (anulada)
+                var titleBrush = isAnulada ? Brushes.DarkRed : Brushes.Black;
+                var titleText = isAnulada ? "NOTA DE CRÉDITO" : "FACTURA";
+                g.DrawString(titleText, titleFont, titleBrush, titleRect, sfRight);
 
                 var fecha = GetDateString(_venta, "Fecha", "FechaVenta", "FechaHora", "FechaAlta", "CreatedAt") ?? "-";
                 var clienteNom = GetString(_venta, "ClienteNombre", "Cliente", "NombreCliente") ?? _cliente?.Nombre ?? "-";
 
-                g.DrawString($"Venta #{_venta.Id}", bold, Brushes.Black, new RectangleF(rightSectionX, y + 26, rightSectionWidth, 16), sfRight);
+                // Mostrar referencia: si es nota de crédito dejamos "Nota de crédito de venta #..."
+                var referencia = isAnulada ? $"NOTA - Venta #{_venta.Id}" : $"Venta #{_venta.Id}";
+                g.DrawString(referencia, bold, titleBrush, new RectangleF(rightSectionX, y + 26, rightSectionWidth, 16), sfRight);
                 g.DrawString($"Fecha: {fecha}", normal, Brushes.Black, new RectangleF(rightSectionX, y + 44, rightSectionWidth, 14), sfRight);
                 g.DrawString($"Cliente: {clienteNom}", normal, Brushes.Black, new RectangleF(rightSectionX, y + 62, rightSectionWidth, 14), sfRight);
 
@@ -576,14 +590,17 @@ namespace TeoAccesorios.Desktop
                     // Línea base para textos
                     float baseLineY = y + prodHeight - normal.GetHeight(g);
 
-                    // Cantidad - centrada
-                    g.DrawString($"{qty:N0}", normal, Brushes.Black, new RectangleF(xQty, baseLineY, qtyWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Center });
+                    // Cantidad - mostrar negativa si es nota de crédito
+                    var qtyDisplay = isAnulada ? $"-{qty:N0}" : $"{qty:N0}";
+                    g.DrawString(qtyDisplay, normal, Brushes.Black, new RectangleF(xQty, baseLineY, qtyWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Center });
 
-                    // Precio - centrado
-                    g.DrawString($"$ {precio:N0}", normal, Brushes.Black, new RectangleF(xPrecio, baseLineY, precioWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Center });
+                    // Precio - habitualmente se muestra positivo, pero si prefieres negativo puedes cambiarlo.
+                    var precioDisplay = isAnulada ? $"-$ {Math.Abs(precio):N0}" : $"$ {precio:N0}";
+                    g.DrawString(precioDisplay, normal, Brushes.Black, new RectangleF(xPrecio, baseLineY, precioWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Center });
 
-                    // Subtotal - alineado a la derecha
-                    g.DrawString($"$ {sub:N0}", normal, Brushes.Black, new RectangleF(xSub, baseLineY, subWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Far });
+                    // Subtotal - mostrar con signo negativo en nota de crédito
+                    var subDisplay = isAnulada ? $"-$ {Math.Abs(sub):N0}" : $"$ {sub:N0}";
+                    g.DrawString(subDisplay, normal, Brushes.Black, new RectangleF(xSub, baseLineY, subWidth, normal.GetHeight(g)), new StringFormat { Alignment = StringAlignment.Far });
 
                     // Avanzar Y por la altura usada por el producto + espacio
                     y += (int)prodHeight + 6;
@@ -596,30 +613,35 @@ namespace TeoAccesorios.Desktop
 
                 // Totales (alineados a la derecha) - usando más espacio
                 var total = _venta.Total > 0 ? _venta.Total : _venta.Detalles?.Sum(d => GetDecimal(d, "Subtotal", "SubTotal", "Importe", "TotalLinea")) ?? 0m;
+                // Si la venta está anulada invertimos el signo para la impresión
+                var totalToPrint = isAnulada ? -Math.Abs(total) : total;
                 var propina = 0m; // placeholder si quieres agregar más campos
-                var subtotalCalc = total - propina;
+                var subtotalCalc = totalToPrint - propina;
 
                 float rightColX = e.MarginBounds.Right - 240; // Más espacio para totales
                 float totalColWidth = 240;
 
                 g.DrawString("Subtotal:", bold, Brushes.Black, rightColX, y);
-                g.DrawString($"$ {subtotalCalc:N0}", bold, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 16), new StringFormat { Alignment = StringAlignment.Far });
+                var subtotalDisplay = isAnulada ? $"-$ {Math.Abs(subtotalCalc):N0}" : $"$ {subtotalCalc:N0}";
+                g.DrawString(subtotalDisplay, bold, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 16), new StringFormat { Alignment = StringAlignment.Far });
                 y += 18;
 
                 if (propina > 0)
                 {
                     g.DrawString("Propina:", normal, Brushes.Black, rightColX, y);
-                    g.DrawString($"$ {propina:N0}", normal, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 14), new StringFormat { Alignment = StringAlignment.Far });
+                    var propinaDisplay = isAnulada ? $"-$ {Math.Abs(propina):N0}" : $"$ {propina:N0}";
+                    g.DrawString(propinaDisplay, normal, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 14), new StringFormat { Alignment = StringAlignment.Far });
                     y += 16;
                 }
 
                 var totalFont = new Font("Segoe UI", 12f, FontStyle.Bold); // Fuente más grande para el total
-                g.DrawString("TOTAL:", totalFont, Brushes.Black, rightColX, y);
-                g.DrawString($"$ {total:N0}", totalFont, Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 18), new StringFormat { Alignment = StringAlignment.Far });
+                g.DrawString("TOTAL:", totalFont, isAnulada ? Brushes.DarkRed : Brushes.Black, rightColX, y);
+                var totalDisplay = isAnulada ? $"-$ {Math.Abs(totalToPrint):N0}" : $"$ {totalToPrint:N0}";
+                g.DrawString(totalDisplay, totalFont, isAnulada ? Brushes.DarkRed : Brushes.Black, new RectangleF(rightColX + 80, y, totalColWidth - 80, 18), new StringFormat { Alignment = StringAlignment.Far });
                 y += 30;
 
                 // Pie opcional con notas y datos legales - mejor uso del espacio
-                var note = "Gracias por su compra. Conservá este comprobante como constancia.";
+                var note = isAnulada ? "Nota de crédito emitida por anulación. Conservá este comprobante como constancia." : "Gracias por su compra. Conservá este comprobante como constancia.";
                 g.DrawString(note, small, Brushes.Gray, e.MarginBounds.Left, y);
                 y += 16;
                 g.DrawString($"Dirección: {companyAddress} | {companyPhone} | {companyEmail}", small, Brushes.Gray, e.MarginBounds.Left, y);
