@@ -71,8 +71,22 @@ private readonly DateTimePicker dpHasta = new() {
             actions.Controls.AddRange(new Control[] { btnAnular, btnVerAnuladas, btnNueva });
 
             var filtros = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 56, Padding = new Padding(8) };
-            filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(0, 8, 0, 0) });
-            filtros.Controls.Add(cboVendedor);
+
+            // Si el usuario es Vendedor no mostramos la opción para filtrar por vendedor
+            if (Sesion.Rol != RolUsuario.Vendedor)
+            {
+                filtros.Controls.Add(new Label { Text = "Vendedor:", AutoSize = true, Padding = new Padding(0, 8, 0, 0) });
+                filtros.Controls.Add(cboVendedor);
+            }
+            else
+            {
+                // Aseguramos que el combo tenga al menos el usuario actual como ítem (no se mostrará en la UI)
+                cboVendedor.Items.Clear();
+                cboVendedor.Items.Add(string.IsNullOrWhiteSpace(Sesion.Usuario) ? "Todos" : Sesion.Usuario);
+                cboVendedor.SelectedIndex = 0;
+                cboVendedor.Visible = false;
+            }
+
             filtros.Controls.Add(new Label { Text = "Cliente:", AutoSize = true, Padding = new Padding(10, 8, 0, 0) });
             filtros.Controls.Add(cboCliente);
             filtros.Controls.Add(chkRango);
@@ -174,18 +188,28 @@ private readonly DateTimePicker dpHasta = new() {
         // ===== Datos y filtros =====
         private void LoadCombos()
         {
-            var vendedores = Repository.ListarUsuarios()
-                .Where(u => u.Activo)
-                .Select(u => u.NombreUsuario)
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(s => s)
-                .ToList();
+            // Si es vendedor no cargamos la lista completa de vendedores y dejamos sólo el usuario actual.
+            if (Sesion.Rol == RolUsuario.Vendedor)
+            {
+                cboVendedor.Items.Clear();
+                cboVendedor.Items.Add(string.IsNullOrWhiteSpace(Sesion.Usuario) ? "Todos" : Sesion.Usuario);
+                cboVendedor.SelectedIndex = 0;
+            }
+            else
+            {
+                var vendedores = Repository.ListarUsuarios()
+                    .Where(u => u.Activo)
+                    .Select(u => u.NombreUsuario)
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(s => s)
+                    .ToList();
 
-            cboVendedor.Items.Clear();
-            cboVendedor.Items.Add("Todos");
-            foreach (var v in vendedores) cboVendedor.Items.Add(v);
-            cboVendedor.SelectedIndex = 0;
+                cboVendedor.Items.Clear();
+                cboVendedor.Items.Add("Todos");
+                foreach (var v in vendedores) cboVendedor.Items.Add(v);
+                cboVendedor.SelectedIndex = 0;
+            }
 
             var clientes = Repository.Clientes
                 .Select(c => c.Nombre)
