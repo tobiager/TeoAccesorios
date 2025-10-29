@@ -820,7 +820,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                 await _webView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
                 stream.Position = 0;
                 var pic = ws.AddPicture(stream).MoveTo(ws.Cell(row, 1));
-                pic.Scale(0.75); 
+                pic.Scale(0.75);
                 row += (int)(pic.Height / 15) + 2; // Estimar filas ocupadas por la imagen
             }
 
@@ -830,48 +830,95 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             ws.Range(row, 1, row, 5).Style.Font.FontSize = 14;
             row++;
 
-            var data = (dynamic)_lastChartData!;
-            var datasets = (List<dynamic>)data.datasets;
+            var data = _lastChartData!;
+            var dataType = data.GetType();
+
+            // Obtener datasets como IEnumerable (no intentar castear List<AnonType> a List<T>)
+            var datasetsEnumerable = dataType.GetProperty("datasets")?.GetValue(data) as System.Collections.IEnumerable;
+            var datasetsList = datasetsEnumerable != null ? datasetsEnumerable.Cast<object>().ToList() : new List<object>();
 
             // Encabezados
             var headerCell = ws.Cell(row, 1);
             headerCell.Value = "Etiqueta";
             headerCell.Style.Font.SetBold();
-            for (int i = 0; i < datasets.Count; i++)
+
+            for (int i = 0; i < datasetsList.Count; i++)
             {
+                var ds = datasetsList[i];
+                var labelProp = ds.GetType().GetProperty("label");
+                var dsLabel = labelProp != null ? labelProp.GetValue(ds)?.ToString() ?? $"Serie {i + 1}" : $"Serie {i + 1}";
                 var dsHeaderCell = ws.Cell(row, i + 2);
-                dsHeaderCell.Value = datasets[i].label;
+                dsHeaderCell.Value = dsLabel;
                 dsHeaderCell.Style.Font.SetBold();
             }
             row++;
 
-            // Filas de datos
-            if (data.GetType().GetProperty("labels") != null) // Ranking
+            // Determinar si es ranking (tiene 'labels') o temporal
+            var labelsPropInfo = dataType.GetProperty("labels");
+            if (labelsPropInfo != null)
             {
-                var labels = (List<string>)data.labels;
+                // Ranking
+                var labelsEnumerable = labelsPropInfo.GetValue(data) as System.Collections.IEnumerable;
+                var labels = labelsEnumerable != null ? labelsEnumerable.Cast<object>().Select(x => x?.ToString() ?? string.Empty).ToList() : new List<string>();
+
                 for (int i = 0; i < labels.Count; i++)
                 {
                     ws.Cell(row + i, 1).Value = labels[i];
-                    for (int j = 0; j < datasets.Count; j++)
+                    for (int j = 0; j < datasetsList.Count; j++)
                     {
+                        var ds = datasetsList[j];
+                        var dataProp = ds.GetType().GetProperty("data");
+                        var valuesEnumerable = dataProp?.GetValue(ds) as System.Collections.IEnumerable;
+                        var valuesList = valuesEnumerable != null ? valuesEnumerable.Cast<object>().Select(v => Convert.ToDecimal(v ?? 0)).ToList() : new List<decimal>();
                         var cell = ws.Cell(row + i, j + 2);
-                        cell.Value = Convert.ToDecimal(((List<decimal>)datasets[j].data)[i]);
+                        var val = i < valuesList.Count ? valuesList[i] : 0m;
+                        cell.Value = val;
                         cell.Style.NumberFormat.Format = "$ #,##0.00";
                     }
                 }
             }
-            else // Temporal
+            else
             {
-                var firstDsData = (List<dynamic>)datasets[0].data;
-                for (int i = 0; i < firstDsData.Count; i++)
+                // Temporal: cada elemento de datasets[].data es un objeto con { x = DateTime, y = decimal }
+                if (datasetsList.Count > 0)
                 {
-                    ws.Cell(row + i, 1).Value = firstDsData[i].x;
-                    ws.Cell(row + i, 1).Style.DateFormat.Format = "dd/MM/yyyy";
-                    for (int j = 0; j < datasets.Count; j++)
+                    var firstDs = datasetsList[0];
+                    var firstDataProp = firstDs.GetType().GetProperty("data");
+                    var firstDataEnumerable = firstDataProp?.GetValue(firstDs) as System.Collections.IEnumerable;
+                    var firstDataList = firstDataEnumerable != null ? firstDataEnumerable.Cast<object>().ToList() : new List<object>();
+
+                    for (int i = 0; i < firstDataList.Count; i++)
                     {
-                        var cell = ws.Cell(row + i, j + 2);
-                        cell.Value = Convert.ToDecimal(((List<dynamic>)datasets[j].data)[i].y);
-                        cell.Style.NumberFormat.Format = "$ #,##0.00";
+                        var item = firstDataList[i];
+                        var itemType = item.GetType();
+                        var xProp = itemType.GetProperty("x");
+                        var yProp = itemType.GetProperty("y");
+
+                        var xVal = xProp != null ? xProp.GetValue(item) : null;
+                        DateTime dateVal = xVal != null ? Convert.ToDateTime(xVal) : DateTime.MinValue;
+                        ws.Cell(row + i, 1).Value = dateVal;
+                        ws.Cell(row + i, 1).Style.DateFormat.Format = "dd/MM/yyyy";
+
+                        for (int j = 0; j < datasetsList.Count; j++)
+                        {
+                            var ds = datasetsList[j];
+                            var dataProp = ds.GetType().GetProperty("data");
+                            var valuesEnumerable = dataProp?.GetValue(ds) as System.Collections.IEnumerable;
+                            var valuesList = valuesEnumerable != null ? valuesEnumerable.Cast<object>().ToList() : new List<object>();
+
+                            decimal yValue = 0m;
+                            if (i < valuesList.Count)
+                            {
+                                var element = valuesList[i];
+                                var yyProp = element.GetType().GetProperty("y");
+                                var rawY = yyProp != null ? yyProp.GetValue(element) : element;
+                                yValue = rawY != null ? Convert.ToDecimal(rawY) : 0m;
+                            }
+
+                            var cell = ws.Cell(row + i, j + 2);
+                            cell.Value = yValue;
+                            cell.Style.NumberFormat.Format = "$ #,##0.00";
+                        }
                     }
                 }
             }
