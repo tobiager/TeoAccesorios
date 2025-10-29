@@ -1,6 +1,3 @@
-````markdown
-name=README.md
-url=https://github.com/tobiager/TeoAccesorios/blob/main/README.md
 <p align="center">
   <img src="https://raw.githubusercontent.com/tobiager/UNNE-LSI/main/assets/facena.png" alt="Logo de FaCENA" width="100">
 </p>
@@ -8,7 +5,6 @@ url=https://github.com/tobiager/TeoAccesorios/blob/main/README.md
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-512BD4?style=for-the-badge&logo=dotnet&logoColor=white"/>
   <img src="https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white"/>
-  <img src="https://img.shields.io/badge/TSQL-0078D4?style=for-the-badge&logo=microsoft-sql-server&logoColor=white"/>
   <img src="https://img.shields.io/badge/WinForms-0078D4?style=for-the-badge&logo=windows&logoColor=white"/>
   <img src="https://img.shields.io/badge/Visual%20Studio-5C2D91?style=for-the-badge&logo=visual-studio&logoColor=white"/>
   <img src="https://img.shields.io/badge/Estado-en%20desarrollo-yellow?style=for-the-badge"/>
@@ -17,65 +13,50 @@ url=https://github.com/tobiager/TeoAccesorios/blob/main/README.md
 
 # TeoAccesorios — Desktop App (WinForms, .NET 8)
 
-Aplicación de escritorio en C# WinForms para la gestión integral de una marroquinería, conectada a SQL Server.
-Administra clientes, productos, usuarios y ventas, con reportes y exportación multi-formato.
+Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** para la gestión integral de una marroquinería. Permite administrar clientes, productos, usuarios y ventas, además de generar reportes con métricas clave. Este prototipo se desarrolló como proyecto académico para la cátedra de LSI (UNNE - FaCENA).
 
-Repositorio: https://github.com/tobiager/TeoAccesorios
-Última actualización conocida: 2025-10-27
-Estado: en desarrollo
-Lenguajes principales: C# (488,804 bytes), TSQL (41,839 bytes)
+## Tabla de contenidos
 
----
-
-## Índice
-
-- [Resumen](#resumen)
-- [Características principales](#características-principales)
-- [Arquitectura y tecnologías](#arquitectura-y-tecnologías)
-- [Estructura del repositorio](#estructura-del-repositorio)
-- [Base de datos](#base-de-datos)
-- [Instalación y ejecución](#instalación-y-ejecución)
-- [Configuración de entorno](#configuración-de-entorno)
-- [Flujo de uso y pantallas principales](#flujo-de-uso-y-pantallas-principales)
-- [Roles y permisos](#roles-y-permisos)
-- [Reportes y exportación](#reportes-y-exportación)
-- [Seguridad y buenas prácticas](#seguridad-y-buenas-prácticas)
-- [Testing y Calidad](#testing-y-calidad)
-- [Roadmap (actualizado)](#roadmap-actualizado)
-- [Historial de cambios](#historial-de-cambios)
-- [Problemas conocidos / Troubleshooting](#problemas-conocidos--troubleshooting)
-- [Contribuir](#contribuir)
-- [Autores y contacto](#autores-y-contacto)
+1. [Características principales](#características-principales)
+2. [Arquitectura y tecnologías](#arquitectura-y-tecnologías)
+3. [Estructura del repositorio](#estructura-del-repositorio)
+4. [Base de datos](#base-de-datos)
+5. [Roadmap](#roadmap)
+6. [Requisitos](#requisitos)
+7. [Configuración y ejecución](#configuración-y-ejecución)
+8. [Flujo de uso](#flujo-de-uso)
+9. [Roles de usuario](#roles-de-usuario)
+10. [Módulos disponibles](#módulos-disponibles)
+11. [Exportación de reportes](#exportación-de-reportes)
+12. [Capturas](#capturas)
+13. [Autores](#autores)
 
 ---
-
-## Resumen
-
-TeoAccesorios es una aplicación de escritorio desarrollada para facilitar la gestión operativa y administrativa de una marroquinería: ventas, stock, clientes, empleados y reportes. Está pensada para entornos pequeños/medianos que usan Windows y SQL Server.
 
 ## Características principales
 
-- ABM de clientes, productos, usuarios/empleados, provincias y localidades.
-- Gestión de ventas: creación, detalle, anulación y restauración (según rol).
-- Panel principal (Dashboard) con KPIs: ingresos, cantidad de ventas, productos más vendidos y clientes frecuentes.
-- Exportación de reportes en PDF (QuestPDF) y Excel (ClosedXML).
-- Preferencias de UI: columnas visibles en grillas persistentes por usuario.
-- Impresión de comprobantes con logo y formato listo para impresión.
-- Búsqueda modal avanzada para seleccionar clientes y productos al crear una venta.
+- Gestión de clientes, productos, usuarios y ventas en una única interfaz.
+- **Personalización de interfaz:** los usuarios pueden guardar sus preferencias de visualización en las grillas (columnas visibles).
+- **Impresión de comprobantes:** generación de facturas de venta en formato PDF con logo, listas para imprimir.
+- Reportes con KPIs (ingresos, ventas, clientes únicos y productos vendidos).
+- Exportación de reportes en **PDF** y **XLSX**.
+- Roles diferenciados (**Gerente**, **Administrador** y **Vendedor**) con permisos específicos.
+- Interfaz en español con navegación desde un panel lateral.
+- **Gestión geográfica:** ABM completo de provincias y localidades.
+- **Búsqueda avanzada:** selectores modales para buscar clientes y productos fácilmente al crear una venta.
 
 ## Arquitectura y tecnologías
 
-- .NET 8.0
-- WinForms (desktop)
-- C# (estructura por capas: Dominio, Datos, Infra, UI)
-- SQL Server (script de creación y datos de ejemplo en `DataBase/TeoAccesorios.sql`)
-- Patron Repository para acceso a datos
-- Bibliotecas principales: QuestPDF (PDF), ClosedXML (Excel)
-- IDE recomendado: Visual Studio 2022
+- **Framework:** .NET 8.0
+- **Interfaz:** WinForms
+- **Lenguaje:** C#
+- **IDE recomendado:** Visual Studio 2022
+- **Base de datos:** SQL Server (base `TeoAccesorios` incluida en `DataBase/TeoAccesorios.sql`)
+- **Patrón de acceso a datos:** `Repository` con consultas a tablas `cliente`, `usuario`, `categoria`, `subcategoria`, `producto`, `cabeceraventa` y `detalleventa`.
 
 ## Estructura del repositorio
 
-```
+```text
 TeoAccesorios.Desktop/
 ├── Datos/              # Acceso a BD (Db, Repository)
 ├── Dominio/            # Modelos de negocio (Cliente, Producto, Venta, etc.)
@@ -95,117 +76,187 @@ TeoAccesorios.Desktop/
 
 ## Base de datos
 
-- Archivo: `DataBase/TeoAccesorios.sql`.
-- Contiene: definiciones de tablas, relaciones, índices y datos de ejemplo (categorías, clientes, usuarios, productos, ventas, provincias y localidades).
-- Nota: el script incluye datos de prueba para facilitar la puesta en marcha; revísalo antes de usar en un entorno de producción.
+El archivo `DataBase/TeoAccesorios.sql` genera el esquema completo de SQL Server **y carga datos de ejemplo** para un arranque rápido. Contiene inserciones de categorías, clientes, usuarios, productos, ventas y sus detalles.
 
-Cadena de conexión por defecto (archivo `Db.cs`):
+Ejemplo de datos precargados:
+
+```sql
+SET IDENTITY_INSERT [dbo].[Categorias] ON
+INSERT [dbo].[Categorias] ([Id], [Nombre], [Descripcion], [Activo]) VALUES (1, N'Carteras', N'Carteras de cuero y eco cuero', 1)
+...
+SET IDENTITY_INSERT [dbo].[Clientes] ON
+INSERT [dbo].[Clientes] ([Id], [Nombre], [Email], [Telefono], [Direccion], [Activo], [ProvinciaId], [LocalidadId]) VALUES (1, N'Juan Pérez', N'juan@example.com', N'+54 9 379 555-1234', N'Junín 123', 1, 7, 2)
+
+SET IDENTITY_INSERT [dbo].[Usuarios] ON
+INSERT [dbo].[Usuarios] ([Id], [NombreUsuario], [Rol], [Activo], [correo], [contrasenia]) VALUES (1, N'admin', N'Admin', 1, N'admin@teo.com', N'admin123')
+```
+
+La cadena de conexión por defecto se define en `Db.cs` y puede ajustarse según la instancia local:
 
 ```csharp
 public static readonly string ConnectionString =
     "Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;";
 ```
 
-Recomendación: en entornos productivos configure autenticación SQL y encripte parámetros sensibles. No deje `Trusted_Connection=True` si usa credenciales remotas.
+---
 
-## Instalación y ejecución
+## Roadmap
 
-1. Clonar el repositorio:
-   git clone https://github.com/tobiager/TeoAccesorios.git
-2. Abrir el script `DataBase/TeoAccesorios.sql` en SQL Server Management Studio y ejecutarlo para crear la base de datos con datos de ejemplo.
-3. Abrir `TeoAccesorios-Desktop.sln` en Visual Studio 2022.
-4. Asegurarse de tener instalado .NET 8 SDK en el equipo.
-5. Restaurar paquetes NuGet desde Visual Studio.
-6. Compilar la solución y ejecutar (F5) en modo Debug.
+Estas son las próximas mejoras planificadas para **TeoAccesorios**:
 
-## Configuración de entorno
+- [x] **Base de datos de localidades y provincias**
+  - Cargar tabla con localidades y provincias
+  - Permitir cambiar localidad/provincia en la venta
 
-- Base de datos: modifique `Db.cs` si su servidor SQL usa otro nombre/credenciales.
-- Archivos y recursos: las imágenes del UI se encuentran en `Recursos/assets`.
-- Variables que puede ajustar:
-  - Timeout de conexión
-  - Rutas de exportación por defecto
+- [ ] **Reportes y métricas**
+  - Agregar gráficos o métricas en el módulo de reportes
 
-## Flujo de uso y pantallas principales
+- [x] **Gestión de ventas anuladas/inactivas**
+  - Quitar columna de “inactivos/anuladas” de la vista principal
+  - Crear un formulario independiente para listar anuladas/inactivas
 
-- Login: autenticación básica (modo demo acepta `admin`/`admin123` si se usó el script con datos de ejemplo).
-- Dashboard: KPIs, últimos movimientos y alertas de stock.
-- Clientes: alta/edición/baja/restauración y búsqueda.
-- Productos: ABM de productos con control de stock y categorias/subcategorias.
-- Ventas: creación de ventas, selección de cliente y productos desde modales, emisión de comprobante y anulación.
-- Reportes: seleccionar rango, aplicar filtros y exportar a PDF/XLSX.
+- [ ] **Seguridad de contraseñas**
+  - Hashear contraseñas de usuarios
+  - Permitir que el **admin** restablezca contraseñas a un valor default
+  - Permitir que cada empleado cambie su propia contraseña
 
-## Roles y permisos
-
-- Administrador: acceso completo, puede gestionar usuarios y ver todos los reportes.
-- Vendedor: registrar ventas, ver sus ventas, anular ventas del día (según reglas de negocio).
-- Gerente: (si está implementado) acceso a reportes y métricas agregadas.
-
-## Reportes y exportación
-
-- Implementación basada en `ReportService` que proyecta datos a `ReportSnapshot`.
-- Exportadores implementan `IReportExporter`:
-  - `PdfReportExporter` → QuestPDF
-  - `ExcelReportExporter` → ClosedXML
-- Los reportes incluyen cabecera con logo, periodo analizado, tabla de ventas y totales.
-
-## Seguridad y buenas prácticas
-
-- Actualmente las contraseñas pueden estar en texto (ver `Usuarios` table seed). Priorizar la implementación de hashing (bcrypt/Argon2) para producción.
-- No incluir credenciales en el repo. Use secret managers o variables de entorno.
-- Validar permisos en la capa de negocio además de la UI.
-
-## Testing y Calidad
-
-- No hay tests automatizados incluidos hoy. Recomendación:
-  - Agregar pruebas unitarias para servicios (ReportService, VentaService, Repository mocks)
-  - Añadir pruebas de integración para el acceso a BD en un entorno de CI con DB efímera
-
-## Roadmap (actualizado)
-
-Estado: muchos ítems planificados ya fueron implementados y quedan pendientes mejoras.
-
-- [x] Base de datos de localidades y provincias (cargada)
-- [x] Gestión de ventas anuladas/inactivas (vista separada y reglas implementadas)
-- [x] Exportación PDF y Excel (QuestPDF, ClosedXML)
-- [x] Preferencias de columnas en grillas
-- [x] Datos de ejemplo para arranque rápido
-- [ ] Seguridad de contraseñas: hashear contraseñas y flujo de recuperación
-- [ ] Mejoras en búsqueda: optimizar selectores modales y autocompletado
-- [ ] Reportes y métricas: gráficos interactivos en el Dashboard
-- [ ] Tests automatizados (unit + integración)
-
-> Si una tarea aparece marcada como completada pero observas un comportamiento distinto en tu entorno, por favor abre una issue describiendo el problema y pasos para reproducir.
-
-## Historial de cambios (resumen)
-
-- 2025-10-27: Actualización del README; sincronización del roadmap con implementación real.
-- (ver commits en el repo para historial completo)
-
-## Problemas conocidos / Troubleshooting
-
-- Error de conexión a SQL Server:
-  - Verifique la cadena en `Db.cs` y que SQL Server acepte conexiones locales.
-  - Si usa autenticación SQL, cambie la cadena y pruebe con SSMS.
-- Dependencias NuGet faltantes:
-  - Restaurar paquetes desde Visual Studio o ejecutar `dotnet restore`.
-- Fuentes o imágenes faltantes en la UI:
-  - Compruebe que `Recursos/assets` exista en el workspace; si faltan, la aplicación carga placeholders.
-
-## Contribuir
-
-- Abrir issues para bugs o mejoras.
-- Hacer forks y pull requests contra la rama `main`.
-- Sugerencia para PRs: describir el cambio, tests realizados y capturas si aplica.
-
-## Licencia
-
-- No hay licencia explícita en el repo. Si quieres usar este código en producción o distribuirlo, agrega un LICENSE apropiado (MIT, Apache-2.0, etc.).
-
-## Autores y contacto
-
-Proyecto desarrollado por Tobias Orban y Ivana Azcona (UNNE - FaCENA, 2025).
+- [ ] **Nueva venta**
+  - Mejorar la forma de búsqueda de **clientes**
+  - Mejorar la forma de búsqueda de **productos**
 
 ---
 
-````
+## Requisitos
+
+- Windows 10 u 11
+- [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) con carga de trabajo **.NET Desktop Development**
+- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- Instancia de **SQL Server** con la base de datos `TeoAccesorios`
+
+## Configuración y ejecución
+
+1. Clonar el repositorio o descargar el ZIP.
+2. Ejecutar `DataBase/TeoAccesorios.sql` para crear la base de datos local **con datos de ejemplo**. La cadena de conexión por defecto es `Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;` y puede modificarse en `Db.cs`.
+3. Abrir `TeoAccesorios-Desktop.sln` en **Visual Studio 2022**.
+4. Compilar y ejecutar en modo **Debug** (`F5`).
+
+## Flujo de uso
+
+1. **Login:** la aplicación solicita credenciales. Como demo, acepta cualquier usuario y contraseña; escribir `Admin` o `Vendedor` para ingresar con ese rol.
+2. **Dashboard:** presenta KPIs, últimas ventas y alertas de stock bajo.
+3. **Gestión:** desde el menú lateral se accede a las secciones de clientes, productos, usuarios y ventas.
+4. **Reportes:** se pueden filtrar períodos y exportar resultados en distintos formatos.
+
+## Roles de usuario
+
+### Administrador
+
+- Gestiona clientes, productos y empleados.
+- Accede a todos los reportes.
+- Puede eliminar y restaurar registros.
+
+### Vendedor
+
+- Registra ventas y visualiza únicamente las propias.
+- Puede anular/restaurar ventas del día.
+- Tiene acceso de solo lectura a los productos.
+
+## Módulos disponibles
+
+- **Login:** validación inicial del usuario (demo).
+- **Dashboard:** KPIs y resumen de actividad reciente.
+- **Clientes:** altas, ediciones, eliminaciones y restauraciones.
+- **Productos:** filtro por texto/categoría y ABM (solo Admin).
+- **Usuarios/Empleados:** administración de cuentas (solo Admin).
+- **Ventas:** creación de nuevas ventas, listado con detalles y anulación/restauración con reglas por rol.
+- Exportación en  PDF y Excel.
+
+---
+
+## Exportación de reportes
+
+La última iteración incorporó un **pipeline de exportación multi-formato** que reutiliza la misma proyección que alimenta la grilla de Reportes y la vuelca a distintos destinos según la necesidad del usuario.
+
+### Formatos disponibles
+
+- **PDF**  
+  Se genera un documento con cabecera, período de análisis, tabla de ventas y totales.  
+  Se utiliza la librería **QuestPDF**, que permite definir layouts declarativos, estilos consistentes y paginación automática.  
+  La lógica está encapsulada en un `PdfReportExporter`, responsable de aplicar la tipografía, colores de encabezado y estructura de tabla.
+
+- **Excel (XLSX)**  
+  Se crea un `Workbook` mediante **ClosedXML**, una librería especializada en OpenXML.  
+  El `ExcelReportExporter` se encarga de definir los tipos numéricos, aplicar formatos monetarios, resaltar la fila de totales y autoajustar columnas.  
+  El archivo resultante queda listo para pivotar, graficar o aplicar filtros.
+
+### Flujo técnico
+
+1. El **`ReportService`** ejecuta la consulta LINQ y la proyecta en un objeto inmutable `ReportSnapshot`.  
+2. Cada exportador implementa la interfaz **`IReportExporter`** y recibe el snapshot más la ruta de destino.  
+3. Los exportadores delegan en las bibliotecas externas (QuestPDF / ClosedXML) para materializar el documento final, manteniendo el dominio desacoplado de dependencias de terceros.  
+4. La **UI** invoca el exportador elegido desde el diálogo *Exportar*, y registra eventos de telemetría para trazabilidad.
+
+### Dependencias externas
+
+- **QuestPDF** → motor de composición de documentos PDF para .NET (distribuido vía NuGet, licencia compatible con uso académico).  
+- **ClosedXML** → motor de manipulación de hojas de cálculo Excel en formato OpenXML.  
+
+---
+
+## Capturas
+
+### Login
+<p align="center">
+  <img src="assets/login.png" width="500"/>
+</p>
+
+### Dashboard
+<p align="center">
+  <img src="assets/dashboard.png" width="900"/>
+</p>
+
+### Gestión de Clientes
+<p align="center">
+  <img src="assets/clientes.png" width="900"/>
+</p>
+
+### Gestión de Productos
+<p align="center">
+  <img src="assets/productos.png" width="900"/>
+</p>
+
+### Gestión de Empleados (solo Admin)
+<p align="center">
+  <img src="assets/empleados.png" width="900"/>
+</p>
+
+### Gestión de Localidades
+<p align="center">
+  <img src="assets/provincias-localidades.png" width="900"/>
+</p>
+
+### Ventas
+<p align="center">
+  <img src="assets/ver%20ventas.png" width="900"/>
+</p>
+
+### Venta Detalle
+<p align="center">
+  <img src="assets/ventadetalle.png" width="900"/>
+</p>
+
+### Nueva Venta
+<p align="center">
+  <img src="assets/nueva%20venta.png" width="900"/>
+</p>
+
+### Reportes
+<p align="center">
+  <img src="assets/reportes.png" width="900"/>
+</p>
+
+---
+
+## Autores
+
+<p align="center"><b>Proyecto desarrollado por Tobias Orban y Ivana Azcona (UNNE - FaCENA, 2025)</b></p>
