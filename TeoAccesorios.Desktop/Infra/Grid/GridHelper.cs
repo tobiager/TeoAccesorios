@@ -71,7 +71,7 @@ namespace TeoAccesorios.Desktop
             g.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             g.MultiSelect = false;
 
-            // Bloqueo de tamaño (opcional)
+            // Bloqueo de tamaño 
             if (bloquearTamano)
             {
                 g.AllowUserToResizeColumns = false;

@@ -47,7 +47,7 @@ namespace TeoAccesorios.Desktop
             if (string.IsNullOrEmpty(v))
             {
                 ep.SetError(tb, "");
-                return true; // vacío permitido
+                return true; 
             }
 
             // email simple

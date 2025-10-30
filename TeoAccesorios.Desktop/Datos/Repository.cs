@@ -74,7 +74,7 @@ namespace TeoAccesorios.Desktop
                 LEFT JOIN dbo.Localidades l ON l.Id = c.LocalidadId
                 LEFT JOIN dbo.Provincias p ON p.Id = l.ProvinciaId
                 WHERE (@incluirInactivos = 1 OR c.Activo = 1)
-                ORDER BY c.Nombre;", // El parámetro aquí es específico de Clientes, no lo cambiamos.
+                ORDER BY c.Nombre;", 
                 new SqlParameter("@incluirInactivos", incluirInactivos ? 1 : 0));
 
             return dt.AsEnumerable().Select(r => new Cliente
@@ -156,7 +156,7 @@ namespace TeoAccesorios.Desktop
         }
 
         // ============================ USUARIOS ============================
-        // Actualizar el método ListarUsuarios existente para incluir la lógica del estado
+        
         public static List<Usuario> ListarUsuarios()
         {
             var dt = Db.Query(@"

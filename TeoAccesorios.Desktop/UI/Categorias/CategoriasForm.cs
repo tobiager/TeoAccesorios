@@ -27,7 +27,7 @@ namespace TeoAccesorios.Desktop
 
         public CategoriasForm()
         {
-            // El Gerente ahora también tiene todos los permisos en categorías
+            // El Gerente también tiene todos los permisos en categorías
             tienePermisos = Sesion.Rol == RolUsuario.Admin || Sesion.Rol == RolUsuario.Gerente;
 
             Text = "Categorías";
@@ -72,7 +72,6 @@ namespace TeoAccesorios.Desktop
             btnEditar.Click += (s, e) => { if (tienePermisos) OnEditar(); };
             btnEliminar.Click += (s, e) => { if (tienePermisos) OnEliminar(); };
 
-            // ⬇️ Ahora abre el form correcto según el modo actual
             btnVerInactivas.Click += (s, e) =>
             {
                 if (_modo == Modo.Categorias)
@@ -82,7 +81,7 @@ namespace TeoAccesorios.Desktop
                 }
                 else
                 {
-                    // Si tu SubcategoriasInactivasForm acepta filtro, pásalo; si no, quitá el parámetro
+                    // Si SubcategoriasInactivasForm acepta filtro pasalo
                     int? catId = (cboFiltroCat.SelectedItem as ComboItem)?.Value;
                     using var f = new SubcategoriasInactivasForm(/*catId*/);
                     f.ShowDialog(this);

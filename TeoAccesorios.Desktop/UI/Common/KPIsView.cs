@@ -163,7 +163,8 @@ namespace TeoAccesorios.Desktop
                 .OrderByDescending(x => x.Cantidad)
                 .ToList();
 
-            topGrid.DataSource = topProductos;
+            // Bindear como BindingSource para mayor control; la ordenación se aplicará de forma segura en el handler.
+            topGrid.DataSource = new BindingSource { DataSource = topProductos };
 
             // Ajustar encabezados
             if (topGrid.Columns.Contains("Id"))
@@ -183,7 +184,7 @@ namespace TeoAccesorios.Desktop
                 })
                 .ToList();
 
-            ultGrid.DataSource = ultimasVentasDetalle;
+            ultGrid.DataSource = new BindingSource { DataSource = ultimasVentasDetalle };
 
             // Productos activos con bajo stock
             var productosStock = productosActivos
@@ -199,7 +200,7 @@ namespace TeoAccesorios.Desktop
                 })
                 .ToList();
 
-            stockGrid.DataSource = productosStock;
+            stockGrid.DataSource = new BindingSource { DataSource = productosStock };
         }
 
         private void WireWhiteSortGlyph(DataGridView g)
@@ -224,15 +225,69 @@ namespace TeoAccesorios.Desktop
                 var current = col.HeaderCell.Tag is WFSortOrder t ? t : WFSortOrder.None;
                 var next = current == WFSortOrder.Ascending ? WFSortOrder.Descending : WFSortOrder.Ascending;
 
-                // ordenar (BindingSource si existe; si no, DataGridView.Sort)
-                if (g.DataSource is BindingSource bs)
-                {
-                    var prop = string.IsNullOrEmpty(col.DataPropertyName) ? col.Name : col.DataPropertyName;
-                    bs.Sort = $"{prop} {(next == WFSortOrder.Ascending ? "ASC" : "DESC")}";
-                }
+                var prop = string.IsNullOrEmpty(col.DataPropertyName) ? col.Name : col.DataPropertyName;
+
+                // Intentar orden nativo si la fuente lo soporta; si no, hacer orden LINQ y rebind.
+                // Determinar la fuente subyacente
+                object underlying = null;
+                BindingSource bs = g.DataSource as BindingSource;
+                if (bs != null)
+                    underlying = bs.DataSource;
                 else
+                    underlying = g.DataSource;
+
+                bool handled = false;
+
+                // Si underlying soporta IBindingListView / IBindingList con ordenación, usar BindingSource.Sort
+                if (underlying is IBindingList || underlying is IBindingListView)
                 {
-                    g.Sort(col, next == WFSortOrder.Ascending ? ListSortDirection.Ascending : ListSortDirection.Descending);
+                    if (bs != null)
+                    {
+                        try
+                        {
+                            bs.Sort = $"{prop} {(next == WFSortOrder.Ascending ? "ASC" : "DESC")}";
+                            handled = true;
+                        }
+                        catch
+                        {
+                            // si falla, fallback más abajo
+                        }
+                    }
+                }
+
+                // Si no se pudo hacer con Sort nativo, intentar ordenar la lista con LINQ (reflexión) y rebind
+                if (!handled && underlying is System.Collections.IEnumerable enumerable)
+                {
+                    var list = enumerable.Cast<object>().ToList();
+                    if (list.Count > 0)
+                    {
+                        var itemType = list[0].GetType();
+                        var pi = itemType.GetProperty(prop);
+                        if (pi != null)
+                        {
+                            var sorted = (next == WFSortOrder.Ascending)
+                                ? list.OrderBy(x => pi.GetValue(x, null)).ToList()
+                                : list.OrderByDescending(x => pi.GetValue(x, null)).ToList();
+
+                            // reasignar DataSource a nuevo BindingSource con lista ordenada
+                            g.DataSource = new BindingSource { DataSource = sorted };
+                            handled = true;
+                        }
+                    }
+                }
+
+                // fallback: uso DataGridView.Sort para grids no enlazados
+                if (!handled)
+                {
+                    try
+                    {
+                        g.Sort(col, next == WFSortOrder.Ascending ? ListSortDirection.Ascending : ListSortDirection.Descending);
+                        handled = true;
+                    }
+                    catch
+                    {
+                        // si tampoco se puede, no hacer nada (evitar excepción)
+                    }
                 }
 
                 // resetear otros headers y setear este
