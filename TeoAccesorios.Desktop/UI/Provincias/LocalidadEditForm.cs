@@ -1,5 +1,7 @@
 using System;
 using System.Drawing;
+using System.Linq;
+using System.Media;
 using System.Windows.Forms;
 using TeoAccesorios.Desktop;
 using TeoAccesorios.Desktop.Models;
@@ -13,6 +15,10 @@ namespace TeoAccesorios.Desktop.UI.Provincias
         private readonly Button _btnGuardar = new() { Text = "Guardar" };
         private readonly Button _btnCancelar = new() { Text = "Cancelar", DialogResult = DialogResult.Cancel };
         private readonly Localidad? _model;
+
+        // Nuevos miembros para evitar recursión al sanear texto y para mostrar tips
+        private readonly ToolTip _toolTip = new();
+        private bool _suppressTextChanged = false;
 
         public LocalidadEditForm(Localidad? model = null)
         {
@@ -52,6 +58,10 @@ namespace TeoAccesorios.Desktop.UI.Provincias
                 _cmbProvincia.Enabled = false;
             }
 
+            // Manejadores para prevenir números y sanear pegados
+            _txtNombre.KeyPress += TxtNombre_KeyPress;
+            _txtNombre.TextChanged += TxtNombre_TextChanged;
+
             _btnGuardar.Click += Guardar;
             AcceptButton = _btnGuardar;
             CancelButton = _btnCancelar;
@@ -81,10 +91,32 @@ namespace TeoAccesorios.Desktop.UI.Provincias
                 return;
             }
 
-            if (_model == null) return; // Should not happen
+            if (_model == null) return; 
+
+            var provinciaId = (int)_cmbProvincia.SelectedValue;
+
+            // Comprobación de duplicados (incluye inactivos)
+            try
+            {
+                var localidades = Repository.ListarLocalidades(provinciaId, true) ?? new System.Collections.Generic.List<Localidad>();
+                var existe = localidades.Any(l => l.Id != _model.Id &&
+                                                  string.Equals((l.Nombre ?? "").Trim(), nombre, StringComparison.OrdinalIgnoreCase));
+                if (existe)
+                {
+                    var provNombre = _cmbProvincia.Text ?? "la provincia seleccionada";
+                    MessageBox.Show($"La localidad \"{nombre}\" ya está registrada en {provNombre}.\n\nNo se permiten localidades duplicadas. Verificá la lista antes de continuar.",
+                                    "Localidad duplicada", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _txtNombre.Focus();
+                    return;
+                }
+            }
+            catch
+            {
+                // Si la comprobación por alguna razón falla, seguimos y dejamos el manejo en el try/catch de abajo.
+            }
 
             _model.Nombre = nombre;
-            _model.ProvinciaId = (int)_cmbProvincia.SelectedValue;
+            _model.ProvinciaId = provinciaId;
 
             try
             {
@@ -101,7 +133,45 @@ namespace TeoAccesorios.Desktop.UI.Provincias
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al guardar la localidad: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Mensaje amigable al usuario con la opción de ver el detalle técnico en caso necesario
+                MessageBox.Show("No se pudo guardar la localidad. Por favor intentá nuevamente.\n\nDetalles: " + ex.Message,
+                                "Error al guardar", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Evita que se puedan escribir caracteres numéricos
+        private void TxtNombre_KeyPress(object? sender, KeyPressEventArgs e)
+        {
+            if (!char.IsControl(e.KeyChar) && char.IsDigit(e.KeyChar))
+            {
+                e.Handled = true;
+                SystemSounds.Beep.Play();
+                _toolTip.Show("No se permiten números en el nombre de la localidad.", _txtNombre, 1000);
+            }
+        }
+
+        // Sanea texto que fue pegado: elimina dígitos y notifica al usuario de forma no intrusiva
+        private void TxtNombre_TextChanged(object? sender, EventArgs e)
+        {
+            if (_suppressTextChanged) return;
+
+            var tb = _txtNombre;
+            var text = tb.Text;
+            if (string.IsNullOrEmpty(text)) return;
+
+            if (text.Any(char.IsDigit))
+            {
+                _suppressTextChanged = true;
+                var selStart = tb.SelectionStart;
+                var newTextChars = text.Where(ch => !char.IsDigit(ch)).ToArray();
+                var newText = new string(newTextChars);
+                tb.Text = newText;
+
+                // Ajustar caret position de forma inteligente
+                tb.SelectionStart = Math.Min(newText.Length, Math.Max(0, selStart - (text.Length - newText.Length)));
+                _suppressTextChanged = false;
+
+                _toolTip.Show("Se eliminaron los números del nombre porque no están permitidos.", tb, 1500);
             }
         }
     }
