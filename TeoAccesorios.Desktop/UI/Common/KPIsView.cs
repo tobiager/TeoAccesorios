@@ -290,9 +290,15 @@ namespace TeoAccesorios.Desktop
                     }
                 }
 
-                // resetear otros headers y setear este
-                foreach (DataGridViewColumn c in g.Columns) if (c != col) c.HeaderCell.Tag = WFSortOrder.None;
-                col.HeaderCell.Tag = next;
+                // localizar la columna actual en la colección (puede haberse regenerado) ---
+                DataGridViewColumn activeColumn = g.Columns.Cast<DataGridViewColumn>()
+                    .FirstOrDefault(c => string.Equals(c.DataPropertyName, prop, StringComparison.OrdinalIgnoreCase)
+                                      || string.Equals(c.Name, prop, StringComparison.OrdinalIgnoreCase)
+                                      || c.Index == e.ColumnIndex);
+
+                // resetear otros headers y setear este (en la columna actual encontrada)
+                foreach (DataGridViewColumn c in g.Columns)
+                    c.HeaderCell.Tag = (c == activeColumn) ? next : WFSortOrder.None;
 
                 g.Invalidate(); // repintar headers
             };
