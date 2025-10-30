@@ -123,6 +123,14 @@ namespace TeoAccesorios.Desktop
             }
             
             FormUtils.BindCombo(cmbProv, provincias, selectedValue: provIdToSelect);
+
+            // Si no hay provincia para seleccionar (nuevo cliente), no preseleccionamos ninguna y dejamos localidades vacías.
+            if (!provIdToSelect.HasValue)
+            {
+                cmbProv.SelectedIndex = -1;
+                FormUtils.BindCombo<Localidad>(cmbLoc, null);
+                return;
+            }
             
             // Cargar localidades basadas en la provincia seleccionada (o la del modelo)
             var localidades = Repository.ListarLocalidades(provIdToSelect, false);
