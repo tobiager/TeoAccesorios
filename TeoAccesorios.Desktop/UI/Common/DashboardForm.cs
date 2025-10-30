@@ -3,7 +3,6 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using WinFormsTimer = System.Windows.Forms.Timer;
-using Microsoft.Data.SqlClient;
 
 // Alias seguro al namespace de tus forms de provincias
 using ProvsUI = TeoAccesorios.Desktop.UI.Provincias;
@@ -99,7 +98,7 @@ namespace TeoAccesorios.Desktop
             var btnClientes = Btn("Clientes");
             var btnCategorias = Btn("Categorías");
 
-            // NUEVO: botón Provincias/Localidades
+            // botón Provincias/Localidades
             var btnProvinciasLocalidades = Btn("Provincias/Localidades");
 
             var btnProductos = Btn("Productos");
@@ -155,7 +154,7 @@ namespace TeoAccesorios.Desktop
             btnClientes.Click += (_, __) => Nav(btnClientes, () => ShowInContent(new ClientesForm()));
             btnCategorias.Click += (_, __) => Nav(btnCategorias, () => ShowInContent(new CategoriasForm()));
 
-            // NUEVO: abre el administrador de provincias/localidades
+            // abre el administrador de provincias/localidades
             btnProvinciasLocalidades.Click += (_, __) =>
                 Nav(btnProvinciasLocalidades, () => ShowInContent(new ProvsUI.ProvinciasLocalidadesForm()));
 
@@ -178,14 +177,14 @@ namespace TeoAccesorios.Desktop
             side.Controls.Add(btnNuevaVenta);
             side.Controls.Add(btnVerVentas);
             side.Controls.Add(btnProductos);
-            side.Controls.Add(btnProvinciasLocalidades); // <— queda entre Categorías y Productos
+            side.Controls.Add(btnProvinciasLocalidades); 
             side.Controls.Add(btnCategorias);
             side.Controls.Add(btnClientes);
-            side.Controls.Add(btnEmpleados); // Siempre agregarlo, se controla visualmente
-            side.Controls.Add(btnEstadisticas); // Siempre agregarlo, se controla visualmente
+            side.Controls.Add(btnEmpleados); 
+            side.Controls.Add(btnEstadisticas); 
             side.Controls.Add(btnReportes);
             side.Controls.Add(btnInicio);
-            // REMOVIDO: side.Controls.Add(btnCambiarContrasenia);
+            
             if (btnBackup != null) side.Controls.Add(btnBackup);
             side.Controls.Add(btnCerrarSesion);
 
@@ -307,66 +306,6 @@ namespace TeoAccesorios.Desktop
             f.Dock = DockStyle.Fill;
             content.Controls.Add(f);
             f.Show();
-        }
-
-        // BACKUP (método legacy mantenido como fallback) - Admin y Gerente
-        private void DoBackup()
-        {
-            if (Sesion.Rol != RolUsuario.Gerente && Sesion.Rol != RolUsuario.Admin)
-            {
-                MessageBox.Show("Solo el Gerente y Administradores pueden realizar backups.", "Acceso denegado",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                using var conn = new SqlConnection(Db.ConnectionString);
-                conn.Open();
-
-                var csb = new SqlConnectionStringBuilder(conn.ConnectionString);
-                var dbName = string.IsNullOrWhiteSpace(csb.InitialCatalog) ? "TeoAccesorios" : csb.InitialCatalog;
-
-                var folder = @"C:\Backups";
-                if (!Directory.Exists(folder))
-                    Directory.CreateDirectory(folder);
-
-                var filePath = Path.Combine(folder, $"{dbName}_{DateTime.Now:yyyyMMdd_HHmmss}.bak");
-                var target = filePath.Replace("'", "''");
-
-                var sql = $@"
-                    BACKUP DATABASE [{dbName}]
-                    TO DISK = '{target}'
-                    WITH FORMAT, INIT, NAME = 'Backup {dbName}',
-                         SKIP, NOREWIND, NOUNLOAD, STATS = 10, COMPRESSION;";
-
-                using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 0 };
-                cmd.ExecuteNonQuery();
-
-                MessageBox.Show($" Backup creado en:\n{filePath}\n\n" +
-                                "Nota: la ruta es accesible para el SERVICIO de SQL Server.",
-                                "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (UnauthorizedAccessException uaex)
-            {
-                MessageBox.Show("Permisos insuficientes para escribir en C:\\Backups.\n" +
-                                "Dale permisos de escritura a la cuenta del servicio de SQL Server (p. ej. NT SERVICE\\MSSQLSERVER).\n\n" +
-                                uaex.Message, "Permisos insuficientes",
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            catch (SqlException sqlex)
-            {
-                MessageBox.Show("SQL Server rechazó la operación de backup.\n" +
-                                "• Verificá permisos BACKUP DATABASE.\n" +
-                                "• Asegurá que C:\\Backups existe en el SERVIDOR SQL y el servicio tiene escritura.\n\n" +
-                                sqlex.Message, "Error SQL",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error al hacer backup: " + ex.Message,
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
     }
 }
