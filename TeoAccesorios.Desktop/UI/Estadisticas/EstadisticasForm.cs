@@ -574,7 +574,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             // Filtrar por localidad/provincia
             if (cboLocalidad.SelectedIndex > 0 && cboLocalidad.SelectedValue is int localidadId)
             {
-                q = q.Where(v => v.LocalidadId == localidadId); // LocalidadId is nullable, but comparison with int is fine.
+                q = q.Where(v => v.LocalidadId == localidadId); 
             }
             else if (cboProvincia.SelectedIndex > 0 && cboProvincia.SelectedValue is int provinciaId)
             {
@@ -601,7 +601,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                         .Select(p => p.Id)
                         .ToHashSet();
                 }
-                else if (cboCategoria.SelectedIndex > 0 && cboCategoria.SelectedItem?.ToString() != "Todas") // This check is fine
+                else if (cboCategoria.SelectedIndex > 0 && cboCategoria.SelectedItem?.ToString() != "Todas") 
                 {
                     // Filtrar por categoría específica
                     var categoriaNombre = cboCategoria.SelectedItem!.ToString();

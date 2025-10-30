@@ -725,7 +725,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
             // Capturar la imagen del WebView2
             using var stream = new MemoryStream();
             await _webView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
-            stream.Position = 0; // Reset stream position after capture
+            stream.Position = 0; 
 
             // Generar PDF con QuestPDF
             QuestPDF.Settings.License = LicenseType.Community;
@@ -777,7 +777,7 @@ namespace TeoAccesorios.Desktop.UI.Estadisticas
                             if (_cboVendedor.SelectedIndex > 0) { col.Item().Text($"Vendedor: {_cboVendedor.SelectedItem}"); sinFiltros = false; }
                             if (_cboCategoria.SelectedIndex > 0) { col.Item().Text($"Categoría: {_cboCategoria.SelectedItem?.ToString() ?? "Todas"}"); sinFiltros = false; }
                             if (_cboProvincia.SelectedIndex > 0) { col.Item().Text($"Provincia: {_cboProvincia.Text}"); sinFiltros = false; }
-                            if (sinFiltros) col.Item().Text("Ninguno").Italic(); // This line is fine, it's a literal string.
+                            if (sinFiltros) col.Item().Text("Ninguno").Italic(); 
 
                             // Imagen del gráfico
                             col.Item().PaddingTop(20).AlignCenter().Image(stream.ToArray(), ImageScaling.FitWidth);

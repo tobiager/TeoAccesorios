@@ -3,9 +3,9 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
-using TeoAccesorios.Desktop;                   // Db, Repository, GridHelper, GridHelperLock
-using TeoAccesorios.Desktop.Models;            // Provincia, Localidad, DTOs
-using Models = TeoAccesorios.Desktop.Models;   // alias para Stats
+using TeoAccesorios.Desktop;                   
+using TeoAccesorios.Desktop.Models;            
+using Models = TeoAccesorios.Desktop.Models;   
 using ProvsUI = TeoAccesorios.Desktop.UI.Provincias;
 
 namespace TeoAccesorios.Desktop.UI.Provincias

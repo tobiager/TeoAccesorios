@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using TeoAccesorios.Desktop.Models;
 using System.Drawing.Printing;
 using System.Collections;
-using System.IO; // agregado
+using System.IO; 
 
 namespace TeoAccesorios.Desktop
 {
@@ -497,8 +497,8 @@ namespace TeoAccesorios.Desktop
                 int x = e.MarginBounds.Left;
                 int y = e.MarginBounds.Top;
 
-                var titleFont = new Font("Segoe UI", 16f, FontStyle.Bold); // Aumentado de 14f a 16f
-                var companyFont = new Font("Segoe UI Semibold", 13f); // Aumentado de 12f a 13f
+                var titleFont = new Font("Segoe UI", 16f, FontStyle.Bold); 
+                var companyFont = new Font("Segoe UI Semibold", 13f); 
                 var normal = new Font("Segoe UI", 9f);
                 var small = new Font("Segoe UI", 8f);
                 var bold = new Font("Segoe UI", 9f, FontStyle.Bold);
@@ -509,15 +509,15 @@ namespace TeoAccesorios.Desktop
                 
                 if (logo != null)
                 {
-                    int desiredH = 80; // Aumentado de 60 a 80 píxeles
+                    int desiredH = 80; 
                     int desiredW = logo.Width * desiredH / logo.Height;
                     g.DrawImage(logo, x, y, desiredW, desiredH);
-                    logoWidth = desiredW + 12; // Más espacio entre logo y texto
+                    logoWidth = desiredW + 12; 
                 }
 
                 // Empresa - reorganizada para aprovechar mejor el espacio
                 float infoX = x + logoWidth;
-                float companyInfoWidth = (e.MarginBounds.Width * 0.5f) - logoWidth; // Usamos 50% del ancho menos el logo
+                float companyInfoWidth = (e.MarginBounds.Width * 0.5f) - logoWidth; 
                 
                 g.DrawString(companyName, companyFont, Brushes.Black, infoX, y);
                 g.DrawString(companyAddress, normal, Brushes.Black, infoX, y + 20);
@@ -527,8 +527,8 @@ namespace TeoAccesorios.Desktop
 
                 // Título factura / nota de crédito y metadata (derecha)
                 var sfRight = new StringFormat { Alignment = StringAlignment.Far };
-                float rightSectionX = e.MarginBounds.Left + (e.MarginBounds.Width * 0.55f); // Comenzamos en 55% del ancho
-                float rightSectionWidth = e.MarginBounds.Width * 0.45f; // Usamos 45% del ancho para la sección derecha
+                float rightSectionX = e.MarginBounds.Left + (e.MarginBounds.Width * 0.55f); 
+                float rightSectionWidth = e.MarginBounds.Width * 0.45f; 
                 
                 var titleRect = new RectangleF(rightSectionX, y, rightSectionWidth, 24);
                 // Mostrar diferente título y color si es nota de crédito (anulada)
@@ -615,7 +615,7 @@ namespace TeoAccesorios.Desktop
                 var total = _venta.Total > 0 ? _venta.Total : _venta.Detalles?.Sum(d => GetDecimal(d, "Subtotal", "SubTotal", "Importe", "TotalLinea")) ?? 0m;
                 // Si la venta está anulada invertimos el signo para la impresión
                 var totalToPrint = isAnulada ? -Math.Abs(total) : total;
-                var propina = 0m; // placeholder si quieres agregar más campos
+                var propina = 0m; 
                 var subtotalCalc = totalToPrint - propina;
 
                 float rightColX = e.MarginBounds.Right - 240; // Más espacio para totales
@@ -740,12 +740,11 @@ namespace TeoAccesorios.Desktop
         {
             // 1. Ensanchar el diálogo
             this.Width += ExtraWidth;
-            // No es necesario ajustar MinimumSize en este form ya que es de tamaño fijo.
+          
 
             // 2. Configurar la grilla para que no auto-ajuste las columnas y aproveche el espacio
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-            // El grid ya tiene Dock = DockStyle.Fill, por lo que se expandirá automáticamente.
-            // No es necesario cambiar a Anchor.
+           
 
             // 3. Forzar ancho mínimo de columnas monetarias
             SetColumnWidth("PrecioUnitario", 130);

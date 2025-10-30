@@ -129,7 +129,7 @@ namespace TeoAccesorios.Desktop
                 if (!Validar()) return;
 
                 model.NombreUsuario = txtUser.Text.Trim();
-                model.Correo = txtMail.Text.Trim(); // Ya no puede ser null porque es obligatorio
+                model.Correo = txtMail.Text.Trim(); 
                 
                 // LÓGICA DE CONTRASEÑA: Asignar solo para nuevos usuarios
                 if (esNuevoUsuario)
@@ -190,7 +190,7 @@ namespace TeoAccesorios.Desktop
             // NO VALIDAR CONTRASEÑA - Se maneja por separado con el botón Restablecer
             ep.SetError(txtPass, ""); 
             
-            // CAMBIO CRÍTICO: Hacer el correo obligatorio
+            
             ok &= RequireEmail(txtMail, ep, "Correo requerido y válido");
             if (cboRol.SelectedIndex < 0) { ep.SetError(cboRol, "Seleccioná un rol"); ok = false; } else ep.SetError(cboRol, "");
 
