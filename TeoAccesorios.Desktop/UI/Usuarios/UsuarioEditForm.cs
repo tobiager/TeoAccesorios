@@ -187,6 +187,25 @@ namespace TeoAccesorios.Desktop
             bool ok = true;
             ok &= FormValidator.Require(txtUser, ep, "Usuario requerido (3–40)", 3, 40);
             
+            // : mínimo 3 letras y no puede ser solo números
+            var usuarioTrim = txtUser.Text?.Trim() ?? "";
+            var letrasCount = usuarioTrim.Count(char.IsLetter);
+            if (letrasCount < 3)
+            {
+                ep.SetError(txtUser, "El usuario debe contener al menos 3 letras");
+                ok = false;
+            }
+            else if (usuarioTrim.Length > 0 && usuarioTrim.All(char.IsDigit))
+            {
+                ep.SetError(txtUser, "El usuario no puede ser solo números");
+                ok = false;
+            }
+            else
+            {
+                // Si no hay error específico lo limpiamos (si FormValidator.Require ya puso OK no lo sobreescribimos con vacío)
+                if (ok) ep.SetError(txtUser, "");
+            }
+
             // NO VALIDAR CONTRASEÑA - Se maneja por separado con el botón Restablecer
             ep.SetError(txtPass, ""); 
             
