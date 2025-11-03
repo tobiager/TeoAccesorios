@@ -162,8 +162,33 @@ namespace TeoAccesorios.Desktop
                 return;
             }
 
-            
             Sesion.Rol = rol;
+
+            // Si la sesión indica que la contraseña es la predeterminada, forzar cambio antes de continuar
+            if (Sesion.MustChangePassword)
+            {
+                MessageBox.Show(this,
+                    "Debe cambiar su contraseña antes de continuar. La contraseña actual es la predeterminada.",
+                    "Cambio de contraseña obligatorio",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                using (var cambiar = new UI.Usuarios.CambiarContraseniaForm())
+                {
+                    var res = cambiar.ShowDialog(this);
+                    if (res != DialogResult.OK)
+                    {
+                        // Usuario canceló o no completó el cambio: no iniciar sesión
+                        MessageBox.Show(this,
+                            "No se ha cambiado la contraseña. Inicio de sesión cancelado.",
+                            "Acceso denegado",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    // Si cambió correctamente, limpiar la bandera
+                    Sesion.MustChangePassword = false;
+                }
+            }
 
             Hide();
             using (var dash = new DashboardForm())
