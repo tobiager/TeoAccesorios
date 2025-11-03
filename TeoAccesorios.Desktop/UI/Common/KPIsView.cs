@@ -6,8 +6,6 @@ using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 
-using WFSortOrder = System.Windows.Forms.SortOrder;
-
 namespace TeoAccesorios.Desktop
 {
     public class KPIsView : UserControl
@@ -86,12 +84,11 @@ namespace TeoAccesorios.Desktop
             ThemeGrid(ultGrid);
             ThemeGrid(stockGrid);
 
-            // Aplicar ordenamiento con glifo blanco
-            // Se llama después de ThemeGrid para asegurar que los estilos base están aplicados.
-            // El ordenamiento se aplicará correctamente cuando se carguen los datos y las columnas.
-            WireWhiteSortGlyph(topGrid);
-            WireWhiteSortGlyph(ultGrid);
-            WireWhiteSortGlyph(stockGrid);
+            // Usar GridHelper para el manejo del glifo blanco y alternancia asc/desc.
+            // GridHelper.WireWhiteSortGlyph preserva estado entre rebinds y hace toggle automáticamente.
+            GridHelper.WireWhiteSortGlyph(topGrid);
+            GridHelper.WireWhiteSortGlyph(ultGrid);
+            GridHelper.WireWhiteSortGlyph(stockGrid);
 
             GridHelperLock.Apply(topGrid);
             GridHelperLock.Apply(ultGrid);
@@ -201,149 +198,6 @@ namespace TeoAccesorios.Desktop
                 .ToList();
 
             stockGrid.DataSource = new BindingSource { DataSource = productosStock };
-        }
-
-        private void WireWhiteSortGlyph(DataGridView g)
-        {
-            if (g == null) return;
-
-            // usar nuestros estilos (texto ya es blanco)
-            g.EnableHeadersVisualStyles = false;
-
-            // forzar sort programático (así no sale el glyph por defecto)
-            g.ColumnAdded += (_, ev) => { if (ev.Column.SortMode != DataGridViewColumnSortMode.NotSortable) ev.Column.SortMode = DataGridViewColumnSortMode.Programmatic; };
-            foreach (DataGridViewColumn c in g.Columns)
-                if (c.SortMode != DataGridViewColumnSortMode.NotSortable)
-                    c.SortMode = DataGridViewColumnSortMode.Programmatic;
-
-            // click en header: aplicar orden y guardar estado en Tag
-            g.ColumnHeaderMouseClick += (_, e) =>
-            {
-                if (e.ColumnIndex < 0) return;
-                var col = g.Columns[e.ColumnIndex];
-
-                var current = col.HeaderCell.Tag is WFSortOrder t ? t : WFSortOrder.None;
-                var next = current == WFSortOrder.Ascending ? WFSortOrder.Descending : WFSortOrder.Ascending;
-
-                var prop = string.IsNullOrEmpty(col.DataPropertyName) ? col.Name : col.DataPropertyName;
-
-                // Intentar orden nativo si la fuente lo soporta; si no, hacer orden LINQ y rebind.
-                // Determinar la fuente subyacente
-                object underlying = null;
-                BindingSource bs = g.DataSource as BindingSource;
-                if (bs != null)
-                    underlying = bs.DataSource;
-                else
-                    underlying = g.DataSource;
-
-                bool handled = false;
-
-                // Si underlying soporta IBindingListView / IBindingList con ordenación, usar BindingSource.Sort
-                if (underlying is IBindingList || underlying is IBindingListView)
-                {
-                    if (bs != null)
-                    {
-                        try
-                        {
-                            bs.Sort = $"{prop} {(next == WFSortOrder.Ascending ? "ASC" : "DESC")}";
-                            handled = true;
-                        }
-                        catch
-                        {
-                            // si falla, fallback más abajo
-                        }
-                    }
-                }
-
-                // Si no se pudo hacer con Sort nativo, intentar ordenar la lista con LINQ (reflexión) y rebind
-                if (!handled && underlying is System.Collections.IEnumerable enumerable)
-                {
-                    var list = enumerable.Cast<object>().ToList();
-                    if (list.Count > 0)
-                    {
-                        var itemType = list[0].GetType();
-                        var pi = itemType.GetProperty(prop);
-                        if (pi != null)
-                        {
-                            var sorted = (next == WFSortOrder.Ascending)
-                                ? list.OrderBy(x => pi.GetValue(x, null)).ToList()
-                                : list.OrderByDescending(x => pi.GetValue(x, null)).ToList();
-
-                            // reasignar DataSource a nuevo BindingSource con lista ordenada
-                            g.DataSource = new BindingSource { DataSource = sorted };
-                            handled = true;
-                        }
-                    }
-                }
-
-                // fallback: uso DataGridView.Sort para grids no enlazados
-                if (!handled)
-                {
-                    try
-                    {
-                        g.Sort(col, next == WFSortOrder.Ascending ? ListSortDirection.Ascending : ListSortDirection.Descending);
-                        handled = true;
-                    }
-                    catch
-                    {
-                        // si tampoco se puede, no hacer nada (evitar excepción)
-                    }
-                }
-
-                // localizar la columna actual en la colección (puede haberse regenerado) ---
-                DataGridViewColumn activeColumn = g.Columns.Cast<DataGridViewColumn>()
-                    .FirstOrDefault(c => string.Equals(c.DataPropertyName, prop, StringComparison.OrdinalIgnoreCase)
-                                      || string.Equals(c.Name, prop, StringComparison.OrdinalIgnoreCase)
-                                      || c.Index == e.ColumnIndex);
-
-                // resetear otros headers y setear este (en la columna actual encontrada)
-                foreach (DataGridViewColumn c in g.Columns)
-                    c.HeaderCell.Tag = (c == activeColumn) ? next : WFSortOrder.None;
-
-                g.Invalidate(); // repintar headers
-            };
-
-            // pintar header + glyph blanco
-            g.CellPainting += (_, e) =>
-            {
-                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
-                {
-                    e.Paint(e.ClipBounds, DataGridViewPaintParts.All); // pintá todo (sin glyph por defecto porque SortMode es Programmatic)
-
-                    var col = g.Columns[e.ColumnIndex];
-                    var order = col.HeaderCell.Tag is WFSortOrder ord ? ord : WFSortOrder.None;
-                    if (order != WFSortOrder.None)
-                    {
-                        DrawWhiteSortTriangle(e.Graphics!, e.CellBounds, order);
-                    }
-
-                    e.Handled = true;
-                }
-            };
-        }
-
-        private static void DrawWhiteSortTriangle(Graphics g, Rectangle cell, WFSortOrder order)
-        {
-            // triángulo pequeño a la derecha del header
-            int w = 10, h = 6;
-            int paddingRight = 10;
-            int centerX = cell.Right - paddingRight - w / 2;
-            int centerY = cell.Top + cell.Height / 2;
-
-            Point[] pts = (order == WFSortOrder.Ascending)
-                ? new[] {
-                    new Point(centerX - w/2, centerY + h/2),
-                    new Point(centerX + w/2, centerY + h/2),
-                    new Point(centerX,       centerY - h/2),
-                }
-                : new[] {
-                    new Point(centerX - w/2, centerY - h/2),
-                    new Point(centerX + w/2, centerY - h/2),
-                    new Point(centerX,       centerY + h/2),
-                };
-
-            using (var brush = new SolidBrush(Color.White))
-                g.FillPolygon(brush, pts);
         }
     }
 }
