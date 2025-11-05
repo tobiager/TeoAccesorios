@@ -13,7 +13,8 @@
 
 # TeoAccesorios — Desktop App (WinForms, .NET 8)
 
-Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** para la gestión integral de una marroquinería. Permite administrar clientes, productos, usuarios y ventas, además de generar reportes con métricas clave. Este prototipo se desarrolló como proyecto académico para la cátedra de LSI (UNNE - FaCENA).
+Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** para la gestión integral de una marroquinería.
+Permite administrar clientes, productos, usuarios y ventas, ejecutar reportes con indicadores clave y automatizar tareas de soporte como exportaciones y backups. El proyecto se desarrolló como prototipo académico para la cátedra de **Laboratorio de Sistemas de Información (UNNE - FaCENA)**.
 
 ## Tabla de contenidos
 
@@ -21,13 +22,13 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 2. [Arquitectura y tecnologías](#arquitectura-y-tecnologías)
 3. [Estructura del repositorio](#estructura-del-repositorio)
 4. [Base de datos](#base-de-datos)
-5. [Roadmap](#roadmap)
-6. [Requisitos](#requisitos)
-7. [Configuración y ejecución](#configuración-y-ejecución)
-8. [Flujo de uso](#flujo-de-uso)
-9. [Roles de usuario](#roles-de-usuario)
-10. [Módulos disponibles](#módulos-disponibles)
-11. [Exportación de reportes](#exportación-de-reportes)
+5. [Requisitos previos](#requisitos-previos)
+6. [Configuración y ejecución](#configuración-y-ejecución)
+7. [Flujo funcional](#flujo-funcional)
+8. [Roles y permisos](#roles-y-permisos)
+9. [Módulos de la aplicación](#módulos-de-la-aplicación)
+10. [Reportes y exportaciones](#reportes-y-exportaciones)
+11. [Utilidades para la operación](#utilidades-para-la-operación)
 12. [Capturas](#capturas)
 13. [Autores](#autores)
 
@@ -35,171 +36,146 @@ Aplicación de escritorio en **C# con WinForms** conectada a **SQL Server** par
 
 ## Características principales
 
-- Gestión de clientes, productos, usuarios y ventas en una única interfaz.
-- **Personalización de interfaz:** los usuarios pueden guardar sus preferencias de visualización en las grillas (columnas visibles).
-- **Impresión de comprobantes:** generación de facturas de venta en formato PDF con logo, listas para imprimir.
-- Reportes con KPIs (ingresos, ventas, clientes únicos y productos vendidos).
-- Exportación de reportes en **PDF** y **XLSX**.
-- Roles diferenciados (**Gerente**, **Administrador** y **Vendedor**) con permisos específicos.
-- Interfaz en español con navegación desde un panel lateral.
-- **Gestión geográfica:** ABM completo de provincias y localidades.
-- **Búsqueda avanzada:** selectores modales para buscar clientes y productos fácilmente al crear una venta.
+- Gestión unificada de clientes, productos, usuarios, localidades y ventas desde una misma aplicación.
+- **Panel de control** con KPIs (ingresos, cantidad de ventas, clientes únicos, top de productos) y alertas visuales de stock bajo.
+- **Workflows guiados** para ventas con búsquedas avanzadas de clientes/productos y cálculo automático de totales.
+- Personalización de grillas (columnas visibles, orden, filtros) guardada por usuario.
+- Exportación de reportes en **PDF** y **Excel (XLSX)** con layout corporativo.
+- Soporte para **soft delete** y restauración de registros (clientes, productos, usuarios, ventas).
+- Sistema de autenticación con contraseñas hasheadas y obligación de cambio cuando se detecta la contraseña por defecto.
+- Herramientas auxiliares para backup manual de la base, gestión geográfica y panel de estadísticas dinámicas.
 
 ## Arquitectura y tecnologías
 
-- **Framework:** .NET 8.0
-- **Interfaz:** WinForms
-- **Lenguaje:** C#
-- **IDE recomendado:** Visual Studio 2022
-- **Base de datos:** SQL Server (base `TeoAccesorios` incluida en `DataBase/TeoAccesorios.sql`)
-- **Patrón de acceso a datos:** `Repository` con consultas a tablas `cliente`, `usuario`, `categoria`, `subcategoria`, `producto`, `cabeceraventa` y `detalleventa`.
+### Capas lógicas
+
+- **Dominio (`Dominio/`)**: entidades de negocio tipadas (Cliente, Producto, Venta, Usuario, Provincia, etc.).
+- **Datos (`Datos/`)**: acceso a SQL Server a través de un `Repository` centralizado con consultas parametrizadas y mapeo a modelos.
+- **Infraestructura (`Infra/`)**: servicios transversales para autenticación, helpers de grillas y validaciones reutilizables.
+- **UI (`UI/`)**: formularios WinForms organizados por módulo con componentes reutilizables en `Common/`.
+
+### Tecnologías y dependencias
+
+- **Framework**: .NET 8.0 (`net8.0-windows`) con soporte WinForms.
+- **Base de datos**: SQL Server 2019+ con scripts de creación y datos de ejemplo.
+- **Paquetes NuGet**:
+  - `Microsoft.Data.SqlClient`: proveedor oficial SQL Server.
+  - `QuestPDF`: render de reportes PDF.
+  - `ClosedXML`: generación de planillas Excel.
+  - `Microsoft.Web.WebView2`: incrustación de componentes web (charts y dashboards).
+  - `Chart.js`: gráficos embebidos para módulos de estadísticas.
+  - `Newtonsoft.Json`: serialización/deserialización auxiliar.
 
 ## Estructura del repositorio
 
 ```text
-TeoAccesorios.Desktop/
-├── Datos/              # Acceso a BD (Db, Repository)
-├── Dominio/            # Modelos de negocio (Cliente, Producto, Venta, etc.)
-├── Infra/              # Infraestructura (Auth, GridHelper, Validaciones)
-├── Properties/         # Recursos autogenerados
-├── Recursos/           # Archivos de recursos (resx, imágenes)
-└── UI/                 # Formularios WinForms
-    ├── Categorias/
-    ├── Clientes/
-    ├── Common/         # Dashboard, Login, Main, Reportes
-    ├── Productos/
-    ├── Provincias/
-    ├── Subcategorias/
-    ├── Usuarios/
-    └── Ventas/
+TeoAccesorios/
+├── DataBase/                         # Scripts SQL (creación, migraciones, hashing de contraseñas)
+├── TeoAccesorios.Desktop/
+│   ├── Datos/                        # Db.cs, Repository central y consultas parametrizadas
+│   ├── Dominio/                      # Entidades de negocio (POCOs)
+│   ├── Infra/
+│   │   ├── Auth/                     # Sesión, roles y helper de contraseñas
+│   │   ├── Grid/                     # Helpers de DataGridView (persistencia de layout, locking)
+│   │   └── Validation/               # Validaciones reutilizables para formularios
+│   ├── Recursos/                     # Recursos y assets embebidos (RESX)
+│   ├── UI/
+│   │   ├── Common/                   # Login, MainForm, Dashboard, Reportes, utilidades compartidas
+│   │   ├── Clientes/, Productos/, Usuarios/, Ventas/ ...
+│   │   └── Estadisticas/             # Reportes gráficos y opciones de exportación
+│   └── TeoAccesorios.Desktop.csproj  # Proyecto WinForms (.NET 8)
+├── assets/                           # Capturas utilizadas en este README
+└── README.md
 ```
 
 ## Base de datos
 
-El archivo `DataBase/TeoAccesorios.sql` genera el esquema completo de SQL Server **y carga datos de ejemplo** para un arranque rápido. Contiene inserciones de categorías, clientes, usuarios, productos, ventas y sus detalles.
+- Script principal: `DataBase/TeoAccesorios.sql` crea todo el esquema (tablas, vistas de compatibilidad, funciones) e inserta datos iniciales (categorías, productos, clientes, usuarios, ventas, localidades).
+- Scripts complementarios (`hash-contraseñas.sql`, `migracion-provincias-localidades.sql`, etc.) permiten actualizar contraseñas, poblar localidades y mantener consistencia histórica.
+- La tabla `Usuarios` almacena hashes SHA-256 (`dbo.HashPassword`) y define contraseñas por defecto por rol (`admin123`, `gerente123`, `vendedor123`).
+- Cadena de conexión predeterminada en `Datos/Db.cs`:
 
-Ejemplo de datos precargados:
+  ```csharp
+  public static readonly string ConnectionString =
+      "Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;";
+  ```
 
-```sql
-SET IDENTITY_INSERT [dbo].[Categorias] ON
-INSERT [dbo].[Categorias] ([Id], [Nombre], [Descripcion], [Activo]) VALUES (1, N'Carteras', N'Carteras de cuero y eco cuero', 1)
-...
-SET IDENTITY_INSERT [dbo].[Clientes] ON
-INSERT [dbo].[Clientes] ([Id], [Nombre], [Email], [Telefono], [Direccion], [Activo], [ProvinciaId], [LocalidadId]) VALUES (1, N'Juan Pérez', N'juan@example.com', N'+54 9 379 555-1234', N'Junín 123', 1, 7, 2)
+  Ajustar `Server` y modo de autenticación según el entorno local/Institucional.
 
-SET IDENTITY_INSERT [dbo].[Usuarios] ON
-INSERT [dbo].[Usuarios] ([Id], [NombreUsuario], [Rol], [Activo], [correo], [contrasenia]) VALUES (1, N'admin', N'Admin', 1, N'admin@teo.com', N'admin123')
-```
+## Requisitos previos
 
-La cadena de conexión por defecto se define en `Db.cs` y puede ajustarse según la instancia local:
-
-```csharp
-public static readonly string ConnectionString =
-    "Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;";
-```
-
----
-
-## Roadmap
-
-Estas son las próximas mejoras planificadas para **TeoAccesorios**:
-
-- [x] **Base de datos de localidades y provincias**
-  - Cargar tabla con localidades y provincias
-  - Permitir cambiar localidad/provincia en la venta
-
-- [x] **Reportes y métricas**
-  - Agregar gráficos o métricas en el módulo de reportes
-
-- [x] **Gestión de ventas anuladas/inactivas**
-  - Quitar columna de “inactivos/anuladas” de la vista principal
-  - Crear un formulario independiente para listar anuladas/inactivas
-
-- [x] **Seguridad de contraseñas**
-  - Hashear contraseñas de usuarios
-  - Permitir que el **gerente** restablezca contraseñas a un valor default
-  - Permitir que cada empleado cambie su propia contraseña
-
-- [x] **Nueva venta**
-  - Mejorar la forma de búsqueda de **clientes**
-  - Mejorar la forma de búsqueda de **productos**
-
----
-
-## Requisitos
-
-- Windows 10 u 11
-- [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) con carga de trabajo **.NET Desktop Development**
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- Instancia de **SQL Server** con la base de datos `TeoAccesorios`
+- Windows 10/11 con .NET Desktop Runtime 8.0.
+- Visual Studio 2022 (preferido) o SDK de .NET 8 para compilar desde CLI.
+- SQL Server 2019 o superior (Express funciona) con permisos para crear bases y ejecutar scripts.
+- Herramienta cliente para ejecutar scripts SQL (SQL Server Management Studio, Azure Data Studio, `sqlcmd`, etc.).
 
 ## Configuración y ejecución
 
-1. Clonar el repositorio o descargar el ZIP.
-2. Ejecutar `DataBase/TeoAccesorios.sql` para crear la base de datos local **con datos de ejemplo**. La cadena de conexión por defecto es `Server=localhost;Database=TeoAccesorios;Trusted_Connection=True;` y puede modificarse en `Db.cs`.
-3. Abrir `TeoAccesorios-Desktop.sln` en **Visual Studio 2022**.
-4. Compilar y ejecutar en modo **Debug** (`F5`).
+1. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/tu-usuario/TeoAccesorios.git
+   cd TeoAccesorios
+   ```
+2. **Provisionar la base de datos**
+   - Abrir `DataBase/TeoAccesorios.sql` en SSMS/Azure Data Studio y ejecutarlo completo.
+   - Ejecutar `DataBase/hash-contraseñas.sql` para migrar las contraseñas seed a hashes SHA-256 y establecer las claves por rol.
+   - (Opcional) aplicar los scripts de migración adicionales para localidades si se parte de una BD previa.
+3. **Configurar cadena de conexión**
+   - Editar `TeoAccesorios.Desktop/Datos/Db.cs` si es necesario (servidor, autenticación SQL, etc.).
+4. **Compilar**
+   - Visual Studio: abrir `TeoAccesorios-Desktop.sln`, restaurar NuGet y compilar.
+   - CLI: `dotnet restore TeoAccesorios.Desktop/TeoAccesorios.Desktop.csproj` seguido de `dotnet build`.
+5. **Ejecutar**
+   - Visual Studio: establecer `TeoAccesorios.Desktop` como proyecto de inicio y presionar `F5`.
+   - CLI: `dotnet run --project TeoAccesorios.Desktop/TeoAccesorios.Desktop.csproj`.
+6. **Credenciales de prueba**
+   - `admin` / `admin123`
+   - `gerente` / `gerente123`
+   - `vendedor` / `vendedor123`
 
-## Flujo de uso
+## Flujo funcional
 
-1. **Login:** la aplicación solicita credenciales. Como demo, acepta cualquier usuario y contraseña; escribir `Admin` o `Vendedor` para ingresar con ese rol.
-2. **Dashboard:** presenta KPIs, últimas ventas y alertas de stock bajo.
-3. **Gestión:** desde el menú lateral se accede a las secciones de clientes, productos, usuarios y ventas.
-4. **Reportes:** se pueden filtrar períodos y exportar resultados en distintos formatos.
+1. **Login**: valida usuario en SQL Server y fuerza cambio de contraseña si detecta la clave por defecto.
+2. **Dashboard**: muestra KPIs, ventas recientes, alertas de stock y accesos rápidos.
+3. **Gestión**: ABM de clientes, productos, usuarios, localidades y provincias con soft delete/restauración.
+4. **Ventas**: asistente para generar comprobantes, seleccionar clientes/productos por modales, calcular totales y generar PDF.
+5. **Reportes & Estadísticas**: filtros de período, gráficos interactivos y exportaciones multi-formato.
+6. **Utilidades**: backup manual de la base, administración de contraseñas y mantenimiento de catálogos.
 
-## Roles de usuario
+## Roles y permisos
 
-### Administrador
+| Rol        | Alcance principal | Restricciones |
+|------------|------------------|---------------|
+| **Admin**  | Alta/baja/modificación de productos, usuarios y catálogos completos. Acceso total a reportes y utilidades. | Puede reactivar registros y forzar cambio de contraseñas. |
+| **Gerente**| Consulta global de reportes/KPIs, administración de stock y clientes. | No puede crear/editar usuarios. |
+| **Vendedor** | Generación y anulación de ventas propias, consulta de stock y clientes. | Acceso de solo lectura a catálogos; no puede ver reportes globales ni modificar usuarios. |
 
-- Gestiona clientes, productos y empleados.
-- Accede a todos los reportes.
-- Puede eliminar y restaurar registros.
+## Módulos de la aplicación
 
-### Vendedor
+- **Login (`UI/Common/LoginForm.cs`)**: interfaz moderna, validaciones inmediatas, obliga cambio de contraseña.
+- **Main / Dashboard (`UI/Common/MainForm.cs`, `DashboardForm.cs`)**: navegación lateral, cards de métricas, panel de ventas recientes.
+- **Clientes (`UI/Clientes/`)**: altas/ediciones con validación de email, asignación de localidad y restauración de registros.
+- **Productos (`UI/Productos/`)**: filtros por texto/categoría, control de stock mínimo, ABM completo y alertas de stock bajo.
+- **Usuarios (`UI/Usuarios/`)**: administración de cuentas, reseteo de contraseñas, cambio obligatorio cuando detecta hash por defecto.
+- **Ventas (`UI/Ventas/`)**: creación de comprobantes, selección de cliente/producto con modal, cálculo de totales y emisión PDF.
+- **Reportes (`UI/Common/ReportesForm.cs`)**: vista tabular con filtros, exportación PDF/XLSX y métricas agregadas.
+- **Estadísticas (`UI/Estadisticas/`)**: gráficos dinámicos (Chart.js + WebView2) y panel de exportación de configuraciones.
+- **Localidades/Provincias (`UI/Provincias/`)**: mantenimiento de catálogos geográficos integrados con clientes.
 
-- Registra ventas y visualiza únicamente las propias.
-- Puede anular/restaurar ventas del día.
-- Tiene acceso de solo lectura a los productos.
+## Reportes y exportaciones
 
-## Módulos disponibles
+- El módulo `ReportesForm` filtra las ventas desde el `Repository`, calcula KPIs (ingresos, clientes únicos, productos vendidos) y proyecta los datos en `_ventasFiltradas` para reutilizarlos en la UI y en las exportaciones.
+- **Exportación a Excel:** el método `ExportExcelConResumen` crea un libro con resumen, detalle tabular, totales automáticos y hoja protegida mediante **ClosedXML**.
+- **Exportación a PDF:** `ExportPdfConResumen` genera un documento con cabecera corporativa, totales y tabla formateada empleando **QuestPDF**.
+- El diálogo de exportación permite seleccionar el formato final y reutiliza la misma colección filtrada, garantizando consistencia entre la grilla y los archivos generados.
+- También se emiten comprobantes de venta en PDF listos para imprimir con logo corporativo y datos del cliente/productos.
 
-- **Login:** validación inicial del usuario (demo).
-- **Dashboard:** KPIs y resumen de actividad reciente.
-- **Clientes:** altas, ediciones, eliminaciones y restauraciones.
-- **Productos:** filtro por texto/categoría y ABM (solo Admin).
-- **Usuarios/Empleados:** administración de cuentas (solo Admin).
-- **Ventas:** creación de nuevas ventas, listado con detalles y anulación/restauración con reglas por rol.
-- Exportación en  PDF y Excel.
+## Utilidades para la operación
 
----
-
-## Exportación de reportes
-
-La última iteración incorporó un **pipeline de exportación multi-formato** que reutiliza la misma proyección que alimenta la grilla de Reportes y la vuelca a distintos destinos según la necesidad del usuario.
-
-### Formatos disponibles
-
-- **PDF**  
-  Se genera un documento con cabecera, período de análisis, tabla de ventas y totales.  
-  Se utiliza la librería **QuestPDF**, que permite definir layouts declarativos, estilos consistentes y paginación automática.  
-  La lógica está encapsulada en un `PdfReportExporter`, responsable de aplicar la tipografía, colores de encabezado y estructura de tabla.
-
-- **Excel (XLSX)**  
-  Se crea un `Workbook` mediante **ClosedXML**, una librería especializada en OpenXML.  
-  El `ExcelReportExporter` se encarga de definir los tipos numéricos, aplicar formatos monetarios, resaltar la fila de totales y autoajustar columnas.  
-  El archivo resultante queda listo para pivotar, graficar o aplicar filtros.
-
-### Flujo técnico
-
-1. El **`ReportService`** ejecuta la consulta LINQ y la proyecta en un objeto inmutable `ReportSnapshot`.  
-2. Cada exportador implementa la interfaz **`IReportExporter`** y recibe el snapshot más la ruta de destino.  
-3. Los exportadores delegan en las bibliotecas externas (QuestPDF / ClosedXML) para materializar el documento final, manteniendo el dominio desacoplado de dependencias de terceros.  
-4. La **UI** invoca el exportador elegido desde el diálogo *Exportar*, y registra eventos de telemetría para trazabilidad.
-
-### Dependencias externas
-
-- **QuestPDF** → motor de composición de documentos PDF para .NET (distribuido vía NuGet, licencia compatible con uso académico).  
-- **ClosedXML** → motor de manipulación de hojas de cálculo Excel en formato OpenXML.  
+- **Backup manual** (`UI/Common/BackupForm.cs`): asistente con selección de ruta, compresión opcional, validación de integridad y registro detallado del proceso.
+- **Grid Helper** (`Infra/Grid/GridHelper.cs`): persistencia de configuración de columnas por usuario y bloqueo de edición accidental.
+- **Validaciones** (`Infra/Validation/FormValidator.cs`): reglas reutilizables para garantizar datos obligatorios antes de persistir.
+- **PasswordHelper** (`Infra/Auth/PasswordHelper.cs`): hashing SHA-256 y verificación en tiempo constante.
 
 ---
 
