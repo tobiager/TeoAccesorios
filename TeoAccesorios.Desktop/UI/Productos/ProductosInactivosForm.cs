@@ -11,6 +11,23 @@ namespace TeoAccesorios.Desktop
                   () => Repository.ListarProductos(true).Where(p => !p.Activo),
                   (producto) =>
                   {
+                      // Verificar que la categoría asociada esté activa (si tiene categoría)
+                      var catId = producto.CategoriaId;
+                      if (catId != 0)
+                      {
+                          var cat = Repository.ListarCategorias(true).FirstOrDefault(c => c.Id == catId);
+                          if (cat != null && !cat.Activo)
+                          {
+                              MessageBox.Show(
+                                  $"No se puede restaurar \"{producto.Nombre}\" porque la categoría \"{cat.Nombre}\" está inactiva.\n" +
+                                  "Primero restaurá la categoría.",
+                                  "Restauración cancelada",
+                                  MessageBoxButtons.OK,
+                                  MessageBoxIcon.Warning);
+                              return;
+                          }
+                      }
+
                       // Verificar conflicto por nombre con productos activos (comparación de strings, case-insensitive)
                       var nombre = (producto.Nombre ?? "").Trim();
                       var conflicto = Repository.ListarProductos(false)

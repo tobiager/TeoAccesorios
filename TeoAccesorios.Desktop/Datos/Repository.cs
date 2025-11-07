@@ -328,20 +328,24 @@ namespace TeoAccesorios.Desktop
         // ============================ VALIDACIONES BAJA ============================
         public static int ContarProductosPorCategoria(int categoriaId)
         {
+            // Contar solo productos activos: si no hay productos activos se permite desactivar la categoría
             var dt = Db.Query(@"
                 SELECT COUNT(*) AS Cnt
                 FROM dbo.Productos
-                WHERE CategoriaId = @id;",
+                WHERE CategoriaId = @id
+                  AND Activo = 1;",
                 new SqlParameter("@id", categoriaId));
             return dt.AsEnumerable().Select(r => r.Field<int>("Cnt")).FirstOrDefault();
         }
 
         public static int ContarProductosPorSubcategoria(int subcategoriaId)
         {
+            // Contar solo productos activos en la subcategoría
             var dt = Db.Query(@"
                 SELECT COUNT(*) AS Cnt
                 FROM dbo.Productos
-                WHERE SubcategoriaId = @id;",
+                WHERE SubcategoriaId = @id
+                  AND Activo = 1;",
                 new SqlParameter("@id", subcategoriaId));
             return dt.AsEnumerable().Select(r => r.Field<int>("Cnt")).FirstOrDefault();
         }

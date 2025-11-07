@@ -186,8 +186,18 @@ namespace TeoAccesorios.Desktop
                 using var f = new CategoriaEditForm(cat);
                 if (f.ShowDialog(this) == DialogResult.OK)
                 {
-                    cat.Id = Repository.InsertarCategoria(cat);
-                    LoadData();
+                    // Confirmación antes de crear
+                    var resp = MessageBox.Show(
+                        $"¿Confirmás crear la categoría \"{cat.Nombre}\"?",
+                        "Confirmar creación",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (resp == DialogResult.Yes)
+                    {
+                        cat.Id = Repository.InsertarCategoria(cat);
+                        LoadData();
+                    }
                 }
             }
             else
@@ -206,8 +216,20 @@ namespace TeoAccesorios.Desktop
                 using var f = new SubcategoriaEditForm(sub);
                 if (f.ShowDialog(this) == DialogResult.OK)
                 {
-                    sub.Id = Repository.InsertarSubcategoria(sub);
-                    LoadData();
+                    // Obtener nombre de categoría para el mensaje (si está disponible)
+                    var catNombre = Repository.ListarCategorias(true).FirstOrDefault(c => c.Id == sub.CategoriaId)?.Nombre ?? "";
+
+                    var resp = MessageBox.Show(
+                        $"¿Confirmás crear la subcategoría \"{sub.Nombre}\" en la categoría \"{catNombre}\"?",
+                        "Confirmar creación",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (resp == DialogResult.Yes)
+                    {
+                        sub.Id = Repository.InsertarSubcategoria(sub);
+                        LoadData();
+                    }
                 }
             }
         }
@@ -228,8 +250,17 @@ namespace TeoAccesorios.Desktop
                     using var f = new CategoriaEditForm(tmp);
                     if (f.ShowDialog(this) == DialogResult.OK)
                     {
-                        Repository.ActualizarCategoria(tmp);
-                        LoadData();
+                        var resp = MessageBox.Show(
+                            $"¿Confirmás modificar la categoría \"{sel.Nombre}\"?\n\nSe guardarán los cambios.",
+                            "Confirmar modificación",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Question);
+
+                        if (resp == DialogResult.Yes)
+                        {
+                            Repository.ActualizarCategoria(tmp);
+                            LoadData();
+                        }
                     }
                 }
             }
@@ -248,8 +279,17 @@ namespace TeoAccesorios.Desktop
                     using var f = new SubcategoriaEditForm(tmp);
                     if (f.ShowDialog(this) == DialogResult.OK)
                     {
-                        Repository.ActualizarSubcategoria(tmp);
-                        LoadData();
+                        var resp = MessageBox.Show(
+                            $"¿Confirmás modificar la subcategoría \"{sel.Nombre}\"?",
+                            "Confirmar modificación",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Question);
+
+                        if (resp == DialogResult.Yes)
+                        {
+                            Repository.ActualizarSubcategoria(tmp);
+                            LoadData();
+                        }
                     }
                 }
             }
@@ -261,6 +301,15 @@ namespace TeoAccesorios.Desktop
             {
                 if (grid.CurrentRow?.DataBoundItem is Categoria sel && sel.Activo)
                 {
+                    // Confirmación antes de intentar desactivar
+                    var resp = MessageBox.Show(
+                        $"¿Confirmás desactivar la categoría \"{sel.Nombre}\"?",
+                        "Confirmar desactivación",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (resp != DialogResult.Yes) return;
+
                     if (!Repository.TryDesactivarCategoria(sel.Id, out int cant))
                     {
                         MessageBox.Show(
@@ -278,6 +327,14 @@ namespace TeoAccesorios.Desktop
             {
                 if (grid.CurrentRow?.DataBoundItem is Subcategoria sel && sel.Activo)
                 {
+                    var resp = MessageBox.Show(
+                        $"¿Confirmás desactivar la subcategoría \"{sel.Nombre}\"?",
+                        "Confirmar desactivación",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (resp != DialogResult.Yes) return;
+
                     if (!Repository.TryDesactivarSubcategoria(sel.Id, out int cant))
                     {
                         MessageBox.Show(

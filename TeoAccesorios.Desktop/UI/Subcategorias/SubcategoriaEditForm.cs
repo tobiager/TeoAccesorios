@@ -13,12 +13,13 @@ namespace TeoAccesorios.Desktop
         private readonly CheckBox chkActivo = new CheckBox { Text = "Activo" };
         private readonly Button btnOk = new Button { Text = "Guardar", Width = 90 };
         private readonly Button btnCancel = new Button { Text = "Cancelar", Width = 90 };
+        private readonly ErrorProvider ep = new ErrorProvider();
 
         private readonly Subcategoria _model;
 
         public SubcategoriaEditForm(Subcategoria model)
         {
-            _model = model;
+            _model = model ?? new Subcategoria();
             Text = model.Id == 0 ? "Nueva subcategoría" : "Editar subcategoría";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
@@ -56,32 +57,102 @@ namespace TeoAccesorios.Desktop
             }
 
             // bind
-            txtNombre.Text = model.Nombre ?? "";
-            txtDesc.Text = model.Descripcion ?? "";
-            chkActivo.Checked = model.Activo;
+            txtNombre.Text = _model.Nombre ?? "";
+            txtDesc.Text = _model.Descripcion ?? "";
+            chkActivo.Checked = _model.Activo;
+
+            // ErrorProvider UX
+            ep.BlinkStyle = ErrorBlinkStyle.NeverBlink;
+
+            // Eventos UX/validación
+            CancelButton = btnCancel;
+            txtNombre.TextChanged += (_, __) => UpdateGuardarState();
+            cboCategoria.SelectedIndexChanged += (_, __) => UpdateGuardarState();
+            txtDesc.TextChanged += (_, __) => UpdateGuardarState();
+
+            // Evitar escribir símbolos o números: solo letras, espacios y teclas de control
+            txtNombre.KeyPress += (_, e) =>
+            {
+                if (!char.IsControl(e.KeyChar) && !char.IsLetter(e.KeyChar) && !char.IsWhiteSpace(e.KeyChar))
+                    e.Handled = true;
+            };
 
             btnCancel.Click += (s, e) => DialogResult = DialogResult.Cancel;
             btnOk.Click += (s, e) =>
             {
-                if (cboCategoria.SelectedItem is not Categoria cat)
-                {
-                    MessageBox.Show("Elegí una categoría.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
-                if (string.IsNullOrWhiteSpace(txtNombre.Text))
-                {
-                    MessageBox.Show("Completá el nombre.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    txtNombre.Focus();
-                    return;
-                }
+                if (!ValidarTodo()) return;
 
-                _model.CategoriaId = cat.Id;
+                var selCat = cboCategoria.SelectedItem as Categoria;
+                _model.CategoriaId = selCat!.Id;
                 _model.Nombre = txtNombre.Text.Trim();
                 _model.Descripcion = string.IsNullOrWhiteSpace(txtDesc.Text) ? null : txtDesc.Text.Trim();
                 _model.Activo = chkActivo.Checked;
 
                 DialogResult = DialogResult.OK;
             };
+
+            // Estado inicial
+            UpdateGuardarState();
+        }
+
+        private bool ValidarTodo()
+        {
+            bool ok = true;
+            ep.Clear();
+
+            // Categoría requerida
+            var selCat = cboCategoria.SelectedItem as Categoria;
+            if (selCat is null)
+            {
+                ep.SetError(cboCategoria, "Seleccioná una categoría");
+                ok = false;
+            }
+
+            var nombre = txtNombre.Text.Trim();
+
+            // Requerido y longitud
+            if (string.IsNullOrWhiteSpace(nombre) || nombre.Length < 2 || nombre.Length > 80)
+            {
+                ep.SetError(txtNombre, "Nombre requerido (2–80 caracteres)");
+                ok = false;
+            }
+            else
+            {
+                // Sólo letras y espacios (defensivo, KeyPress ya lo filtra)
+                foreach (var ch in nombre)
+                {
+                    if (!(char.IsLetter(ch) || char.IsWhiteSpace(ch)))
+                    {
+                        ep.SetError(txtNombre, "Solo se permiten letras y espacios");
+                        ok = false;
+                        break;
+                    }
+                }
+            }
+
+            // Unicidad por categoría (case-insensitive), excluir el propio registro al editar
+            if (!string.IsNullOrEmpty(nombre) && selCat is not null)
+            {
+                var existe = Repository.ListarSubcategorias(selCat.Id, true)
+                    .Where(s => s.Id != _model.Id)
+                    .Select(s => (s.Nombre ?? "").Trim())
+                    .Any(n => string.Equals(n, nombre, StringComparison.OrdinalIgnoreCase));
+
+                if (existe)
+                {
+                    ep.SetError(txtNombre, "Ya existe otra subcategoría con el mismo nombre en la categoría seleccionada");
+                    ok = false;
+                }
+            }
+
+            return ok;
+        }
+
+        private void UpdateGuardarState()
+        {
+            bool valido = ValidarTodo();
+            btnOk.Enabled = valido;
+            AcceptButton = valido ? btnOk : null;
         }
     }
 }
