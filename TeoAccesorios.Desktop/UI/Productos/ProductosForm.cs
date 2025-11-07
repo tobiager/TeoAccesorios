@@ -77,8 +77,18 @@ namespace TeoAccesorios.Desktop
                     using var f = new ProductoEditForm(pr);
                     if (f.ShowDialog(this) == DialogResult.OK)
                     {
-                        pr.Id = Repository.InsertarProducto(pr);
-                        LoadData();
+                        // Confirmación antes de insertar
+                        var confirm = MessageBox.Show(
+                            $"¿Confirmás agregar el producto \"{pr.Nombre}\"?",
+                            "Confirmar alta",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Question);
+
+                        if (confirm == DialogResult.Yes)
+                        {
+                            pr.Id = Repository.InsertarProducto(pr);
+                            LoadData();
+                        }
                     }
                 };
 
@@ -101,8 +111,18 @@ namespace TeoAccesorios.Desktop
                         using var f = new ProductoEditForm(tmp);
                         if (f.ShowDialog(this) == DialogResult.OK)
                         {
-                            Repository.ActualizarProducto(tmp);
-                            LoadData();
+                            // Confirmación antes de actualizar
+                            var confirm = MessageBox.Show(
+                                $"¿Confirmás guardar los cambios en el producto \"{tmp.Nombre}\"?",
+                                "Confirmar edición",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Question);
+
+                            if (confirm == DialogResult.Yes)
+                            {
+                                Repository.ActualizarProducto(tmp);
+                                LoadData();
+                            }
                         }
                     }
                 };
@@ -111,8 +131,17 @@ namespace TeoAccesorios.Desktop
                 {
                     if (grid.CurrentRow?.DataBoundItem is Producto sel)
                     {
-                        Repository.EliminarProducto(sel.Id);
-                        LoadData();
+                        var confirm = MessageBox.Show(
+                            $"¿Estás seguro que deseas eliminar (desactivar) el producto \"{sel.Nombre}\"?\nEsta acción puede revertirse desde 'Ver Productos Inactivos'.",
+                            "Confirmar eliminación",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Warning);
+
+                        if (confirm == DialogResult.Yes)
+                        {
+                            Repository.EliminarProducto(sel.Id);
+                            LoadData();
+                        }
                     }
                 };
             }

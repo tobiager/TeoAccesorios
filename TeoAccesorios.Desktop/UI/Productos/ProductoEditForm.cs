@@ -54,7 +54,7 @@ namespace TeoAccesorios.Desktop
             Controls.Add(btnGuardar);
             Controls.Add(grid);
 
-            AcceptButton = btnGuardar;
+            // No dejar AcceptButton fijo: lo activamos solo si el formulario está válido
             CancelButton = btnCancelar;
 
             // Prefill
@@ -69,24 +69,25 @@ namespace TeoAccesorios.Desktop
                 if (idx >= 0) cboCat.SelectedIndex = idx;
             }
 
-            // Eventos
-            txtNombre.TextChanged += (_, __) => btnGuardar.Enabled = ValidarTodo();
-            txtDesc.TextChanged += (_, __) => btnGuardar.Enabled = ValidarTodo();
-            numPrecio.ValueChanged += (_, __) => btnGuardar.Enabled = ValidarTodo();
-            numStock.ValueChanged += (_, __) => btnGuardar.Enabled = ValidarTodo();
-            numMin.ValueChanged += (_, __) => btnGuardar.Enabled = ValidarTodo();
+            // Eventos: usar helper para centralizar enable/AcceptButton
+            txtNombre.TextChanged += (_, __) => UpdateGuardarState();
+            txtDesc.TextChanged += (_, __) => UpdateGuardarState();
+            numPrecio.ValueChanged += (_, __) => UpdateGuardarState();
+            numStock.ValueChanged += (_, __) => UpdateGuardarState();
+            numMin.ValueChanged += (_, __) => UpdateGuardarState();
 
             // Cuando cambia la categoría, recargo subcategorías válidas
             cboCat.SelectedIndexChanged += (_, __) =>
             {
                 CargarSubcategorias();                         
-                btnGuardar.Enabled = ValidarTodo();
+                UpdateGuardarState();
             };
 
             btnCancelar.Click += (_, __) => DialogResult = DialogResult.Cancel;
 
             btnGuardar.Click += (_, __) =>
             {
+                // doble chequeo por seguridad
                 if (!ValidarTodo()) return;
 
                 model.Nombre = txtNombre.Text.Trim();
@@ -115,7 +116,8 @@ namespace TeoAccesorios.Desktop
             // Carga inicial de subcategorías (depende de categoría preseleccionada)
             CargarSubcategorias(init: true);                    
 
-            btnGuardar.Enabled = ValidarTodo();
+            // Estado inicial del botón/AcceptButton
+            UpdateGuardarState();
         }
 
         // Carga subcategorías filtradas por la categoría seleccionada
@@ -160,13 +162,72 @@ namespace TeoAccesorios.Desktop
         private bool ValidarTodo()
         {
             bool ok = true;
+            // Limpiar errores previos
+            ep.Clear();
+
             ok &= FormValidator.Require(txtNombre, ep, "Nombre requerido (2–80)", 2, 80);
             ok &= FormValidator.RequireNumber(numPrecio, ep, "Precio ≥ 0", 0);
             ok &= FormValidator.RequireNumber(numStock, ep, "Stock ≥ 0 (0 permitido)", 0);
             ok &= FormValidator.RequireNumber(numMin, ep, "Stock mínimo ≥ 0", 0);
             ok &= FormValidator.RequireCombo(cboCat, ep, "Seleccioná una categoría");
-            // Subcategoría es opcional 
+
+            // Validaciones defensivas adicionales (evitan valores fuera de límites si se establecen por código)
+            if (numPrecio.Value < numPrecio.Minimum || numPrecio.Value > numPrecio.Maximum)
+            {
+                ep.SetError(numPrecio, $"Precio debe estar entre {numPrecio.Minimum} y {numPrecio.Maximum}");
+                ok = false;
+            }
+
+            if (numStock.Value < numStock.Minimum || numStock.Value > numStock.Maximum)
+            {
+                ep.SetError(numStock, $"Stock debe estar entre {numStock.Minimum} y {numStock.Maximum}");
+                ok = false;
+            }
+
+            if (numMin.Value < numMin.Minimum || numMin.Value > numMin.Maximum)
+            {
+                ep.SetError(numMin, $"Stock mínimo debe estar entre {numMin.Minimum} y {numMin.Maximum}");
+                ok = false;
+            }
+
+            // Evitar inconsistencias obvias: stock no negativo y stock mínimo no negativo (NumericUpDown los evita, pero por seguridad)
+            if (numStock.Value < 0)
+            {
+                ep.SetError(numStock, "Stock no puede ser negativo");
+                ok = false;
+            }
+            if (numMin.Value < 0)
+            {
+                ep.SetError(numMin, "Stock mínimo no puede ser negativo");
+                ok = false;
+            }
+
+            // Validación de unicidad de nombre (compara strings, case-insensitive)
+            var nombreActual = txtNombre.Text.Trim();
+            if (!string.IsNullOrEmpty(nombreActual))
+            {
+                var iguales = Repository.ListarProductos(true)
+                    .Where(x => x.Id != model.Id) // excluir el propio registro al editar
+                    .Select(x => (x.Nombre ?? "").Trim())
+                    .Any(n => string.Equals(n, nombreActual, StringComparison.OrdinalIgnoreCase));
+
+                if (iguales)
+                {
+                    ep.SetError(txtNombre, "Ya existe otro producto con el mismo nombre");
+                    ok = false;
+                }
+            }
+
             return ok;
+        }
+
+        // Centraliza la actualización del estado del botón Guardar y del AcceptButton
+        private void UpdateGuardarState()
+        {
+            bool valido = ValidarTodo();
+            btnGuardar.Enabled = valido;
+            // Solo permitir que Enter invoque Guardar cuando el formulario sea válido
+            AcceptButton = valido ? btnGuardar : null;
         }
     }
 }
