@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Linq;
 using System.Media;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using TeoAccesorios.Desktop;
 using TeoAccesorios.Desktop.Models;
@@ -19,6 +20,9 @@ namespace TeoAccesorios.Desktop.UI.Provincias
         // Nuevos miembros para evitar recursión al sanear texto y para mostrar tips
         private readonly ToolTip _toolTip = new();
         private bool _suppressTextChanged = false;
+
+        // ErrorProvider para marcar con la "X" los controles inválidos y controlar estado de guardar
+        private readonly ErrorProvider _ep = new();
 
         public LocalidadEditForm(Localidad? model = null)
         {
@@ -46,6 +50,10 @@ namespace TeoAccesorios.Desktop.UI.Provincias
 
             Controls.Add(layout);
 
+            // Configurar ErrorProvider
+            _ep.ContainerControl = this;
+            _ep.BlinkStyle = ErrorBlinkStyle.NeverBlink;
+
             CargarProvincias();
 
             _txtNombre.Text = _model.Nombre;
@@ -62,9 +70,15 @@ namespace TeoAccesorios.Desktop.UI.Provincias
             _txtNombre.KeyPress += TxtNombre_KeyPress;
             _txtNombre.TextChanged += TxtNombre_TextChanged;
 
+            // Actualizar estado de guardar al cambiar provincia (en caso de no estar deshabilitada)
+            _cmbProvincia.SelectedValueChanged += (_, __) => UpdateGuardarState();
+
             _btnGuardar.Click += Guardar;
             AcceptButton = _btnGuardar;
             CancelButton = _btnCancelar;
+
+            // Estado inicial del botón según validación
+            UpdateGuardarState();
         }
 
         private void CargarProvincias()
@@ -77,9 +91,11 @@ namespace TeoAccesorios.Desktop.UI.Provincias
         private void Guardar(object? sender, EventArgs e)
         {
             var nombre = _txtNombre.Text.Trim();
-            if (string.IsNullOrWhiteSpace(nombre))
+
+            // Validación previa (redundante con la que mantiene el estado del botón, pero segura)
+            if (!ValidarTodo())
             {
-                MessageBox.Show("El nombre no puede estar vacío.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Por favor corregí los errores antes de guardar.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 _txtNombre.Focus();
                 return;
             }
@@ -91,17 +107,15 @@ namespace TeoAccesorios.Desktop.UI.Provincias
                 return;
             }
 
-            if (_model == null) return; 
+            if (_model == null) return;
 
             var provinciaId = (int)_cmbProvincia.SelectedValue;
 
-            // Comprobación de duplicados (incluye inactivos)
+            // La comprobación de duplicados ya la hace ValidarTodo y bloquea el botón,
+            // pero se mantiene esta verificación final por seguridad.
             try
             {
-                var localidades = Repository.ListarLocalidades(provinciaId, true) ?? new System.Collections.Generic.List<Localidad>();
-                var existe = localidades.Any(l => l.Id != _model.Id &&
-                                                  string.Equals((l.Nombre ?? "").Trim(), nombre, StringComparison.OrdinalIgnoreCase));
-                if (existe)
+                if (EsNombreDuplicado(nombre, provinciaId))
                 {
                     var provNombre = _cmbProvincia.Text ?? "la provincia seleccionada";
                     MessageBox.Show($"La localidad \"{nombre}\" ya está registrada en {provNombre}.\n\nNo se permiten localidades duplicadas. Verificá la lista antes de continuar.",
@@ -112,7 +126,7 @@ namespace TeoAccesorios.Desktop.UI.Provincias
             }
             catch
             {
-                // Si la comprobación por alguna razón falla, seguimos y dejamos el manejo en el try/catch de abajo.
+                // ignorar y continuar; si falla la comprobación en tiempo real, evitamos bloquear el guardado por error de repositorio
             }
 
             _model.Nombre = nombre;
@@ -139,31 +153,37 @@ namespace TeoAccesorios.Desktop.UI.Provincias
             }
         }
 
-        // Evita que se puedan escribir caracteres numéricos
+        // Evita que se puedan escribir caracteres numéricos o símbolos
         private void TxtNombre_KeyPress(object? sender, KeyPressEventArgs e)
         {
-            if (!char.IsControl(e.KeyChar) && char.IsDigit(e.KeyChar))
+            // Permitimos control (backspace), letras (incluye acentos y alfabetos unicode) y espacios
+            if (!char.IsControl(e.KeyChar) && !char.IsLetter(e.KeyChar) && !char.IsWhiteSpace(e.KeyChar))
             {
                 e.Handled = true;
                 SystemSounds.Beep.Play();
-                _toolTip.Show("No se permiten números en el nombre de la localidad.", _txtNombre, 1000);
+                _toolTip.Show("Solo se permiten letras y espacios. No se permiten números ni símbolos.", _txtNombre, 1500);
             }
         }
 
-        // Sanea texto que fue pegado: elimina dígitos y notifica al usuario de forma no intrusiva
+        // Sanea texto que fue pegado: elimina dígitos y símbolos, y notifica al usuario de forma no intrusiva
         private void TxtNombre_TextChanged(object? sender, EventArgs e)
         {
             if (_suppressTextChanged) return;
 
             var tb = _txtNombre;
             var text = tb.Text;
-            if (string.IsNullOrEmpty(text)) return;
+            if (string.IsNullOrEmpty(text))
+            {
+                UpdateGuardarState();
+                return;
+            }
 
-            if (text.Any(char.IsDigit))
+            // Mantener solo letras y espacios
+            if (text.Any(ch => !char.IsLetter(ch) && !char.IsWhiteSpace(ch)))
             {
                 _suppressTextChanged = true;
                 var selStart = tb.SelectionStart;
-                var newTextChars = text.Where(ch => !char.IsDigit(ch)).ToArray();
+                var newTextChars = text.Where(ch => char.IsLetter(ch) || char.IsWhiteSpace(ch)).ToArray();
                 var newText = new string(newTextChars);
                 tb.Text = newText;
 
@@ -171,8 +191,103 @@ namespace TeoAccesorios.Desktop.UI.Provincias
                 tb.SelectionStart = Math.Min(newText.Length, Math.Max(0, selStart - (text.Length - newText.Length)));
                 _suppressTextChanged = false;
 
-                _toolTip.Show("Se eliminaron los números del nombre porque no están permitidos.", tb, 1500);
+                _toolTip.Show("Se eliminaron números y símbolos del nombre porque no están permitidos.", tb, 1500);
             }
+
+            // Actualizar estado del botón Guardar y marcar errores si corresponde
+            UpdateGuardarState();
+        }
+
+        // Valida que el nombre contenga solo letras/espacios y al menos 3 caracteres de letra
+        private static bool IsNombreValido(string nombre, out string motivo)
+        {
+            motivo = string.Empty;
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                motivo = "El nombre no puede estar vacío.";
+                return false;
+            }
+
+            // Contar solo letras (excluye espacios)
+            int letras = nombre.Count(char.IsLetter);
+            if (letras < 3)
+            {
+                motivo = "El nombre debe tener al menos 3 letras.";
+                return false;
+            }
+
+            // Solo letras y espacios permitidos (uso de \p{L} para soportar alfabetos unicode)
+            if (!Regex.IsMatch(nombre, @"^[\p{L} ]+$"))
+            {
+                motivo = "El nombre contiene caracteres no permitidos. Solo se aceptan letras y espacios, sin símbolos ni números.";
+                return false;
+            }
+
+            return true;
+        }
+
+        // Comprueba en el repositorio si el nombre ya existe en la provincia indicada (excluye el registro actual)
+        private bool EsNombreDuplicado(string nombre, int provinciaId)
+        {
+            try
+            {
+                var localidades = Repository.ListarLocalidades(provinciaId, true) ?? new System.Collections.Generic.List<Localidad>();
+                return localidades.Any(l => l.Id != _model?.Id &&
+                                             string.Equals((l.Nombre ?? "").Trim(), nombre.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+            catch
+            {
+                // Si falla el acceso a datos, consideramos que no podemos confirmar duplicado (no bloquear)
+                return false;
+            }
+        }
+
+        // Valida todo el formulario y establece errores en el ErrorProvider
+        private bool ValidarTodo()
+        {
+            bool ok = true;
+            _ep.SetError(_txtNombre, string.Empty);
+            _ep.SetError(_cmbProvincia, string.Empty);
+
+            var nombre = _txtNombre.Text.Trim();
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                _ep.SetError(_txtNombre, "Nombre requerido (mínimo 3 letras).");
+                ok = false;
+            }
+            else if (!IsNombreValido(nombre, out var motivo))
+            {
+                _ep.SetError(_txtNombre, motivo);
+                ok = false;
+            }
+            else
+            {
+                // Si hay provincia seleccionada, comprobar duplicado y marcar error
+                if (int.TryParse(_cmbProvincia.SelectedValue?.ToString(), out int provId))
+                {
+                    if (EsNombreDuplicado(nombre, provId))
+                    {
+                        _ep.SetError(_txtNombre, $"La localidad \"{nombre}\" ya existe en {(_cmbProvincia.Text ?? "la provincia seleccionada")}.");
+                        ok = false;
+                    }
+                }
+            }
+
+            if (_cmbProvincia.SelectedValue == null)
+            {
+                _ep.SetError(_cmbProvincia, "Debe seleccionar una provincia.");
+                ok = false;
+            }
+
+            return ok;
+        }
+
+        // Habilita/deshabilita el botón Guardar y el AcceptButton según la validación
+        private void UpdateGuardarState()
+        {
+            bool valido = ValidarTodo();
+            _btnGuardar.Enabled = valido;
+            AcceptButton = valido ? _btnGuardar : null;
         }
     }
 }
