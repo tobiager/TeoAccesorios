@@ -76,6 +76,15 @@ namespace TeoAccesorios.Desktop.UI.Provincias
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
+
+                var confirmar = MessageBox.Show(this,
+                    $"¿Crear nueva localidad en '{provStat.Nombre}'?",
+                    "Confirmar creación",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirmar != DialogResult.Yes) return;
+
                 var nuevaLocalidad = new Models.Localidad { ProvinciaId = provStat.Id, Activo = true };
                 using var form = new ProvsUI.LocalidadEditForm(nuevaLocalidad);
                 if (form.ShowDialog(this) == DialogResult.OK) CargarDatos();
@@ -144,6 +153,14 @@ namespace TeoAccesorios.Desktop.UI.Provincias
         {
             if (_dgvLocalidades.CurrentRow?.DataBoundItem is not Models.LocalidadStats locStat) return;
 
+            var confirmar = MessageBox.Show(this,
+                $"¿Modificar la localidad '{locStat.Nombre}'?",
+                "Confirmar modificación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirmar != DialogResult.Yes) return;
+
             var locModel = Repository.ObtenerLocalidad(locStat.Id);
             if (locModel == null) return;
 
@@ -157,10 +174,26 @@ namespace TeoAccesorios.Desktop.UI.Provincias
 
             if (loc.Activo == false)
             {
+                var confirmar = MessageBox.Show(this,
+                    $"¿Activar la localidad '{loc.Nombre}'?",
+                    "Confirmar activación",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirmar != DialogResult.Yes) return;
+
                 Repository.SetLocalidadActiva(loc.Id, true);
             }
             else
             {
+                var confirmar = MessageBox.Show(this,
+                    $"¿Inactivar la localidad '{loc.Nombre}'?",
+                    "Confirmar inactivación",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (confirmar != DialogResult.Yes) return;
+
                 int count = Repository.ContarClientesPorLocalidad(loc.Id);
                 if (count > 0)
                 {
