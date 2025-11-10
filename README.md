@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white"/>
   <img src="https://img.shields.io/badge/WinForms-0078D4?style=for-the-badge&logo=windows&logoColor=white"/>
   <img src="https://img.shields.io/badge/Visual%20Studio-5C2D91?style=for-the-badge&logo=visual-studio&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Estado-en%20desarrollo-yellow?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Estado-completado-greenlight?style=for-the-badge"/>
   <img src="https://img.shields.io/badge/Cursada-2025-blue?style=for-the-badge"/>
 </p>
 
@@ -29,8 +29,7 @@ Permite administrar clientes, productos, usuarios y ventas, ejecutar reportes co
 9. [Módulos de la aplicación](#módulos-de-la-aplicación)
 10. [Reportes y exportaciones](#reportes-y-exportaciones)
 11. [Utilidades para la operación](#utilidades-para-la-operación)
-12. [Capturas](#capturas)
-13. [Autores](#autores)
+12. [Autores](#autores)
 
 ---
 
@@ -176,60 +175,6 @@ TeoAccesorios/
 - **Grid Helper** (`Infra/Grid/GridHelper.cs`): persistencia de configuración de columnas por usuario y bloqueo de edición accidental.
 - **Validaciones** (`Infra/Validation/FormValidator.cs`): reglas reutilizables para garantizar datos obligatorios antes de persistir.
 - **PasswordHelper** (`Infra/Auth/PasswordHelper.cs`): hashing SHA-256 y verificación en tiempo constante.
-
----
-
-## Capturas
-
-### Login
-<p align="center">
-  <img src="assets/login.png" width="500"/>
-</p>
-
-### Dashboard
-<p align="center">
-  <img src="assets/dashboard.png" width="900"/>
-</p>
-
-### Gestión de Clientes
-<p align="center">
-  <img src="assets/clientes.png" width="900"/>
-</p>
-
-### Gestión de Productos
-<p align="center">
-  <img src="assets/productos.png" width="900"/>
-</p>
-
-### Gestión de Empleados (solo Admin)
-<p align="center">
-  <img src="assets/empleados.png" width="900"/>
-</p>
-
-### Gestión de Localidades
-<p align="center">
-  <img src="assets/provincias-localidades.png" width="900"/>
-</p>
-
-### Ventas
-<p align="center">
-  <img src="assets/ver%20ventas.png" width="900"/>
-</p>
-
-### Venta Detalle
-<p align="center">
-  <img src="assets/ventadetalle.png" width="900"/>
-</p>
-
-### Nueva Venta
-<p align="center">
-  <img src="assets/nueva%20venta.png" width="900"/>
-</p>
-
-### Reportes
-<p align="center">
-  <img src="assets/reportes.png" width="900"/>
-</p>
 
 ---
 
