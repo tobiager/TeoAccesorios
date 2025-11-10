@@ -146,8 +146,8 @@ TeoAccesorios/
 
 | Rol        | Alcance principal | Restricciones |
 |------------|------------------|---------------|
-| **Admin**  | Alta/baja/modificación de productos, usuarios y catálogos completos. Acceso total a reportes y utilidades. | Puede reactivar registros y forzar cambio de contraseñas. |
-| **Gerente**| Consulta global de reportes/KPIs, administración de stock y clientes. | No puede crear/editar usuarios. |
+| **Gerente**| Acceso total a todos los módulos: reportes/KPIs, administración de stock, clientes, ventas, usuarios y catálogos completos. | Ninguna, control total del sistema. |
+| **Admin**  | Alta/baja/modificación de vendedores, productos y catálogos. Gestión de clientes y ventas. | No puede crear/editar usuarios con rol Admin o Gerente. No tiene acceso al módulo de estadísticas. |
 | **Vendedor** | Generación y anulación de ventas propias, consulta de stock y clientes. | Acceso de solo lectura a catálogos; no puede ver reportes globales ni modificar usuarios. |
 
 ## Módulos de la aplicación

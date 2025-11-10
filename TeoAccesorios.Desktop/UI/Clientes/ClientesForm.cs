@@ -128,7 +128,6 @@ namespace TeoAccesorios.Desktop
             Controls.Add(grid);
             Controls.Add(top);
             GridHelper.Estilizar(grid);
-            // GridHelperLock.Apply(grid); // Comentado si causa problemas o no existe
             LoadData();
 
             grid.DataBindingComplete += (s, e) =>
